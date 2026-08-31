@@ -26,7 +26,7 @@ From a distance, the Tree should read as one extraordinary object with a strong 
 
 The object may move, but motion should preserve structural legibility. Slow organic response, loading, tension or minute adjustment can make the Tree feel alive; indiscriminate sway and flicker should not obscure its relationships. Light and colour should clarify stable differences or active events rather than provide interchangeable atmosphere.
 
-The Tree will first be judged in a neutral environment. This protects the construction problem from the later compositional problem of making it emerge from the Casting Pit.
+The Tree will first be judged in a neutral environment. This protects the construction problem from the later compositional problem of making it emerge from the completed Casting Pit and its converging molten flows.
 
 ## Implementation awareness
 

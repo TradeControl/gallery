@@ -4,7 +4,7 @@
 
 The Category Tree is a monumental industrial, organic and computational artwork about dispersed activity becoming structured knowledge.
 
-Across a dark constructed landscape, many separate flows are drawn towards a central casting throat. The ground yields beneath their convergence: a gridded membrane pulled into a deep gravity-like depression, as though the accumulated weight of trade, work and material has deformed the world itself. From that same centre rises an engineered recursive structure—part tree, part foundry, part instrument—whose branches receive, classify and combine those flows into progressively larger meanings.
+Across a dark constructed landscape, many separate luminous molten flows are drawn towards a central casting throat. The ground yields beneath their convergence: an immense surface pulled into a deep gravity-like depression, as though the accumulated weight of trade, work and material has deformed the world itself. The flows follow that deformation, gather energy and pour into the pit. From that same centre rises an engineered recursive structure—part tree, part foundry, part instrument—whose branches receive, classify and combine those flows into progressively larger meanings.
 
 The work should feel discovered rather than diagrammed. It belongs to the visual world of furnaces, mineral surfaces, nervous systems, circuitry and ancient machinery. Its scale is architectural. Its motion is deliberate and consequential. Organic irregularity prevents it from becoming a sterile data graphic; computational order prevents it from becoming merely botanical.
 
@@ -20,9 +20,11 @@ The completed artwork contains three related visual systems.
 
 ### The Casting Pit
 
-The landscape is a marked, deformable membrane. Its grid establishes an undeformed order and makes the deformation legible as the surface is pulled towards a central depression. The pit is not a decorative crater. It is a field of consequence: distant material remains calm and planar; nearer material stretches, steepens and submits to the throat.
+The landscape is a dark, deformable membrane pulled towards a central depression. The pit is not a decorative crater. It is a field of consequence: distant material remains calm and planar; nearer material stretches, steepens and submits to the throat.
 
-Separate luminous flows will eventually travel across this surface, converge and leave it at the centre. The membrane, its grid and those flows must remain distinct systems so that each retains a clear visual role.
+Separate luminous molten flows travel across this surface, visibly follow its descent, converge and leave it at the centre. They are the principal dynamic element of the Casting Pit and help reveal the shape of the gravity well through their paths, speed and concentration.
+
+A grid, wireframe or equivalent inspection overlay may be used while developing the surface, but it is a diagnostic instrument rather than part of the finished image. Surface deformation, diagnostic markings and lava transport must remain technically distinct systems even though surface and lava belong artistically to one complete Casting Pit.
 
 ### The Tree
 
@@ -58,4 +60,6 @@ The camera should support both encounter and understanding: low or human-scale v
 
 The archived shaders and their assessments record an earlier attempt and the lessons it produced. They are evidence, not specifications. They preserve valuable instincts—mythic-industrial atmosphere, living computation, molten and circuit-like energy—while showing why the systems must now be separated and rebuilt deliberately.
 
-In particular, the final work must not ask one distorted coordinate field to represent surface, grid and flow, and must not ask geometric folding to impersonate recursive topology. Each major system should first become convincing on its own. The intended progression is therefore Casting Pit, Tree, then Category Tree: two independent construction problems followed by a third compositional problem.
+In particular, the final work must not ask one distorted coordinate field to represent surface, diagnostic markings and flow, and must not ask geometric folding to impersonate recursive topology. Geometry, material coordinates and transport must agree where they are related, but should not be conflated into one coordinate distortion.
+
+Each major system should first become convincing on its own. The intended progression is therefore Casting Pit—including surface, molten convergence and any required central transition—then Tree, then Category Tree: two independent construction problems followed by a third compositional problem.

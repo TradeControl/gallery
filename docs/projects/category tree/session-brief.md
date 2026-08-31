@@ -4,13 +4,13 @@
 
 This session is authorized to build **Phase 1 / Casting Pit v0.1 only**.
 
-The purpose of v0.1 is to prove that a deformable gridded membrane, its camera and a small set of live controls can form a convincing basis for the Casting Pit. It is a structural and perceptual prototype, not a finished scene.
+The purpose of v0.1 is to prove that a deformable membrane, its camera and a small set of live controls can form a convincing basis for the Casting Pit. It is the first structural and perceptual study, not the complete Casting Pit or a finished scene.
 
 Create the experiment separately from `src/getting-started/`. The existing getting-started example is reference material and must not be modified.
 
 ## Question to answer
 
-Can a marked flexible surface be pulled into a central casting or gravity depression while its grid remains visibly attached, continuous and useful for reading the deformation from both monumental and inspectable camera views?
+Can a continuous flexible surface be drawn down convincingly by a central casting or gravity force from both monumental and inspectable camera views, with or without diagnostic overlays?
 
 ## Required scope
 
@@ -18,7 +18,7 @@ Build the smallest understandable Three.js experiment that includes:
 
 - A sufficiently subdivided membrane rendered as actual geometry.
 - A central depression controlled by one coherent deformation mapping.
-- Grid markings derived from the membrane's undeformed material coordinates so they travel with the surface.
+- An optional, switchable diagnostic grid, wireframe or equivalent inspection overlay that travels correctly with the surface.
 - Surface normals and simple lighting adequate to read the deformation.
 - A perspective camera and direct manual inspection controls.
 - Correct full-window resize and sensible device-pixel-ratio handling.
@@ -29,7 +29,7 @@ The initial controls should cover, at most, the artistic equivalents of:
 - Depression depth.
 - Depression width or falloff.
 - Optional inward material pull, if it is implemented as part of the same surface mapping.
-- Grid density and line weight.
+- Diagnostic overlay visibility and, if useful, its density or weight.
 - Camera or inspection position.
 - One or two lighting/exposure values needed to read the form.
 
@@ -50,21 +50,23 @@ Do not add:
 
 Do not reproduce the archived shader as a starting specification. Its files may be consulted only for provenance and known failure modes.
 
+Lava is out of scope only because v0.1 must establish trustworthy geometry first. It is the principal artistic system planned for Casting Pit v0.2, not a separate project or optional finishing effect.
+
 ## Acceptance criteria
 
 Casting Pit v0.1 is accepted when all of the following are true:
 
 1. The experiment runs from the repository's existing Vite setup without modifying the getting-started example.
 2. A broad membrane is clearly visible and is drawn into a single central depression.
-3. The grid remains continuous and attached to the membrane throughout live parameter changes; it does not slide independently over the surface.
+3. The depression reads convincingly as a continuous surface being drawn down by a central force, both with and without diagnostic overlays.
 4. The same coherent mapping accounts for the visible surface deformation and any intentional inward pull of its material.
-5. The grid reads as deformed squares on a flexible sheet rather than a collection of decorative radial rings or unexplained oval bands.
+5. When enabled, the diagnostic overlay remains attached to the membrane throughout live parameter changes and exposes the deformation without unexplained sliding, radial rings, oval bands or other coordinate-mapping artefacts.
 6. The surface remains visually stable: no obvious holes, intersection artefacts, severe aliasing or normal discontinuities appear in the intended control range.
 7. The camera can inspect the pit from a low, monumental view and from a clearer elevated view without losing or clipping the central form.
-8. Live controls make the essential shape, grid and camera decisions directly judgeable and remain small enough to understand at a glance.
+8. Live controls make the essential shape, camera and lighting decisions directly judgeable, include a simple diagnostic-overlay switch, and remain small enough to understand at a glance.
 9. Resizing the window preserves the composition and projection, and rendering resolution is bounded sensibly on high-density displays.
 10. The implementation remains a focused experiment with no tree, lava, post-processing or premature framework architecture.
 
 ## Session outcome
 
-At the end of the session, record which deformation and camera ranges produced a convincing membrane, which grid behaviour remained legible, and any limitations that should inform Casting Pit v0.2. Do not expand into lava or the Tree during this session, even if the v0.1 proof is completed early.
+At the end of the session, record which deformation, lighting and camera ranges produced a convincing membrane, whether the optional overlay exposed any mapping problems, and any limitations that should inform Casting Pit v0.2. The next Casting Pit stage will introduce lava and convergence, but do not expand into lava or the Tree during this session even if the v0.1 proof is completed early.

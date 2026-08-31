@@ -14,10 +14,37 @@ scene.add( cube );
 
 camera.position.z = 5;
 
+const controls = {
+    rotationXSpeed: 0.5,
+    rotationYSpeed: 1,
+    scale: 1
+};
+
+function connectSlider( inputId, outputId, property )
+{
+    const input = document.querySelector( `#${inputId}` );
+    const output = document.querySelector( `#${outputId}` );
+
+    input.addEventListener( 'input', () => {
+        controls[property] = Number( input.value );
+        output.value = controls[property].toFixed( 2 );
+    } );
+}
+
+connectSlider( 'rotation-x-speed', 'rotation-x-speed-value', 'rotationXSpeed' );
+connectSlider( 'rotation-y-speed', 'rotation-y-speed-value', 'rotationYSpeed' );
+connectSlider( 'cube-scale', 'cube-scale-value', 'scale' );
+
+let previousTime = 0;
+
 function animate( time )
 {
-    cube.rotation.x = time / 2000;
-    cube.rotation.y = time / 1000;
+    const deltaTime = previousTime === 0 ? 0 : ( time - previousTime ) / 1000;
+    previousTime = time;
+
+    cube.rotation.x += controls.rotationXSpeed * deltaTime;
+    cube.rotation.y += controls.rotationYSpeed * deltaTime;
+    cube.scale.setScalar( controls.scale );
     renderer.render( scene, camera );
 }
 

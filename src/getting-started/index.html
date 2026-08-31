@@ -6,9 +6,63 @@
     <title>Three.js getting started</title>
     <style>
       body { margin: 0; }
+
+      .controls {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1;
+        width: 16rem;
+        padding: 0.75rem;
+        color: white;
+        background: rgb(0 0 0 / 70%);
+        border-radius: 0.5rem;
+        font: 0.875rem/1.4 system-ui, sans-serif;
+      }
+
+      .control {
+        display: grid;
+        grid-template-columns: 1fr 3rem;
+        gap: 0.25rem 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .control:last-child {
+        margin-bottom: 0;
+      }
+
+      .control output {
+        text-align: right;
+      }
+
+      .control input {
+        grid-column: 1 / -1;
+        width: 100%;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
+    <div class="controls">
+      <label class="control" for="rotation-x-speed">
+        <span>X rotation speed</span>
+        <output id="rotation-x-speed-value">0.50</output>
+        <input id="rotation-x-speed" type="range" min="-2" max="2" step="0.05" value="0.5">
+      </label>
+
+      <label class="control" for="rotation-y-speed">
+        <span>Y rotation speed</span>
+        <output id="rotation-y-speed-value">1.00</output>
+        <input id="rotation-y-speed" type="range" min="-2" max="2" step="0.05" value="1">
+      </label>
+
+      <label class="control" for="cube-scale">
+        <span>Cube scale</span>
+        <output id="cube-scale-value">1.00</output>
+        <input id="cube-scale" type="range" min="0.25" max="2.5" step="0.05" value="1">
+      </label>
+    </div>
+
     <script type="module" src="./main.js"></script>
   </body>
 </html>
