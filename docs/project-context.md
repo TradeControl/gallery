@@ -1,5 +1,7 @@
 # Project context: Gallery
 
+31 August 2026
+
 We are beginning a new repository called **Gallery** for the **Trade Control ERP** project.
 
 ## Purpose
