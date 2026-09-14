@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Casting Pit v0.5a — Universe / Cosmos Overlay</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="Universe and Cosmos overlay experiment"></main>
+
+    <aside class="controls" aria-label="Universe and Cosmos controls">
+      <header>
+        <p>Shared Distorted Reality</p>
+        <h1>Casting Pit <span>v0.5a Universe / Cosmos</span></h1>
+      </header>
+
+      <fieldset class="mode-switch">
+        <legend>Inspection mode</legend>
+        <button type="button" data-layer-mode="universe" aria-pressed="false">Universe</button>
+        <button type="button" data-layer-mode="cosmos" aria-pressed="false">Cosmos</button>
+        <button type="button" data-layer-mode="combined" aria-pressed="true">Combined</button>
+      </fieldset>
+      <p class="mode-readout">Showing <output id="active-mode">Universe + Cosmos</output></p>
+
+      <details open>
+        <summary>Universe · physical contingency</summary>
+        <div id="universe-controls">
+          <div class="section-label">Shared membrane</div>
+          <label class="control" for="u-depth"><span>Depression depth</span><output id="u-depth-value">5.50</output><input id="u-depth" type="range" min="1" max="8" step="0.1" value="5.5"></label>
+          <label class="control" for="u-width"><span>Depression width</span><output id="u-width-value">3.80</output><input id="u-width" type="range" min="1.5" max="6" step="0.1" value="3.8"></label>
+          <label class="control" for="u-key-light"><span>Key light</span><output id="u-key-light-value">4.00</output><input id="u-key-light" type="range" min="0.5" max="8" step="0.1" value="4"></label>
+          <label class="control" for="u-exposure"><span>Exposure</span><output id="u-exposure-value">1.00</output><input id="u-exposure" type="range" min="0.5" max="1.8" step="0.05" value="1"></label>
+
+          <div class="section-label">Gate system</div>
+          <label class="control" for="u-gate-count"><span>Number of gates</span><output id="u-gate-count-value">4</output><input id="u-gate-count" type="range" min="2" max="8" step="1" value="4"></label>
+          <label class="control" for="u-stream-count"><span>Number of streams</span><output id="u-stream-count-value">12</output><input id="u-stream-count" type="range" min="6" max="18" step="1" value="12"></label>
+          <label class="control" for="u-emission-rate"><span>Peripheral inflow</span><output id="u-emission-rate-value">48</output><input id="u-emission-rate" type="range" min="12" max="96" step="1" value="48"></label>
+          <label class="control" for="u-lava-velocity"><span>Lava velocity</span><output id="u-lava-velocity-value">1.40</output><input id="u-lava-velocity" type="range" min="0.5" max="3" step="0.05" value="1.4"></label>
+          <label class="control" for="u-gate-cycle"><span>Gate cycle</span><output id="u-gate-cycle-value">11.00</output><input id="u-gate-cycle" type="range" min="5" max="20" step="0.5" value="11"></label>
+          <label class="control" for="u-phase-spread"><span>Phase spread</span><output id="u-phase-spread-value">0.78</output><input id="u-phase-spread" type="range" min="0" max="1" step="0.02" value="0.78"></label>
+          <label class="control" for="u-opening-duration"><span>Opening duration</span><output id="u-opening-duration-value">2.50</output><input id="u-opening-duration" type="range" min="1" max="5" step="0.25" value="2.5"></label>
+          <label class="control" for="u-release-threshold"><span>Release threshold / gate</span><output id="u-release-threshold-value">12</output><input id="u-release-threshold" type="range" min="4" max="40" step="1" value="12"></label>
+
+          <div class="section-label">Downstream physics</div>
+          <label class="control" for="u-gravity"><span>Gravity influence</span><output id="u-gravity-value">3.20</output><input id="u-gravity" type="range" min="0.5" max="7" step="0.1" value="3.2"></label>
+          <label class="control" for="u-drag"><span>Drag</span><output id="u-drag-value">0.32</output><input id="u-drag" type="range" min="0.05" max="1.2" step="0.01" value="0.32"></label>
+          <label class="control" for="u-interaction"><span>Interaction strength</span><output id="u-interaction-value">1.40</output><input id="u-interaction" type="range" min="0" max="2.5" step="0.05" value="1.4"></label>
+
+          <div class="section-label">Molten field</div>
+          <label class="control" for="u-persistence"><span>Persistence</span><output id="u-persistence-value">5.00</output><input id="u-persistence" type="range" min="1" max="12" step="0.25" value="5"></label>
+          <label class="control" for="u-deposition"><span>Deposition</span><output id="u-deposition-value">1.00</output><input id="u-deposition" type="range" min="0.25" max="2.5" step="0.05" value="1"></label>
+          <label class="control" for="u-molten-intensity"><span>Molten intensity</span><output id="u-molten-intensity-value">0.85</output><input id="u-molten-intensity" type="range" min="0.35" max="2" step="0.05" value="0.85"></label>
+          <label class="control" for="u-threshold"><span>Reconstruction threshold</span><output id="u-threshold-value">0.10</output><input id="u-threshold" type="range" min="0.02" max="0.4" step="0.01" value="0.1"></label>
+
+          <label class="switch" for="u-packet-diagnostics"><span>Packet diagnostics</span><input id="u-packet-diagnostics" type="checkbox"></label>
+          <label class="switch" for="u-diagnostic"><span>Membrane wireframe</span><input id="u-diagnostic" type="checkbox"></label>
+          <label class="switch" for="u-velocity-vectors"><span>Velocity vectors</span><input id="u-velocity-vectors" type="checkbox"></label>
+
+          <div class="button-row">
+            <button id="u-reset" type="button">Reset process</button>
+            <button id="u-reseed" type="button">Reseed feeds</button>
+          </div>
+          <p class="seed">Layout seed <output id="u-seed-value">1</output></p>
+          <div class="section-label source-heading"><span>Sluice gates</span><span>state</span></div>
+          <ul class="source-key" id="u-source-key"></ul>
+          <p class="seed">Rim reservoir <output id="u-reservoir-count">0</output></p>
+          <dl class="stats" aria-label="Physical simulation statistics">
+            <div><dt>Parcels</dt><dd id="u-parcel-count">0 / 700</dd></div>
+            <div><dt>Neighbour pairs</dt><dd id="u-interaction-count">0</dd></div>
+            <div><dt>Cross-source pairs</dt><dd id="u-cross-source-count">0</dd></div>
+            <div><dt>Reconstruction</dt><dd id="u-reconstruction-time">0.00 ms</dd></div>
+            <div><dt>Simulation</dt><dd id="u-simulation-time">0.00 ms</dd></div>
+          </dl>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Cosmos · generative order</summary>
+        <div id="cosmos-controls">
+          <div class="section-label">Cosmic circuitry</div>
+          <label class="control" for="c-intensity"><span>Circuitry intensity</span><output id="c-intensity-value">0.65</output><input id="c-intensity" type="range" min="0.05" max="1.5" step="0.05" value="0.65"></label>
+          <label class="control" for="c-arterial-connectivity"><span>Arterial connectivity</span><output id="c-arterial-connectivity-value">0.45</output><input id="c-arterial-connectivity" type="range" min="0" max="1" step="0.01" value="0.45"></label>
+          <label class="control" for="c-district-density"><span>District density</span><output id="c-district-density-value">0.60</output><input id="c-district-density" type="range" min="0" max="1" step="0.01" value="0.6"></label>
+          <label class="control" for="c-intricacy"><span>Subdivision depth</span><output id="c-intricacy-value">7</output><input id="c-intricacy" type="range" min="3" max="7" step="1" value="7"></label>
+          <label class="control" for="c-district-footprint"><span>District footprint</span><output id="c-district-footprint-value">1.70</output><input id="c-district-footprint" type="range" min="0.75" max="2.25" step="0.01" value="1.7"></label>
+          <label class="control" for="c-territory-x"><span>Territory sample X</span><output id="c-territory-x-value">0.00</output><input id="c-territory-x" type="range" min="-8" max="8" step="0.25" value="0"></label>
+          <label class="control" for="c-territory-z"><span>Territory sample Z</span><output id="c-territory-z-value">4.00</output><input id="c-territory-z" type="range" min="-8" max="8" step="0.25" value="4"></label>
+          <label class="control" for="c-surface-binding"><span>Surface binding</span><output id="c-surface-binding-value">1.00</output><input id="c-surface-binding" type="range" min="0" max="1" step="0.01" value="1"></label>
+
+          <div class="section-label">Communication</div>
+          <label class="control" for="c-signal-density"><span>Communication density</span><output id="c-signal-density-value">110</output><input id="c-signal-density" type="range" min="0" max="140" step="1" value="110"></label>
+          <label class="control" for="c-signal-speed"><span>Communication speed</span><output id="c-signal-speed-value">2.50</output><input id="c-signal-speed" type="range" min="0.25" max="10" step="0.25" value="2.5"></label>
+          <label class="control" for="c-signal-brightness"><span>Communication brightness</span><output id="c-signal-brightness-value">0.85</output><input id="c-signal-brightness" type="range" min="0.2" max="3" step="0.05" value="0.85"></label>
+
+          <div class="button-row">
+            <button id="c-reset" type="button">Reset signals</button>
+            <button id="c-reseed" type="button">Reseed network</button>
+          </div>
+          <p class="seed">Network seed <output id="c-seed-value">2</output></p>
+          <dl class="stats" aria-label="Network statistics">
+            <div><dt>Nodes</dt><dd id="c-node-count">0</dd></div>
+            <div><dt>Connections</dt><dd id="c-edge-count">0</dd></div>
+            <div><dt>Signals</dt><dd id="c-pulse-count">0</dd></div>
+          </dl>
+        </div>
+      </details>
+
+      <fieldset class="camera-controls">
+        <legend>Camera</legend>
+        <button type="button" data-view="monumental">Monumental</button>
+        <button type="button" data-view="elevated">Elevated</button>
+      </fieldset>
+      <p class="hint">Matter falls · information is routed</p>
+    </aside>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

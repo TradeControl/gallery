@@ -23,6 +23,15 @@ The current reference roots are deliberately small:
 
 Each copies its exported defaults, creates the shared world and membrane, mounts one independent layer, binds the existing controls, selects the signed-off camera and starts the world loop.
 
+The first combined root is `src/casting-pit/universe-cosmos-v0.5a/main.js`. It gives both factories one parameter object and one membrane, retains the Universe environment, and mounts Cosmos without a second surface or lighting rig. The layer factories expose only the additional composition seams demonstrated by that experiment:
+
+- `controlPrefix` permits both established control sets to coexist without duplicate HTML identifiers;
+- `bindEnvironmentControls: false` lets a Cosmos layer defer membrane, light, exposure and wireframe controls to its host composition;
+- `setVisible()` supports Universe-only, Cosmos-only and combined inspection without pausing or resetting either system.
+- `manifestationLiftScale` and `moltenRenderOrder` let the combined study establish stable physical foreground precedence without changing either standalone reference.
+
+These options default to the standalone reference behaviour.
+
 ## Equivalence notes
 
 The shader source, simulation constants, seeded generation, update order, materials, render order, controls and initial camera states were moved without artistic changes.

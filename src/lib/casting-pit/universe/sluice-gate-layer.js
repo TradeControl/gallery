@@ -23,23 +23,33 @@ export const sluiceGateDefaults = {
     threshold: 0.1
 };
 
-export function createSluiceGateLayer( { world, membrane, parameters, root = document, includeEnvironment = true } )
+export function createSluiceGateLayer( {
+    world,
+    membrane,
+    parameters,
+    root = document,
+    includeEnvironment = true,
+    controlPrefix = '',
+    moltenRenderOrder = 2
+} )
 {
 const { scene, renderer } = world;
 const ownerDocument = root.ownerDocument ?? root;
+const controlId = ( id ) => `${controlPrefix}${id}`;
+const control = ( id ) => root.querySelector( `#${controlId( id )}` );
 const membraneHeight = membrane.height;
 const membraneGradient = membrane.gradient;
 const createMembraneGeometry = membrane.createGeometry;
 const deformMembrane = membrane.deform;
 
-const parcelCountElement = root.querySelector( '#parcel-count' );
-const interactionCountElement = root.querySelector( '#interaction-count' );
-const crossSourceCountElement = root.querySelector( '#cross-source-count' );
-const simulationTimeElement = root.querySelector( '#simulation-time' );
-const reconstructionTimeElement = root.querySelector( '#reconstruction-time' );
-const sourceKeyElement = root.querySelector( '#source-key' );
-const seedValueElement = root.querySelector( '#seed-value' );
-const reservoirCountElement = root.querySelector( '#reservoir-count' );
+const parcelCountElement = control( 'parcel-count' );
+const interactionCountElement = control( 'interaction-count' );
+const crossSourceCountElement = control( 'cross-source-count' );
+const simulationTimeElement = control( 'simulation-time' );
+const reconstructionTimeElement = control( 'reconstruction-time' );
+const sourceKeyElement = control( 'source-key' );
+const seedValueElement = control( 'seed-value' );
+const reservoirCountElement = control( 'reservoir-count' );
 
 const simulation = {
     fixedStep: 1 / 60,
@@ -207,7 +217,7 @@ const moltenMaterial = new THREE.ShaderMaterial( {
     `
 } );
 const moltenSurface = new THREE.Mesh( moltenGeometry, moltenMaterial );
-moltenSurface.renderOrder = 2;
+moltenSurface.renderOrder = moltenRenderOrder;
 scene.add( moltenSurface );
 
 const diagnosticGeometry = createMembraneGeometry( 32 );
@@ -1052,7 +1062,13 @@ function updateSurface()
     updateDiagnosticGeometry();
 }
 
-const connectSlider = ( inputId, outputId, onInput, decimals = 2 ) => bindRangeControl( root, inputId, outputId, onInput, decimals );
+const connectSlider = ( inputId, outputId, onInput, decimals = 2 ) => bindRangeControl(
+    root,
+    controlId( inputId ),
+    controlId( outputId ),
+    onInput,
+    decimals
+);
 
 connectSlider( 'depth', 'depth-value', ( value ) => { parameters.depth = value; updateSurface(); } );
 connectSlider( 'width', 'width-value', ( value ) => { parameters.width = value; updateSurface(); } );
@@ -1097,23 +1113,25 @@ connectSlider( 'threshold', 'threshold-value', ( value ) => {
     moltenMaterial.uniforms.threshold.value = value;
 } );
 
-root.querySelector( '#diagnostic' ).addEventListener( 'change', ( event ) => {
+control( 'diagnostic' ).addEventListener( 'change', ( event ) => {
     diagnostic.visible = event.currentTarget.checked;
 } );
 
-root.querySelector( '#velocity-vectors' ).addEventListener( 'change', ( event ) => {
-    velocityVectors.visible = event.currentTarget.checked && parcelPoints.visible;
+let layerVisible = true;
+
+control( 'velocity-vectors' ).addEventListener( 'change', ( event ) => {
+    velocityVectors.visible = layerVisible && event.currentTarget.checked && parcelPoints.visible;
 } );
 
-root.querySelector( '#packet-diagnostics' ).addEventListener( 'change', ( event ) => {
+control( 'packet-diagnostics' ).addEventListener( 'change', ( event ) => {
     const visible = event.currentTarget.checked;
-    parcelPoints.visible = visible;
-    sourceMarkers.visible = visible;
-    velocityVectors.visible = visible && root.querySelector( '#velocity-vectors' ).checked;
+    parcelPoints.visible = layerVisible && visible;
+    sourceMarkers.visible = layerVisible && visible;
+    velocityVectors.visible = layerVisible && visible && control( 'velocity-vectors' ).checked;
 } );
 
-root.querySelector( '#reset' ).addEventListener( 'click', resetParcels );
-root.querySelector( '#reseed' ).addEventListener( 'click', () => {
+control( 'reset' ).addEventListener( 'click', resetParcels );
+control( 'reseed' ).addEventListener( 'click', () => {
     parameters.sourceSeed += 1;
     regenerateSources();
     resetParcels();
@@ -1171,6 +1189,14 @@ return {
     simulation,
     environment: { membraneSurface, diagnostic, hemisphereLight, keyLight, rimLight, receiver },
     updateSurface,
+    setVisible( visible ) {
+        layerVisible = visible;
+        moltenSurface.visible = visible;
+        const diagnosticsVisible = visible && control( 'packet-diagnostics' ).checked;
+        parcelPoints.visible = diagnosticsVisible;
+        sourceMarkers.visible = diagnosticsVisible;
+        velocityVectors.visible = diagnosticsVisible && control( 'velocity-vectors' ).checked;
+    },
     reset: resetParcels,
     reseed() {
         parameters.sourceSeed += 1;

@@ -72,6 +72,8 @@ Information travels through the manifested route at essentially constant spatial
 
 Gravity must not attract, redirect, accelerate or decelerate it.
 
+It is a sub-layer, operating beneath the physical universe of the work.
+
 ---
 
 ## v0.5a experiment

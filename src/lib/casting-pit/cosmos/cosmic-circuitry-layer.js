@@ -19,10 +19,21 @@ export const cosmicCircuitryDefaults = {
     seed: 2
 };
 
-export function createCosmicCircuitryLayer( { world, membrane, parameters, root = document, includeEnvironment = true } )
+export function createCosmicCircuitryLayer( {
+    world,
+    membrane,
+    parameters,
+    root = document,
+    includeEnvironment = true,
+    bindEnvironmentControls = true,
+    controlPrefix = '',
+    manifestationLiftScale = 1
+} )
 {
 const { scene, renderer } = world;
 const ownerDocument = root.ownerDocument ?? root;
+const controlId = ( id ) => `${controlPrefix}${id}`;
+const control = ( id ) => root.querySelector( `#${controlId( id )}` );
 const membraneHeight = membrane.height;
 const createMembraneGeometry = membrane.createGeometry;
 const deformMembrane = membrane.deform;
@@ -195,8 +206,8 @@ function projectedCoordinates( x, z, lift = 0.045 )
 {
     x += parameters.territoryX;
     z += parameters.territoryZ;
-    const flatHeight = 0.055;
-    const surfaceHeight = membraneHeight( x, z ) + lift;
+    const flatHeight = 0.055 * manifestationLiftScale;
+    const surfaceHeight = membraneHeight( x, z ) + lift * manifestationLiftScale;
     return new THREE.Vector3( x, THREE.MathUtils.lerp( flatHeight, surfaceHeight, parameters.surfaceBinding ), z );
 }
 
@@ -421,9 +432,9 @@ function generateNetwork()
     rebuildRoutes( seededGenerator( 0xd1b54a35 ^ parameters.seed ) );
     updateNetworkGeometry();
     resetSignals();
-    root.querySelector( '#node-count' ).textContent = network.nodes.length.toString();
-    root.querySelector( '#edge-count' ).textContent = network.edges.length.toString();
-    root.querySelector( '#seed-value' ).value = parameters.seed.toString();
+    control( 'node-count' ).textContent = network.nodes.length.toString();
+    control( 'edge-count' ).textContent = network.edges.length.toString();
+    control( 'seed-value' ).value = parameters.seed.toString();
 }
 
 function rebuildRoutes( random )
@@ -651,7 +662,7 @@ function updateSignals( timeStep )
         }
         signal.distance = ( signal.distance + parameters.signalSpeed * signal.speedFactor * timeStep ) % route.manifestedLength;
         const droplet = pointOnRoute( route, signal.distance );
-        droplet.y += 0.052;
+        droplet.y += 0.052 * manifestationLiftScale;
         signalHeadPositions.set( [ droplet.x, droplet.y, droplet.z ], index * 3 );
         const trailLength = 0.48 + parameters.signalSpeed * 0.045;
         for ( let trail = 0; trail < signalTrailSegments; trail += 1 )
@@ -670,8 +681,8 @@ function updateSignals( timeStep )
 
             const head = pointOnRoute( route, Math.min( headDistance, route.manifestedLength ) );
             const tail = pointOnRoute( route, tailDistance );
-            head.y += 0.045;
-            tail.y += 0.045;
+            head.y += 0.045 * manifestationLiftScale;
+            tail.y += 0.045 * manifestationLiftScale;
             signalPositions.set( [ head.x, head.y, head.z, tail.x, tail.y, tail.z ], baseVertex * 3 );
             const green = 0.88 + brightness * 0.12;
             const blue = 0.48 + brightness * 0.52;
@@ -688,7 +699,7 @@ function updateSignals( timeStep )
     signalMaterial.opacity = Math.min( parameters.signalBrightness * 0.82 * signalFlicker, 1 );
     signalHaloMaterial.opacity = Math.min( parameters.signalBrightness * 0.7 * signalFlicker, 0.95 );
     signalCoreMaterial.opacity = Math.min( parameters.signalBrightness * signalFlicker, 1 );
-    root.querySelector( '#pulse-count' ).textContent = count.toString();
+    control( 'pulse-count' ).textContent = count.toString();
 }
 
 function updateSurface()
@@ -699,12 +710,22 @@ function updateSurface()
     updateNetworkGeometry();
 }
 
-const connectSlider = ( inputId, outputId, onInput, decimals = 2 ) => bindRangeControl( root, inputId, outputId, onInput, decimals );
+const connectSlider = ( inputId, outputId, onInput, decimals = 2 ) => bindRangeControl(
+    root,
+    controlId( inputId ),
+    controlId( outputId ),
+    onInput,
+    decimals
+);
 
-connectSlider( 'depth', 'depth-value', ( value ) => { parameters.depth = value; updateSurface(); } );
-connectSlider( 'width', 'width-value', ( value ) => { parameters.width = value; updateSurface(); } );
-connectSlider( 'key-light', 'key-light-value', ( value ) => { keyLight.intensity = value; } );
-connectSlider( 'exposure', 'exposure-value', ( value ) => { renderer.toneMappingExposure = value; } );
+if ( bindEnvironmentControls )
+{
+    connectSlider( 'depth', 'depth-value', ( value ) => { parameters.depth = value; updateSurface(); } );
+    connectSlider( 'width', 'width-value', ( value ) => { parameters.width = value; updateSurface(); } );
+    connectSlider( 'key-light', 'key-light-value', ( value ) => { keyLight.intensity = value; } );
+    connectSlider( 'exposure', 'exposure-value', ( value ) => { renderer.toneMappingExposure = value; } );
+    control( 'diagnostic' ).addEventListener( 'change', ( event ) => { diagnostic.visible = event.currentTarget.checked; } );
+}
 connectSlider( 'intensity', 'intensity-value', ( value ) => {
     parameters.intensity = value;
     circuitMaterial.opacity = value;
@@ -722,9 +743,8 @@ connectSlider( 'signal-density', 'signal-density-value', ( value ) => { paramete
 connectSlider( 'signal-speed', 'signal-speed-value', ( value ) => { parameters.signalSpeed = value; } );
 connectSlider( 'signal-brightness', 'signal-brightness-value', ( value ) => { parameters.signalBrightness = value; } );
 
-root.querySelector( '#diagnostic' ).addEventListener( 'change', ( event ) => { diagnostic.visible = event.currentTarget.checked; } );
-root.querySelector( '#reset' ).addEventListener( 'click', resetSignals );
-root.querySelector( '#reseed' ).addEventListener( 'click', () => { parameters.seed += 1; generateNetwork(); } );
+control( 'reset' ).addEventListener( 'click', resetSignals );
+control( 'reseed' ).addEventListener( 'click', () => { parameters.seed += 1; generateNetwork(); } );
 
 let previousTime = 0;
 function animate( time )
@@ -744,6 +764,15 @@ return {
     network,
     environment: { membraneSurface, diagnostic, hemisphereLight, keyLight, rimLight, receiver },
     updateSurface,
+    setVisible( visible ) {
+        grooves.visible = visible;
+        embers.visible = visible;
+        circuits.visible = visible;
+        junctions.visible = visible;
+        signals.visible = visible;
+        signalHalos.visible = visible;
+        signalCores.visible = visible;
+    },
     resetSignals,
     regenerate: generateNetwork
 };
