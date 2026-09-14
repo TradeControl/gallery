@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Casting Pit v0.4a — Cosmic Circuitry</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="Cosmic circuitry study"></main>
+
+    <aside class="controls" aria-label="Cosmic circuitry controls">
+      <header>
+        <p>Ordered Underlay</p>
+        <h1>Casting Pit <span>v0.4a cosmic circuitry</span></h1>
+      </header>
+
+      <div class="section-label">Membrane</div>
+      <label class="control" for="depth"><span>Depression depth</span><output id="depth-value">5.50</output><input id="depth" type="range" min="1" max="8" step="0.1" value="5.5"></label>
+      <label class="control" for="width"><span>Depression width</span><output id="width-value">3.80</output><input id="width" type="range" min="1.5" max="6" step="0.1" value="3.8"></label>
+      <label class="control" for="key-light"><span>Key light</span><output id="key-light-value">3.20</output><input id="key-light" type="range" min="0.5" max="8" step="0.1" value="3.2"></label>
+      <label class="control" for="exposure"><span>Exposure</span><output id="exposure-value">1.00</output><input id="exposure" type="range" min="0.5" max="1.8" step="0.05" value="1"></label>
+
+      <div class="section-label">Cosmic circuitry</div>
+      <label class="control" for="intensity"><span>Circuitry intensity</span><output id="intensity-value">0.55</output><input id="intensity" type="range" min="0.05" max="1.5" step="0.05" value="0.55"></label>
+      <label class="control" for="complexity"><span>Density / complexity</span><output id="complexity-value">0.58</output><input id="complexity" type="range" min="0.15" max="1" step="0.01" value="0.58"></label>
+      <label class="control" for="scale"><span>Circuitry scale</span><output id="scale-value">1.00</output><input id="scale" type="range" min="0.65" max="1.6" step="0.01" value="1"></label>
+      <label class="control" for="surface-binding"><span>Surface binding</span><output id="surface-binding-value">0.82</output><input id="surface-binding" type="range" min="0" max="1" step="0.01" value="0.82"></label>
+
+      <div class="section-label">Communication</div>
+      <label class="control" for="signal-density"><span>Communication density</span><output id="signal-density-value">70</output><input id="signal-density" type="range" min="0" max="140" step="1" value="70"></label>
+      <label class="control" for="signal-speed"><span>Communication speed</span><output id="signal-speed-value">4.00</output><input id="signal-speed" type="range" min="0.25" max="10" step="0.25" value="4"></label>
+      <label class="control" for="signal-brightness"><span>Communication brightness</span><output id="signal-brightness-value">0.30</output><input id="signal-brightness" type="range" min="0.2" max="3" step="0.05" value="0.3"></label>
+
+      <label class="switch" for="diagnostic"><span>Membrane wireframe</span><input id="diagnostic" type="checkbox"></label>
+
+      <fieldset><legend>Camera</legend><button type="button" data-view="monumental">Monumental</button><button type="button" data-view="elevated">Elevated</button></fieldset>
+      <div class="button-row"><button id="reset" type="button">Reset signals</button><button id="reseed" type="button">Reseed network</button></div>
+
+      <p class="seed">Network seed <output id="seed-value">1</output></p>
+      <dl class="stats" aria-label="Network statistics">
+        <div><dt>Nodes</dt><dd id="node-count">0</dd></div>
+        <div><dt>Connections</dt><dd id="edge-count">0</dd></div>
+        <div><dt>Signals</dt><dd id="pulse-count">0</dd></div>
+      </dl>
+      <p class="hint">Mathematical graph · spatial projection · route-bound communication</p>
+    </aside>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Casting Pit v0.2</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="Interactive Casting Pit lava convergence study"></main>
+
+    <aside class="controls" aria-label="Casting Pit controls">
+      <header>
+        <p>Lava + convergence</p>
+        <h1>Casting Pit <span>v0.2</span></h1>
+      </header>
+
+      <label class="control" for="depth">
+        <span>Depression depth</span>
+        <output id="depth-value" for="depth">5.50</output>
+        <input id="depth" type="range" min="1" max="8" step="0.1" value="5.5">
+      </label>
+
+      <label class="control" for="width">
+        <span>Depression width</span>
+        <output id="width-value" for="width">3.80</output>
+        <input id="width" type="range" min="1.5" max="6" step="0.1" value="3.8">
+      </label>
+
+      <label class="control" for="key-light">
+        <span>Key light</span>
+        <output id="key-light-value" for="key-light">4.00</output>
+        <input id="key-light" type="range" min="0.5" max="8" step="0.1" value="4">
+      </label>
+
+      <label class="control" for="exposure">
+        <span>Exposure</span>
+        <output id="exposure-value" for="exposure">1.00</output>
+        <input id="exposure" type="range" min="0.5" max="1.8" step="0.05" value="1">
+      </label>
+
+      <div class="section-label">Molten flows</div>
+
+      <label class="control" for="flow-speed">
+        <span>Flow speed</span>
+        <output id="flow-speed-value" for="flow-speed">0.70</output>
+        <input id="flow-speed" type="range" min="0.1" max="1.8" step="0.05" value="0.7">
+      </label>
+
+      <label class="control" for="lava-intensity">
+        <span>Lava intensity</span>
+        <output id="lava-intensity-value" for="lava-intensity">1.20</output>
+        <input id="lava-intensity" type="range" min="0.2" max="2.5" step="0.05" value="1.2">
+      </label>
+
+      <label class="control" for="flow-width">
+        <span>Channel width</span>
+        <output id="flow-width-value" for="flow-width">0.18</output>
+        <input id="flow-width" type="range" min="0.06" max="0.4" step="0.01" value="0.18">
+      </label>
+
+      <label class="switch" for="diagnostic">
+        <span>Diagnostic overlay</span>
+        <input id="diagnostic" type="checkbox">
+      </label>
+
+      <fieldset>
+        <legend>Camera</legend>
+        <button type="button" data-view="monumental">Monumental</button>
+        <button type="button" data-view="elevated">Elevated</button>
+      </fieldset>
+
+      <p class="hint">Drag to orbit · wheel to zoom · right-drag to pan</p>
+    </aside>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

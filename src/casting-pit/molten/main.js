@@ -1,0 +1,993 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const sceneElement = document.querySelector( '#scene' );
+const parcelCountElement = document.querySelector( '#parcel-count' );
+const interactionCountElement = document.querySelector( '#interaction-count' );
+const crossSourceCountElement = document.querySelector( '#cross-source-count' );
+const simulationTimeElement = document.querySelector( '#simulation-time' );
+const reconstructionTimeElement = document.querySelector( '#reconstruction-time' );
+const sourceKeyElement = document.querySelector( '#source-key' );
+const seedValueElement = document.querySelector( '#seed-value' );
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color( 0x050607 );
+
+const camera = new THREE.PerspectiveCamera( 48, 1, 0.1, 80 );
+const renderer = new THREE.WebGLRenderer( { antialias: true } );
+renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1;
+sceneElement.appendChild( renderer.domElement );
+
+const orbitControls = new OrbitControls( camera, renderer.domElement );
+orbitControls.enableDamping = true;
+orbitControls.dampingFactor = 0.07;
+orbitControls.minDistance = 3;
+orbitControls.maxDistance = 34;
+orbitControls.maxPolarAngle = Math.PI * 0.495;
+
+const parameters = {
+    depth: 5.5,
+    width: 3.8,
+    emissionRate: 48,
+    streamCount: 6,
+    gravity: 3.2,
+    drag: 0.32,
+    interaction: 1.4,
+    sourceSeed: 1,
+    persistence: 5,
+    deposition: 1,
+    moltenIntensity: 0.85,
+    threshold: 0.1
+};
+
+const simulation = {
+    fixedStep: 1 / 60,
+    accumulator: 0,
+    previousTime: 0,
+    maximumParcels: 500,
+    interactionRadius: 0.78,
+    separationRadius: 0.16,
+    receiverRadius: 0.34,
+    parcels: [],
+    lastStepMilliseconds: 0,
+    lastInteractionCount: 0,
+    lastCrossSourceInteractionCount: 0,
+    lastReconstructionMilliseconds: 0,
+    reconstructionAccumulator: 0,
+    randomState: 0x2f6e2b1,
+    statisticsElapsed: 0
+};
+
+function random()
+{
+    simulation.randomState ^= simulation.randomState << 13;
+    simulation.randomState ^= simulation.randomState >>> 17;
+    simulation.randomState ^= simulation.randomState << 5;
+    return ( simulation.randomState >>> 0 ) / 4294967296;
+}
+
+function membraneHeight( x, z )
+{
+    const radiusSquared = x * x + z * z;
+    return -parameters.depth * Math.exp( -radiusSquared / ( parameters.width * parameters.width ) );
+}
+
+function membraneGradient( x, z )
+{
+    const widthSquared = parameters.width * parameters.width;
+    const factor = 2 * parameters.depth * Math.exp( -( x * x + z * z ) / widthSquared ) / widthSquared;
+    return { x: factor * x, z: factor * z };
+}
+
+function createMembraneGeometry( segments )
+{
+    const geometry = new THREE.PlaneGeometry( 24, 24, segments, segments );
+    geometry.rotateX( -Math.PI / 2 );
+    geometry.userData.materialPositions = Float32Array.from( geometry.attributes.position.array );
+    return geometry;
+}
+
+function deformMembrane( geometry )
+{
+    const positions = geometry.attributes.position;
+    const materialPositions = geometry.userData.materialPositions;
+
+    for ( let index = 0; index < positions.count; index += 1 )
+    {
+        const offset = index * 3;
+        const x = materialPositions[offset];
+        const z = materialPositions[offset + 2];
+        positions.setXYZ( index, x, membraneHeight( x, z ), z );
+    }
+
+    positions.needsUpdate = true;
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
+}
+
+const membraneGeometry = createMembraneGeometry( 180 );
+const membraneMaterial = new THREE.MeshStandardMaterial( {
+    color: 0x313538,
+    metalness: 0.2,
+    roughness: 0.72,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1
+} );
+scene.add( new THREE.Mesh( membraneGeometry, membraneMaterial ) );
+
+const field = {
+    resolution: 224,
+    density: new Float32Array( 224 * 224 ),
+    heat: new Float32Array( 224 * 224 ),
+    flowX: new Float32Array( 224 * 224 ),
+    flowZ: new Float32Array( 224 * 224 ),
+    densityScratch: new Float32Array( 224 * 224 ),
+    heatScratch: new Float32Array( 224 * 224 ),
+    flowXScratch: new Float32Array( 224 * 224 ),
+    flowZScratch: new Float32Array( 224 * 224 ),
+    textureData: new Float32Array( 224 * 224 * 4 )
+};
+
+field.brushes = new Map();
+for ( let radius = 2; radius <= 4; radius += 1 )
+{
+    const samples = [];
+    let totalWeight = 0;
+    const falloff = 1.7 / ( radius * radius );
+
+    for ( let offsetY = -radius; offsetY <= radius; offsetY += 1 )
+    {
+        for ( let offsetX = -radius; offsetX <= radius; offsetX += 1 )
+        {
+            const distanceSquared = offsetX * offsetX + offsetY * offsetY;
+            if ( distanceSquared > radius * radius ) continue;
+            const weight = Math.exp( -distanceSquared * falloff );
+            samples.push( { offsetX, offsetY, weight } );
+            totalWeight += weight;
+        }
+    }
+
+    samples.forEach( ( sample ) => { sample.weight /= totalWeight; } );
+    field.brushes.set( radius, samples );
+}
+
+field.texture = new THREE.DataTexture(
+    field.textureData,
+    field.resolution,
+    field.resolution,
+    THREE.RGBAFormat,
+    THREE.FloatType
+);
+field.texture.minFilter = THREE.LinearFilter;
+field.texture.magFilter = THREE.LinearFilter;
+field.texture.wrapS = THREE.ClampToEdgeWrapping;
+field.texture.wrapT = THREE.ClampToEdgeWrapping;
+field.texture.needsUpdate = true;
+
+const moltenGeometry = createMembraneGeometry( 180 );
+const moltenMaterial = new THREE.ShaderMaterial( {
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    uniforms: {
+        moltenField: { value: field.texture },
+        intensity: { value: parameters.moltenIntensity },
+        threshold: { value: parameters.threshold }
+    },
+    vertexShader: `
+        uniform sampler2D moltenField;
+        varying vec2 vUv;
+        varying float vDensity;
+
+        void main()
+        {
+            vUv = uv;
+            vDensity = texture2D( moltenField, uv ).r;
+            vec3 displaced = position;
+            displaced.y += 0.035 + min( vDensity, 1.5 ) * 0.055;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( displaced, 1.0 );
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D moltenField;
+        uniform float intensity;
+        uniform float threshold;
+        varying vec2 vUv;
+        varying float vDensity;
+
+        float hash( vec2 point )
+        {
+            return fract( sin( dot( point, vec2( 127.1, 311.7 ) ) ) * 43758.5453 );
+        }
+
+        float noise( vec2 point )
+        {
+            vec2 cell = floor( point );
+            vec2 local = fract( point );
+            local = local * local * ( 3.0 - 2.0 * local );
+            return mix(
+                mix( hash( cell ), hash( cell + vec2( 1.0, 0.0 ) ), local.x ),
+                mix( hash( cell + vec2( 0.0, 1.0 ) ), hash( cell + vec2( 1.0, 1.0 ) ), local.x ),
+                local.y
+            );
+        }
+
+        void main()
+        {
+            vec2 material = texture2D( moltenField, vUv ).rg;
+            float density = material.r;
+            float heat = clamp( material.g / max( density, 0.001 ), 0.0, 1.0 );
+            float edgeNoise = noise( vUv * 92.0 + vec2( 4.3, 11.7 ) ) * 0.65
+                + noise( vUv * 31.0 ) * 0.35;
+            float localThreshold = threshold * mix( 0.72, 1.32, edgeNoise );
+            float coverage = smoothstep( localThreshold, localThreshold + 0.16, density );
+            if ( coverage < 0.015 ) discard;
+
+            float body = smoothstep( threshold, 0.85, density );
+            float breakup = noise( vUv * 135.0 ) * 0.65 + noise( vUv * 48.0 + 9.7 ) * 0.35;
+            float crust = smoothstep( 0.48, 0.82, breakup ) * ( 1.0 - heat * 0.55 );
+            float core = smoothstep( 0.48, 1.5, density ) * smoothstep( 0.42, 0.95, heat );
+            float edge = clamp( length( vec2( dFdx( density ), dFdy( density ) ) ) * 2.5, 0.0, 1.0 );
+            vec3 cooled = vec3( 0.055, 0.009, 0.004 );
+            vec3 warm = vec3( 0.46, 0.038, 0.006 );
+            vec3 hot = vec3( 0.95, 0.25, 0.018 );
+            vec3 color = mix( cooled, warm, body * ( 0.32 + heat * 0.48 ) );
+            color = mix( color, hot, core * ( 0.48 + breakup * 0.2 ) );
+            color *= mix( 1.0, 0.36, crust );
+            color *= mix( 1.0, 0.55, edge );
+            color *= intensity * ( 0.72 + min( density, 1.4 ) * 0.2 );
+            gl_FragColor = vec4( color, coverage * 0.94 );
+        }
+    `
+} );
+const moltenSurface = new THREE.Mesh( moltenGeometry, moltenMaterial );
+moltenSurface.renderOrder = 2;
+scene.add( moltenSurface );
+
+const diagnosticGeometry = createMembraneGeometry( 32 );
+const diagnosticMaterial = new THREE.MeshBasicMaterial( {
+    color: 0x83949b,
+    transparent: true,
+    opacity: 0.36,
+    wireframe: true,
+    depthWrite: false
+} );
+const diagnostic = new THREE.Mesh( diagnosticGeometry, diagnosticMaterial );
+diagnostic.visible = false;
+diagnostic.renderOrder = 1;
+scene.add( diagnostic );
+
+scene.add( new THREE.HemisphereLight( 0x8795a1, 0x17110d, 1.25 ) );
+
+const keyLight = new THREE.DirectionalLight( 0xffd3aa, 4 );
+keyLight.position.set( -5, 9, 6 );
+scene.add( keyLight );
+
+const rimLight = new THREE.DirectionalLight( 0x6688aa, 1.5 );
+rimLight.position.set( 7, 3, -6 );
+scene.add( rimLight );
+
+const receiver = new THREE.Mesh(
+    new THREE.CircleGeometry( simulation.receiverRadius, 48 ).rotateX( -Math.PI / 2 ),
+    new THREE.MeshBasicMaterial( { color: 0x020303, side: THREE.DoubleSide } )
+);
+scene.add( receiver );
+
+let sourceDefinitions = [];
+
+function seededGenerator( seed )
+{
+    let state = seed >>> 0 || 1;
+    return () => {
+        state ^= state << 13;
+        state ^= state >>> 17;
+        state ^= state << 5;
+        return ( state >>> 0 ) / 4294967296;
+    };
+}
+
+function generateSources( count, seed )
+{
+    const generatedRandom = seededGenerator( 0x9e3779b9 ^ seed ^ ( count * 0x85ebca6b ) );
+    const startAngle = generatedRandom() * Math.PI * 2;
+    const offsets = [];
+
+    for ( let index = 0; index < count; index += 1 )
+    {
+        if ( index === 0 ) offsets.push( THREE.MathUtils.lerp( -0.22, 0.22, generatedRandom() ) );
+        else if ( index === 1 ) offsets.push( ( generatedRandom() < 0.5 ? -1 : 1 ) * THREE.MathUtils.lerp( 1.38, 1.62, generatedRandom() ) );
+        else if ( index === 2 ) offsets.push( ( generatedRandom() < 0.5 ? -1 : 1 ) * THREE.MathUtils.lerp( 0.55, 1.05, generatedRandom() ) );
+        else if ( index === 3 && count >= 4 ) offsets.push( THREE.MathUtils.lerp( 2.05, 2.65, generatedRandom() ) );
+        else offsets.push( THREE.MathUtils.lerp( -1.25, 1.25, generatedRandom() ) );
+    }
+
+    const sources = Array.from( { length: count }, ( unused, index ) => {
+        const sector = Math.PI * 2 / count;
+        const angle = startAngle + index * sector + ( generatedRandom() - 0.5 ) * sector * 0.55;
+        const radius = THREE.MathUtils.lerp( 7.2, 10.4, generatedRandom() );
+        const heading = angle + Math.PI + offsets[index];
+        const speed = THREE.MathUtils.lerp( 1.25, 2.15, generatedRandom() );
+        const color = new THREE.Color().setHSL( ( index / count + generatedRandom() * 0.045 ) % 1, 0.58, 0.62 );
+
+        return {
+            label: `Stream ${index + 1}`,
+            position: [ Math.cos( angle ) * radius, Math.sin( angle ) * radius ],
+            velocity: [ Math.cos( heading ) * speed, Math.sin( heading ) * speed ],
+            cadence: THREE.MathUtils.lerp( 0.82, 1.18, generatedRandom() ),
+            mass: THREE.MathUtils.lerp( 0.85, 1.2, generatedRandom() ),
+            color
+        };
+    } );
+
+    const cadenceTotal = sources.reduce( ( total, source ) => total + source.cadence, 0 );
+    sources.forEach( ( source ) => { source.cadence *= count / cadenceTotal; } );
+    return sources;
+}
+
+const sourceMarkerGeometry = new THREE.BufferGeometry();
+const sourceMarkers = new THREE.LineSegments(
+    sourceMarkerGeometry,
+    new THREE.LineBasicMaterial( { vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false } )
+);
+sourceMarkers.renderOrder = 3;
+sourceMarkers.visible = false;
+scene.add( sourceMarkers );
+
+function rebuildSourcePresentation()
+{
+    sourceKeyElement.replaceChildren();
+
+    sourceDefinitions.forEach( ( source, sourceIndex ) => {
+        source.emissionAccumulator = random();
+        source.colorObject = source.color;
+        source.captured = 0;
+        source.lost = 0;
+
+        const item = document.createElement( 'li' );
+        const swatch = document.createElement( 'i' );
+        swatch.style.setProperty( '--source-color', `#${source.color.getHexString()}` );
+        const label = document.createElement( 'span' );
+        label.textContent = source.label;
+        source.resultElement = document.createElement( 'output' );
+        source.resultElement.textContent = '0 / 0';
+        item.append( swatch, label, source.resultElement );
+        sourceKeyElement.append( item );
+
+    } );
+
+    updateSourceMarkerGeometry();
+}
+
+function updateSourceMarkerGeometry()
+{
+    const positions = [];
+    const colors = [];
+
+    sourceDefinitions.forEach( ( source ) => {
+        const [ x, z ] = source.position;
+        const scale = 0.55;
+        const endX = x + source.velocity[0] * scale;
+        const endZ = z + source.velocity[1] * scale;
+        positions.push( x, membraneHeight( x, z ) + 0.12, z );
+        positions.push( endX, membraneHeight( endX, endZ ) + 0.12, endZ );
+        for ( let vertex = 0; vertex < 2; vertex += 1 ) colors.push( source.color.r, source.color.g, source.color.b );
+    } );
+
+    sourceMarkerGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+    sourceMarkerGeometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+}
+
+function regenerateSources()
+{
+    simulation.randomState = ( 0x2f6e2b1 ^ parameters.sourceSeed ^ parameters.streamCount ) >>> 0;
+    sourceDefinitions = generateSources( parameters.streamCount, parameters.sourceSeed );
+    rebuildSourcePresentation();
+    seedValueElement.value = parameters.sourceSeed.toString();
+}
+
+const parcelPositions = new Float32Array( simulation.maximumParcels * 3 );
+const parcelColors = new Float32Array( simulation.maximumParcels * 3 );
+const parcelGeometry = new THREE.BufferGeometry();
+parcelGeometry.setAttribute( 'position', new THREE.BufferAttribute( parcelPositions, 3 ).setUsage( THREE.DynamicDrawUsage ) );
+parcelGeometry.setAttribute( 'color', new THREE.BufferAttribute( parcelColors, 3 ).setUsage( THREE.DynamicDrawUsage ) );
+parcelGeometry.setDrawRange( 0, 0 );
+
+const parcelMaterial = new THREE.PointsMaterial( {
+    size: 0.14,
+    sizeAttenuation: true,
+    vertexColors: true,
+    depthWrite: true
+} );
+const parcelPoints = new THREE.Points( parcelGeometry, parcelMaterial );
+parcelPoints.renderOrder = 2;
+parcelPoints.visible = false;
+scene.add( parcelPoints );
+
+const vectorPositions = new Float32Array( simulation.maximumParcels * 2 * 3 );
+const vectorColors = new Float32Array( simulation.maximumParcels * 2 * 3 );
+const vectorGeometry = new THREE.BufferGeometry();
+vectorGeometry.setAttribute( 'position', new THREE.BufferAttribute( vectorPositions, 3 ).setUsage( THREE.DynamicDrawUsage ) );
+vectorGeometry.setAttribute( 'color', new THREE.BufferAttribute( vectorColors, 3 ).setUsage( THREE.DynamicDrawUsage ) );
+vectorGeometry.setDrawRange( 0, 0 );
+const velocityVectors = new THREE.LineSegments(
+    vectorGeometry,
+    new THREE.LineBasicMaterial( { vertexColors: true, transparent: true, opacity: 0.72, depthWrite: false } )
+);
+velocityVectors.visible = false;
+velocityVectors.renderOrder = 3;
+scene.add( velocityVectors );
+
+function spawnParcel( source, sourceIndex )
+{
+    if ( simulation.parcels.length >= simulation.maximumParcels )
+    {
+        return;
+    }
+
+    const velocityLength = Math.hypot( source.velocity[0], source.velocity[1] );
+    const perpendicularX = -source.velocity[1] / velocityLength;
+    const perpendicularZ = source.velocity[0] / velocityLength;
+    const positionJitter = ( random() - 0.5 ) * 0.5;
+    const velocityJitter = ( random() - 0.5 ) * 0.34;
+    const massVariation = random();
+
+    simulation.parcels.push( {
+        x: source.position[0] + perpendicularX * positionJitter,
+        z: source.position[1] + perpendicularZ * positionJitter,
+        vx: source.velocity[0] + perpendicularX * velocityJitter,
+        vz: source.velocity[1] + perpendicularZ * velocityJitter,
+        mass: source.mass * THREE.MathUtils.lerp( 0.82, 1.18, massVariation ),
+        footprint: THREE.MathUtils.lerp( 0.82, 1.18, massVariation ),
+        temperature: THREE.MathUtils.lerp( 0.85, 1, random() ),
+        age: 0,
+        lifetime: THREE.MathUtils.lerp( 18, 24, random() ),
+        sourceIndex,
+        ax: 0,
+        az: 0
+    } );
+}
+
+function emitParcels( timeStep )
+{
+    sourceDefinitions.forEach( ( source, sourceIndex ) => {
+        source.emissionAccumulator += parameters.emissionRate * source.cadence * timeStep / sourceDefinitions.length;
+
+        while ( source.emissionAccumulator >= 1 )
+        {
+            spawnParcel( source, sourceIndex );
+            source.emissionAccumulator -= 1;
+        }
+    } );
+}
+
+function hashKey( x, z )
+{
+    const size = simulation.interactionRadius;
+    return `${Math.floor( x / size )},${Math.floor( z / size )}`;
+}
+
+function buildSpatialHash()
+{
+    const hash = new Map();
+
+    simulation.parcels.forEach( ( parcel, index ) => {
+        const key = hashKey( parcel.x, parcel.z );
+        if ( !hash.has( key ) )
+        {
+            hash.set( key, [] );
+        }
+        hash.get( key ).push( index );
+    } );
+
+    return hash;
+}
+
+function applySurfaceForces()
+{
+    simulation.parcels.forEach( ( parcel ) => {
+        const gradient = membraneGradient( parcel.x, parcel.z );
+        const gradientSquared = gradient.x * gradient.x + gradient.z * gradient.z;
+        parcel.ax = -parameters.gravity * gradient.x / ( 1 + gradientSquared );
+        parcel.az = -parameters.gravity * gradient.z / ( 1 + gradientSquared );
+    } );
+}
+
+function applyPairInteraction( first, second )
+{
+    const dx = second.x - first.x;
+    const dz = second.z - first.z;
+    const distanceSquared = dx * dx + dz * dz;
+    const radius = simulation.interactionRadius;
+
+    if ( distanceSquared <= 0.000001 || distanceSquared >= radius * radius )
+    {
+        return;
+    }
+
+    const distance = Math.sqrt( distanceSquared );
+    const nx = dx / distance;
+    const nz = dz / distance;
+    const proximity = 1 - distance / radius;
+    const strength = parameters.interaction;
+    simulation.lastInteractionCount += 1;
+    if ( first.sourceIndex !== second.sourceIndex )
+    {
+        simulation.lastCrossSourceInteractionCount += 1;
+    }
+    const relativeVx = second.vx - first.vx;
+    const relativeVz = second.vz - first.vz;
+    const viscosity = strength * proximity * 1.8;
+    first.ax += relativeVx * viscosity / first.mass;
+    first.az += relativeVz * viscosity / first.mass;
+    second.ax -= relativeVx * viscosity / second.mass;
+    second.az -= relativeVz * viscosity / second.mass;
+
+    const sharedRestDistance = simulation.separationRadius * Math.sqrt( ( first.mass + second.mass ) * 0.5 );
+    let radialForce;
+
+    if ( distance < sharedRestDistance )
+    {
+        radialForce = -strength * 11 * ( sharedRestDistance - distance ) / sharedRestDistance;
+    }
+    else
+    {
+        radialForce = strength * 0.5 * proximity * proximity;
+    }
+
+    first.ax += nx * radialForce / first.mass;
+    first.az += nz * radialForce / first.mass;
+    second.ax -= nx * radialForce / second.mass;
+    second.az -= nz * radialForce / second.mass;
+}
+
+function applyNeighbourForces( spatialHash )
+{
+    const cellSize = simulation.interactionRadius;
+
+    simulation.parcels.forEach( ( parcel, parcelIndex ) => {
+        const cellX = Math.floor( parcel.x / cellSize );
+        const cellZ = Math.floor( parcel.z / cellSize );
+
+        for ( let offsetX = -1; offsetX <= 1; offsetX += 1 )
+        {
+            for ( let offsetZ = -1; offsetZ <= 1; offsetZ += 1 )
+            {
+                const neighbours = spatialHash.get( `${cellX + offsetX},${cellZ + offsetZ}` );
+                if ( !neighbours )
+                {
+                    continue;
+                }
+
+                neighbours.forEach( ( neighbourIndex ) => {
+                    if ( neighbourIndex > parcelIndex )
+                    {
+                        applyPairInteraction( parcel, simulation.parcels[neighbourIndex] );
+                    }
+                } );
+            }
+        }
+    } );
+}
+
+function depositAt( x, z, amount, temperature, velocityX, velocityZ, footprint )
+{
+    const normalizedX = ( x + 12 ) / 24;
+    const normalizedY = ( 12 - z ) / 24;
+    const centerX = Math.round( normalizedX * ( field.resolution - 1 ) );
+    const centerY = Math.round( normalizedY * ( field.resolution - 1 ) );
+
+    if ( centerX < 0 || centerX >= field.resolution || centerY < 0 || centerY >= field.resolution )
+    {
+        return;
+    }
+
+    const centerIndex = centerY * field.resolution + centerX;
+    const localDensity = field.density[centerIndex];
+    const speed = Math.hypot( velocityX, velocityZ );
+    const materialVariation = Math.sin( x * 1.31 + z * 0.73 ) * 0.5
+        + Math.sin( x * 0.47 - z * 1.63 + 1.8 ) * 0.32;
+    const width = 2 + ( 1 - Math.min( speed / 3.2, 1 ) ) * 0.75
+        + Math.min( Math.sqrt( localDensity ) * 0.55, 0.8 )
+        + ( footprint - 1 ) * 0.8
+        + materialVariation * 0.72;
+    const brushRadius = THREE.MathUtils.clamp( Math.round( width ), 2, 4 );
+    const brush = field.brushes.get( brushRadius );
+
+    for ( const sample of brush )
+    {
+        const pixelY = centerY + sample.offsetY;
+        if ( pixelY < 0 || pixelY >= field.resolution ) continue;
+        const pixelX = centerX + sample.offsetX;
+        if ( pixelX < 0 || pixelX >= field.resolution ) continue;
+
+        const index = pixelY * field.resolution + pixelX;
+        const contribution = amount * sample.weight * 6.15;
+        field.density[index] = Math.min( 3, field.density[index] + contribution );
+        field.heat[index] = Math.min( 3, field.heat[index] + contribution * temperature );
+        field.flowX[index] += contribution * velocityX;
+        field.flowZ[index] += contribution * velocityZ;
+    }
+}
+
+function depositTrail( parcel, previousX, previousZ, timeStep )
+{
+    const distance = Math.hypot( parcel.x - previousX, parcel.z - previousZ );
+    const spacing = 24 / field.resolution * 0.7;
+    const samples = Math.max( 1, Math.ceil( distance / spacing ) );
+    const amount = parameters.deposition * parcel.mass * timeStep * 0.9 / samples;
+
+    for ( let sample = 0; sample <= samples; sample += 1 )
+    {
+        const ratio = sample / samples;
+        depositAt(
+            THREE.MathUtils.lerp( previousX, parcel.x, ratio ),
+            THREE.MathUtils.lerp( previousZ, parcel.z, ratio ),
+            amount,
+            parcel.temperature,
+            parcel.vx,
+            parcel.vz,
+            parcel.footprint
+        );
+    }
+}
+
+function sampleField( values, x, y )
+{
+    const maximum = field.resolution - 1;
+    const clampedX = THREE.MathUtils.clamp( x, 0, maximum );
+    const clampedY = THREE.MathUtils.clamp( y, 0, maximum );
+    const x0 = Math.floor( clampedX );
+    const y0 = Math.floor( clampedY );
+    const x1 = Math.min( x0 + 1, maximum );
+    const y1 = Math.min( y0 + 1, maximum );
+    const fractionX = clampedX - x0;
+    const fractionY = clampedY - y0;
+    const lower = THREE.MathUtils.lerp( values[y0 * field.resolution + x0], values[y0 * field.resolution + x1], fractionX );
+    const upper = THREE.MathUtils.lerp( values[y1 * field.resolution + x0], values[y1 * field.resolution + x1], fractionX );
+    return THREE.MathUtils.lerp( lower, upper, fractionY );
+}
+
+function updateMoltenField( timeStep )
+{
+    const start = performance.now();
+    const resolution = field.resolution;
+    const densityDecay = Math.exp( -timeStep / parameters.persistence );
+    const heatDecay = Math.exp( -timeStep / ( parameters.persistence * 0.62 ) );
+    const spread = Math.min( 0.12, timeStep * 2.2 );
+
+    for ( let y = 0; y < resolution; y += 1 )
+    {
+        for ( let x = 0; x < resolution; x += 1 )
+        {
+            const index = y * resolution + x;
+            const left = x > 0 ? index - 1 : index;
+            const right = x < resolution - 1 ? index + 1 : index;
+            const below = y > 0 ? index - resolution : index;
+            const above = y < resolution - 1 ? index + resolution : index;
+            const density = field.density[index];
+            const velocityX = field.flowX[index] / Math.max( density, 0.03 );
+            const velocityZ = field.flowZ[index] / Math.max( density, 0.03 );
+            const pixelScale = resolution / 24;
+            const backtraceX = x - velocityX * timeStep * pixelScale * 0.58;
+            const backtraceY = y + velocityZ * timeStep * pixelScale * 0.58;
+            const advectedDensity = sampleField( field.density, backtraceX, backtraceY );
+            const advectedHeat = sampleField( field.heat, backtraceX, backtraceY );
+            const densityAverage = ( field.density[left] + field.density[right] + field.density[below] + field.density[above] ) * 0.25;
+            const heatAverage = ( field.heat[left] + field.heat[right] + field.heat[below] + field.heat[above] ) * 0.25;
+            const flowXAverage = ( field.flowX[left] + field.flowX[right] + field.flowX[below] + field.flowX[above] ) * 0.25;
+            const flowZAverage = ( field.flowZ[left] + field.flowZ[right] + field.flowZ[below] + field.flowZ[above] ) * 0.25;
+            field.densityScratch[index] = THREE.MathUtils.lerp( advectedDensity, densityAverage, spread ) * densityDecay;
+            field.heatScratch[index] = THREE.MathUtils.lerp( advectedHeat, heatAverage, spread * 1.25 ) * heatDecay;
+            field.flowXScratch[index] = THREE.MathUtils.lerp( field.flowX[index], flowXAverage, spread ) * densityDecay * 0.92;
+            field.flowZScratch[index] = THREE.MathUtils.lerp( field.flowZ[index], flowZAverage, spread ) * densityDecay * 0.92;
+        }
+    }
+
+    [ field.density, field.densityScratch ] = [ field.densityScratch, field.density ];
+    [ field.heat, field.heatScratch ] = [ field.heatScratch, field.heat ];
+    [ field.flowX, field.flowXScratch ] = [ field.flowXScratch, field.flowX ];
+    [ field.flowZ, field.flowZScratch ] = [ field.flowZScratch, field.flowZ ];
+
+    for ( let index = 0; index < field.density.length; index += 1 )
+    {
+        const textureOffset = index * 4;
+        field.textureData[textureOffset] = field.density[index];
+        field.textureData[textureOffset + 1] = field.heat[index];
+        field.textureData[textureOffset + 2] = 0;
+        field.textureData[textureOffset + 3] = 1;
+    }
+
+    field.texture.needsUpdate = true;
+    simulation.lastReconstructionMilliseconds = performance.now() - start;
+}
+
+function clearMoltenField()
+{
+    field.density.fill( 0 );
+    field.heat.fill( 0 );
+    field.densityScratch.fill( 0 );
+    field.heatScratch.fill( 0 );
+    field.flowX.fill( 0 );
+    field.flowZ.fill( 0 );
+    field.flowXScratch.fill( 0 );
+    field.flowZScratch.fill( 0 );
+    field.textureData.fill( 0 );
+    field.texture.needsUpdate = true;
+    simulation.reconstructionAccumulator = 0;
+}
+
+function integrateParcels( timeStep )
+{
+    const dragFactor = Math.exp( -parameters.drag * timeStep );
+
+    simulation.parcels.forEach( ( parcel ) => {
+        const previousX = parcel.x;
+        const previousZ = parcel.z;
+        parcel.vx = ( parcel.vx + parcel.ax * timeStep ) * dragFactor;
+        parcel.vz = ( parcel.vz + parcel.az * timeStep ) * dragFactor;
+
+        const speed = Math.hypot( parcel.vx, parcel.vz );
+        if ( speed > 4.5 )
+        {
+            parcel.vx *= 4.5 / speed;
+            parcel.vz *= 4.5 / speed;
+        }
+
+        parcel.x += parcel.vx * timeStep;
+        parcel.z += parcel.vz * timeStep;
+        parcel.temperature = Math.max( 0, parcel.temperature - timeStep * 0.012 );
+        parcel.age += timeStep;
+        depositTrail( parcel, previousX, previousZ, timeStep );
+    } );
+
+    simulation.parcels = simulation.parcels.filter( ( parcel ) => {
+        const radius = Math.hypot( parcel.x, parcel.z );
+        const source = sourceDefinitions[parcel.sourceIndex];
+
+        if ( radius <= simulation.receiverRadius )
+        {
+            source.captured += 1;
+            return false;
+        }
+
+        if ( radius >= 17 || parcel.age >= parcel.lifetime || parcel.temperature <= 0.1 )
+        {
+            source.lost += 1;
+            return false;
+        }
+
+        return true;
+    } );
+}
+
+function stepSimulation( timeStep )
+{
+    const start = performance.now();
+    simulation.lastInteractionCount = 0;
+    simulation.lastCrossSourceInteractionCount = 0;
+    emitParcels( timeStep );
+    applySurfaceForces();
+    applyNeighbourForces( buildSpatialHash() );
+    integrateParcels( timeStep );
+    simulation.reconstructionAccumulator += timeStep;
+    if ( simulation.reconstructionAccumulator >= 1 / 30 )
+    {
+        updateMoltenField( simulation.reconstructionAccumulator );
+        simulation.reconstructionAccumulator = 0;
+    }
+    simulation.lastStepMilliseconds = performance.now() - start;
+}
+
+function updateDiagnosticGeometry()
+{
+    simulation.parcels.forEach( ( parcel, index ) => {
+        const sourceColor = sourceDefinitions[parcel.sourceIndex].colorObject;
+        const height = membraneHeight( parcel.x, parcel.z ) + 0.08;
+        const positionOffset = index * 3;
+
+        parcelPositions[positionOffset] = parcel.x;
+        parcelPositions[positionOffset + 1] = height;
+        parcelPositions[positionOffset + 2] = parcel.z;
+        parcelColors[positionOffset] = sourceColor.r;
+        parcelColors[positionOffset + 1] = sourceColor.g;
+        parcelColors[positionOffset + 2] = sourceColor.b;
+
+        const vectorOffset = index * 6;
+        const vectorEndX = parcel.x + parcel.vx * 0.16;
+        const vectorEndZ = parcel.z + parcel.vz * 0.16;
+        vectorPositions[vectorOffset] = parcel.x;
+        vectorPositions[vectorOffset + 1] = height + 0.02;
+        vectorPositions[vectorOffset + 2] = parcel.z;
+        vectorPositions[vectorOffset + 3] = vectorEndX;
+        vectorPositions[vectorOffset + 4] = membraneHeight( vectorEndX, vectorEndZ ) + 0.1;
+        vectorPositions[vectorOffset + 5] = vectorEndZ;
+
+        for ( let component = 0; component < 2; component += 1 )
+        {
+            const colorOffset = vectorOffset + component * 3;
+            vectorColors[colorOffset] = sourceColor.r;
+            vectorColors[colorOffset + 1] = sourceColor.g;
+            vectorColors[colorOffset + 2] = sourceColor.b;
+        }
+    } );
+
+    parcelGeometry.attributes.position.needsUpdate = true;
+    parcelGeometry.attributes.color.needsUpdate = true;
+    parcelGeometry.setDrawRange( 0, simulation.parcels.length );
+    vectorGeometry.attributes.position.needsUpdate = true;
+    vectorGeometry.attributes.color.needsUpdate = true;
+    vectorGeometry.setDrawRange( 0, simulation.parcels.length * 2 );
+}
+
+function resetParcels()
+{
+    simulation.parcels = [];
+    simulation.accumulator = 0;
+    simulation.randomState = ( 0x2f6e2b1 ^ parameters.sourceSeed ^ parameters.streamCount ) >>> 0;
+    sourceDefinitions.forEach( ( source ) => {
+        source.emissionAccumulator = random();
+        source.captured = 0;
+        source.lost = 0;
+        source.resultElement.value = '0 / 0';
+    } );
+    clearMoltenField();
+    updateDiagnosticGeometry();
+}
+
+function updateSurface()
+{
+    deformMembrane( membraneGeometry );
+    deformMembrane( moltenGeometry );
+    deformMembrane( diagnosticGeometry );
+    receiver.position.y = membraneHeight( 0, 0 ) + 0.04;
+    updateSourceMarkerGeometry();
+    updateDiagnosticGeometry();
+}
+
+function connectSlider( inputId, outputId, onInput, decimals = 2 )
+{
+    const input = document.querySelector( `#${inputId}` );
+    const output = document.querySelector( `#${outputId}` );
+
+    input.addEventListener( 'input', () => {
+        const value = Number( input.value );
+        output.value = value.toFixed( decimals );
+        onInput( value );
+    } );
+}
+
+connectSlider( 'depth', 'depth-value', ( value ) => { parameters.depth = value; updateSurface(); } );
+connectSlider( 'width', 'width-value', ( value ) => { parameters.width = value; updateSurface(); } );
+connectSlider( 'key-light', 'key-light-value', ( value ) => { keyLight.intensity = value; } );
+connectSlider( 'exposure', 'exposure-value', ( value ) => { renderer.toneMappingExposure = value; } );
+connectSlider( 'emission-rate', 'emission-rate-value', ( value ) => { parameters.emissionRate = value; }, 0 );
+connectSlider( 'stream-count', 'stream-count-value', ( value ) => {
+    parameters.streamCount = value;
+    regenerateSources();
+    resetParcels();
+}, 0 );
+connectSlider( 'gravity', 'gravity-value', ( value ) => { parameters.gravity = value; } );
+connectSlider( 'drag', 'drag-value', ( value ) => { parameters.drag = value; } );
+connectSlider( 'interaction', 'interaction-value', ( value ) => { parameters.interaction = value; } );
+connectSlider( 'persistence', 'persistence-value', ( value ) => { parameters.persistence = value; } );
+connectSlider( 'deposition', 'deposition-value', ( value ) => { parameters.deposition = value; } );
+connectSlider( 'molten-intensity', 'molten-intensity-value', ( value ) => {
+    parameters.moltenIntensity = value;
+    moltenMaterial.uniforms.intensity.value = value;
+} );
+connectSlider( 'threshold', 'threshold-value', ( value ) => {
+    parameters.threshold = value;
+    moltenMaterial.uniforms.threshold.value = value;
+} );
+
+document.querySelector( '#diagnostic' ).addEventListener( 'change', ( event ) => {
+    diagnostic.visible = event.currentTarget.checked;
+} );
+
+document.querySelector( '#velocity-vectors' ).addEventListener( 'change', ( event ) => {
+    velocityVectors.visible = event.currentTarget.checked && parcelPoints.visible;
+} );
+
+document.querySelector( '#packet-diagnostics' ).addEventListener( 'change', ( event ) => {
+    const visible = event.currentTarget.checked;
+    parcelPoints.visible = visible;
+    sourceMarkers.visible = visible;
+    velocityVectors.visible = visible && document.querySelector( '#velocity-vectors' ).checked;
+} );
+
+document.querySelector( '#reset' ).addEventListener( 'click', resetParcels );
+document.querySelector( '#reseed' ).addEventListener( 'click', () => {
+    parameters.sourceSeed += 1;
+    regenerateSources();
+    resetParcels();
+} );
+
+const cameraViews = {
+    monumental: {
+        position: new THREE.Vector3( 7.5, 4.5, 14 ),
+        target: new THREE.Vector3( 0, -1.6, 0 )
+    },
+    elevated: {
+        position: new THREE.Vector3( 10.5, 10, 12.5 ),
+        target: new THREE.Vector3( 0, -1.65, 0 )
+    }
+};
+
+function setCameraView( name )
+{
+    const view = cameraViews[name];
+    camera.position.copy( view.position );
+    orbitControls.target.copy( view.target );
+    orbitControls.update();
+}
+
+document.querySelectorAll( '[data-view]' ).forEach( ( button ) => {
+    button.addEventListener( 'click', () => setCameraView( button.dataset.view ) );
+} );
+
+function resize()
+{
+    const width = sceneElement.clientWidth;
+    const height = sceneElement.clientHeight;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
+    renderer.setSize( width, height, false );
+}
+
+window.addEventListener( 'resize', resize );
+
+function animate( time )
+{
+    if ( simulation.previousTime === 0 )
+    {
+        simulation.previousTime = time;
+    }
+
+    const frameTime = Math.min( ( time - simulation.previousTime ) / 1000, 0.05 );
+    simulation.previousTime = time;
+    simulation.accumulator += frameTime;
+
+    let steps = 0;
+    while ( simulation.accumulator >= simulation.fixedStep && steps < 3 )
+    {
+        stepSimulation( simulation.fixedStep );
+        simulation.accumulator -= simulation.fixedStep;
+        steps += 1;
+    }
+
+    if ( steps === 3 )
+    {
+        simulation.accumulator = 0;
+    }
+
+    updateDiagnosticGeometry();
+    simulation.statisticsElapsed += frameTime;
+    if ( simulation.statisticsElapsed >= 0.25 )
+    {
+        parcelCountElement.textContent = `${simulation.parcels.length} / ${simulation.maximumParcels}`;
+        interactionCountElement.textContent = simulation.lastInteractionCount.toString();
+        crossSourceCountElement.textContent = simulation.lastCrossSourceInteractionCount.toString();
+        reconstructionTimeElement.textContent = `${simulation.lastReconstructionMilliseconds.toFixed( 2 )} ms`;
+        sourceDefinitions.forEach( ( source ) => {
+            source.resultElement.value = `${source.captured} / ${source.lost}`;
+        } );
+        simulationTimeElement.textContent = `${simulation.lastStepMilliseconds.toFixed( 2 )} ms`;
+        simulation.statisticsElapsed = 0;
+    }
+
+    orbitControls.update();
+    renderer.render( scene, camera );
+}
+
+regenerateSources();
+resetParcels();
+updateSurface();
+setCameraView( 'elevated' );
+resize();
+renderer.setAnimationLoop( animate );

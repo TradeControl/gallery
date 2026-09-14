@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Casting Pit v0.2b-2</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="Casting Pit parcel dynamics study"></main>
+
+    <aside class="controls" aria-label="Parcel dynamics controls">
+      <header>
+        <p>Molten Reconstruction</p>
+        <h1>Casting Pit <span>v0.2b-2</span></h1>
+      </header>
+
+      <div class="section-label">Membrane</div>
+
+      <label class="control" for="depth">
+        <span>Depression depth</span>
+        <output id="depth-value" for="depth">5.50</output>
+        <input id="depth" type="range" min="1" max="8" step="0.1" value="5.5">
+      </label>
+
+      <label class="control" for="width">
+        <span>Depression width</span>
+        <output id="width-value" for="width">3.80</output>
+        <input id="width" type="range" min="1.5" max="6" step="0.1" value="3.8">
+      </label>
+
+      <label class="control" for="key-light">
+        <span>Key light</span>
+        <output id="key-light-value" for="key-light">4.00</output>
+        <input id="key-light" type="range" min="0.5" max="8" step="0.1" value="4">
+      </label>
+
+      <label class="control" for="exposure">
+        <span>Exposure</span>
+        <output id="exposure-value" for="exposure">1.00</output>
+        <input id="exposure" type="range" min="0.5" max="1.8" step="0.05" value="1">
+      </label>
+
+      <div class="section-label">Parcel model</div>
+
+      <label class="control" for="stream-count">
+        <span>Number of streams</span>
+        <output id="stream-count-value" for="stream-count">6</output>
+        <input id="stream-count" type="range" min="2" max="12" step="1" value="6">
+      </label>
+
+      <label class="control" for="emission-rate">
+        <span>Emission rate</span>
+        <output id="emission-rate-value" for="emission-rate">48</output>
+        <input id="emission-rate" type="range" min="6" max="90" step="1" value="48">
+      </label>
+
+      <label class="control" for="gravity">
+        <span>Gravity influence</span>
+        <output id="gravity-value" for="gravity">3.20</output>
+        <input id="gravity" type="range" min="0.5" max="7" step="0.1" value="3.2">
+      </label>
+
+      <label class="control" for="drag">
+        <span>Drag</span>
+        <output id="drag-value" for="drag">0.32</output>
+        <input id="drag" type="range" min="0.05" max="1.2" step="0.01" value="0.32">
+      </label>
+
+      <label class="control" for="interaction">
+        <span>Interaction strength</span>
+        <output id="interaction-value" for="interaction">1.40</output>
+        <input id="interaction" type="range" min="0" max="2.5" step="0.05" value="1.4">
+      </label>
+
+      <div class="section-label">Molten field</div>
+
+      <label class="control" for="persistence">
+        <span>Persistence</span>
+        <output id="persistence-value" for="persistence">5.00</output>
+        <input id="persistence" type="range" min="1" max="12" step="0.25" value="5">
+      </label>
+
+      <label class="control" for="deposition">
+        <span>Deposition</span>
+        <output id="deposition-value" for="deposition">1.00</output>
+        <input id="deposition" type="range" min="0.25" max="2.5" step="0.05" value="1">
+      </label>
+
+      <label class="control" for="molten-intensity">
+        <span>Molten intensity</span>
+        <output id="molten-intensity-value" for="molten-intensity">0.85</output>
+        <input id="molten-intensity" type="range" min="0.35" max="2" step="0.05" value="0.85">
+      </label>
+
+      <label class="control" for="threshold">
+        <span>Reconstruction threshold</span>
+        <output id="threshold-value" for="threshold">0.10</output>
+        <input id="threshold" type="range" min="0.02" max="0.4" step="0.01" value="0.1">
+      </label>
+
+      <label class="switch" for="packet-diagnostics">
+        <span>Packet diagnostics</span>
+        <input id="packet-diagnostics" type="checkbox">
+      </label>
+
+      <label class="switch" for="diagnostic">
+        <span>Membrane wireframe</span>
+        <input id="diagnostic" type="checkbox">
+      </label>
+
+      <label class="switch" for="velocity-vectors">
+        <span>Velocity vectors</span>
+        <input id="velocity-vectors" type="checkbox">
+      </label>
+
+      <fieldset>
+        <legend>Camera</legend>
+        <button type="button" data-view="monumental">Monumental</button>
+        <button type="button" data-view="elevated">Elevated</button>
+      </fieldset>
+
+      <div class="button-row">
+        <button id="reset" type="button">Reset parcels</button>
+        <button id="reseed" type="button">Reseed</button>
+      </div>
+
+      <p class="seed">Source seed <output id="seed-value">1</output></p>
+
+      <div class="section-label source-heading">
+        <span>Generated sources</span>
+        <span>captured / lost</span>
+      </div>
+
+      <ul class="source-key" id="source-key"></ul>
+
+      <dl class="stats" aria-label="Simulation statistics">
+        <div><dt>Parcels</dt><dd id="parcel-count">0 / 500</dd></div>
+        <div><dt>Neighbour pairs</dt><dd id="interaction-count">0</dd></div>
+        <div><dt>Cross-source pairs</dt><dd id="cross-source-count">0</dd></div>
+        <div><dt>Reconstruction</dt><dd id="reconstruction-time">0.00 ms</dd></div>
+        <div><dt>Simulation</dt><dd id="simulation-time">0.00 ms</dd></div>
+      </dl>
+
+      <p class="hint">Molten field follows packet motion · drag to orbit</p>
+    </aside>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

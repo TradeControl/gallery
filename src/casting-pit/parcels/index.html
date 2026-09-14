@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Casting Pit v0.2b-1a</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="Casting Pit parcel dynamics study"></main>
+
+    <aside class="controls" aria-label="Parcel dynamics controls">
+      <header>
+        <p>Hostile Marbles</p>
+        <h1>Casting Pit <span>v0.2b-1a</span></h1>
+      </header>
+
+      <div class="section-label">Membrane</div>
+
+      <label class="control" for="depth">
+        <span>Depression depth</span>
+        <output id="depth-value" for="depth">5.50</output>
+        <input id="depth" type="range" min="1" max="8" step="0.1" value="5.5">
+      </label>
+
+      <label class="control" for="width">
+        <span>Depression width</span>
+        <output id="width-value" for="width">3.80</output>
+        <input id="width" type="range" min="1.5" max="6" step="0.1" value="3.8">
+      </label>
+
+      <label class="control" for="key-light">
+        <span>Key light</span>
+        <output id="key-light-value" for="key-light">4.00</output>
+        <input id="key-light" type="range" min="0.5" max="8" step="0.1" value="4">
+      </label>
+
+      <label class="control" for="exposure">
+        <span>Exposure</span>
+        <output id="exposure-value" for="exposure">1.00</output>
+        <input id="exposure" type="range" min="0.5" max="1.8" step="0.05" value="1">
+      </label>
+
+      <div class="section-label">Parcel model</div>
+
+      <label class="control" for="emission-rate">
+        <span>Emission rate</span>
+        <output id="emission-rate-value" for="emission-rate">48</output>
+        <input id="emission-rate" type="range" min="6" max="90" step="1" value="48">
+      </label>
+
+      <label class="control" for="gravity">
+        <span>Gravity influence</span>
+        <output id="gravity-value" for="gravity">3.20</output>
+        <input id="gravity" type="range" min="0.5" max="7" step="0.1" value="3.2">
+      </label>
+
+      <label class="control" for="drag">
+        <span>Drag</span>
+        <output id="drag-value" for="drag">0.32</output>
+        <input id="drag" type="range" min="0.05" max="1.2" step="0.01" value="0.32">
+      </label>
+
+      <label class="control" for="interaction">
+        <span>Interaction strength</span>
+        <output id="interaction-value" for="interaction">1.40</output>
+        <input id="interaction" type="range" min="0" max="2.5" step="0.05" value="1.4">
+      </label>
+
+      <label class="switch" for="diagnostic">
+        <span>Membrane wireframe</span>
+        <input id="diagnostic" type="checkbox">
+      </label>
+
+      <label class="switch" for="velocity-vectors">
+        <span>Velocity vectors</span>
+        <input id="velocity-vectors" type="checkbox">
+      </label>
+
+      <fieldset>
+        <legend>Camera</legend>
+        <button type="button" data-view="monumental">Monumental</button>
+        <button type="button" data-view="elevated">Elevated</button>
+      </fieldset>
+
+      <button class="reset" id="reset" type="button">Reset parcels</button>
+
+      <div class="section-label source-heading">
+        <span>Launch cases</span>
+        <span>captured / lost</span>
+      </div>
+
+      <fieldset class="source-filter">
+        <legend>Population view</legend>
+        <button type="button" data-population="all">All cases</button>
+        <button type="button" data-population="interceptors">Interceptors only</button>
+      </fieldset>
+
+      <ul class="source-key">
+        <li><i style="--source-color: #e06767"></i><span>Radial control</span><output id="source-result-0">0 / 0</output></li>
+        <li><i style="--source-color: #68a8e0"></i><span>Tangential capture</span><output id="source-result-1">0 / 0</output></li>
+        <li><i style="--source-color: #e0bf67"></i><span>Interceptor A</span><output id="source-result-2">0 / 0</output></li>
+        <li><i style="--source-color: #78cf8a"></i><span>Interceptor B</span><output id="source-result-3">0 / 0</output></li>
+        <li><i style="--source-color: #c47cdf"></i><span>High momentum</span><output id="source-result-4">0 / 0</output></li>
+        <li><i style="--source-color: #73d1c7"></i><span>Outward challenge</span><output id="source-result-5">0 / 0</output></li>
+      </ul>
+
+      <dl class="stats" aria-label="Simulation statistics">
+        <div><dt>Parcels</dt><dd id="parcel-count">0 / 500</dd></div>
+        <div><dt>Neighbour pairs</dt><dd id="interaction-count">0</dd></div>
+        <div><dt>Cross-source pairs</dt><dd id="cross-source-count">0</dd></div>
+        <div><dt>Interceptor pairs</dt><dd id="interceptor-count">0</dd></div>
+        <div><dt>Simulation</dt><dd id="simulation-time">0.00 ms</dd></div>
+      </dl>
+
+      <p class="hint">Colours identify sources · drag to orbit</p>
+    </aside>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
