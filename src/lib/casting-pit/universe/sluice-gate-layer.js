@@ -1,35 +1,8 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { bindRangeControl } from '../controls.js';
+import { seededGenerator } from '../random.js';
 
-const sceneElement = document.querySelector( '#scene' );
-const parcelCountElement = document.querySelector( '#parcel-count' );
-const interactionCountElement = document.querySelector( '#interaction-count' );
-const crossSourceCountElement = document.querySelector( '#cross-source-count' );
-const simulationTimeElement = document.querySelector( '#simulation-time' );
-const reconstructionTimeElement = document.querySelector( '#reconstruction-time' );
-const sourceKeyElement = document.querySelector( '#source-key' );
-const seedValueElement = document.querySelector( '#seed-value' );
-const reservoirCountElement = document.querySelector( '#reservoir-count' );
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color( 0x050607 );
-
-const camera = new THREE.PerspectiveCamera( 48, 1, 0.1, 80 );
-const renderer = new THREE.WebGLRenderer( { antialias: true } );
-renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1;
-sceneElement.appendChild( renderer.domElement );
-
-const orbitControls = new OrbitControls( camera, renderer.domElement );
-orbitControls.enableDamping = true;
-orbitControls.dampingFactor = 0.07;
-orbitControls.minDistance = 3;
-orbitControls.maxDistance = 34;
-orbitControls.maxPolarAngle = Math.PI * 0.495;
-
-const parameters = {
+export const sluiceGateDefaults = {
     depth: 5.5,
     width: 3.8,
     emissionRate: 48,
@@ -49,6 +22,24 @@ const parameters = {
     moltenIntensity: 0.85,
     threshold: 0.1
 };
+
+export function createSluiceGateLayer( { world, membrane, parameters, root = document, includeEnvironment = true } )
+{
+const { scene, renderer } = world;
+const ownerDocument = root.ownerDocument ?? root;
+const membraneHeight = membrane.height;
+const membraneGradient = membrane.gradient;
+const createMembraneGeometry = membrane.createGeometry;
+const deformMembrane = membrane.deform;
+
+const parcelCountElement = root.querySelector( '#parcel-count' );
+const interactionCountElement = root.querySelector( '#interaction-count' );
+const crossSourceCountElement = root.querySelector( '#cross-source-count' );
+const simulationTimeElement = root.querySelector( '#simulation-time' );
+const reconstructionTimeElement = root.querySelector( '#reconstruction-time' );
+const sourceKeyElement = root.querySelector( '#source-key' );
+const seedValueElement = root.querySelector( '#seed-value' );
+const reservoirCountElement = root.querySelector( '#reservoir-count' );
 
 const simulation = {
     fixedStep: 1 / 60,
@@ -77,45 +68,6 @@ function random()
     return ( simulation.randomState >>> 0 ) / 4294967296;
 }
 
-function membraneHeight( x, z )
-{
-    const radiusSquared = x * x + z * z;
-    return -parameters.depth * Math.exp( -radiusSquared / ( parameters.width * parameters.width ) );
-}
-
-function membraneGradient( x, z )
-{
-    const widthSquared = parameters.width * parameters.width;
-    const factor = 2 * parameters.depth * Math.exp( -( x * x + z * z ) / widthSquared ) / widthSquared;
-    return { x: factor * x, z: factor * z };
-}
-
-function createMembraneGeometry( segments )
-{
-    const geometry = new THREE.PlaneGeometry( 24, 24, segments, segments );
-    geometry.rotateX( -Math.PI / 2 );
-    geometry.userData.materialPositions = Float32Array.from( geometry.attributes.position.array );
-    return geometry;
-}
-
-function deformMembrane( geometry )
-{
-    const positions = geometry.attributes.position;
-    const materialPositions = geometry.userData.materialPositions;
-
-    for ( let index = 0; index < positions.count; index += 1 )
-    {
-        const offset = index * 3;
-        const x = materialPositions[offset];
-        const z = materialPositions[offset + 2];
-        positions.setXYZ( index, x, membraneHeight( x, z ), z );
-    }
-
-    positions.needsUpdate = true;
-    geometry.computeVertexNormals();
-    geometry.computeBoundingSphere();
-}
-
 const membraneGeometry = createMembraneGeometry( 180 );
 const membraneMaterial = new THREE.MeshStandardMaterial( {
     color: 0x313538,
@@ -126,7 +78,8 @@ const membraneMaterial = new THREE.MeshStandardMaterial( {
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1
 } );
-scene.add( new THREE.Mesh( membraneGeometry, membraneMaterial ) );
+const membraneSurface = new THREE.Mesh( membraneGeometry, membraneMaterial );
+if ( includeEnvironment ) scene.add( membraneSurface );
 
 const field = {
     resolution: 224,
@@ -268,37 +221,27 @@ const diagnosticMaterial = new THREE.MeshBasicMaterial( {
 const diagnostic = new THREE.Mesh( diagnosticGeometry, diagnosticMaterial );
 diagnostic.visible = false;
 diagnostic.renderOrder = 1;
-scene.add( diagnostic );
+if ( includeEnvironment ) scene.add( diagnostic );
 
-scene.add( new THREE.HemisphereLight( 0x8795a1, 0x17110d, 1.25 ) );
+const hemisphereLight = new THREE.HemisphereLight( 0x8795a1, 0x17110d, 1.25 );
+if ( includeEnvironment ) scene.add( hemisphereLight );
 
 const keyLight = new THREE.DirectionalLight( 0xffd3aa, 4 );
 keyLight.position.set( -5, 9, 6 );
-scene.add( keyLight );
+if ( includeEnvironment ) scene.add( keyLight );
 
 const rimLight = new THREE.DirectionalLight( 0x6688aa, 1.5 );
 rimLight.position.set( 7, 3, -6 );
-scene.add( rimLight );
+if ( includeEnvironment ) scene.add( rimLight );
 
 const receiver = new THREE.Mesh(
     new THREE.CircleGeometry( simulation.receiverRadius, 48 ).rotateX( -Math.PI / 2 ),
     new THREE.MeshBasicMaterial( { color: 0x020303, side: THREE.DoubleSide } )
 );
-scene.add( receiver );
+if ( includeEnvironment ) scene.add( receiver );
 
 let sourceDefinitions = [];
 let rimReservoir = [];
-
-function seededGenerator( seed )
-{
-    let state = seed >>> 0 || 1;
-    return () => {
-        state ^= state << 13;
-        state ^= state >>> 17;
-        state ^= state << 5;
-        return ( state >>> 0 ) / 4294967296;
-    };
-}
 
 let gates = [];
 const gateGroup = new THREE.Group();
@@ -434,12 +377,12 @@ function rebuildSourcePresentation()
 
     gates.forEach( ( gate ) => {
 
-        const item = document.createElement( 'li' );
-        const swatch = document.createElement( 'i' );
+        const item = ownerDocument.createElement( 'li' );
+        const swatch = ownerDocument.createElement( 'i' );
         swatch.style.setProperty( '--source-color', `#${gate.color.getHexString()}` );
-        const label = document.createElement( 'span' );
+        const label = ownerDocument.createElement( 'span' );
         label.textContent = gate.label;
-        gate.resultElement = document.createElement( 'output' );
+        gate.resultElement = ownerDocument.createElement( 'output' );
         gate.resultElement.textContent = 'filling';
         item.append( swatch, label, gate.resultElement );
         sourceKeyElement.append( item );
@@ -1109,17 +1052,7 @@ function updateSurface()
     updateDiagnosticGeometry();
 }
 
-function connectSlider( inputId, outputId, onInput, decimals = 2 )
-{
-    const input = document.querySelector( `#${inputId}` );
-    const output = document.querySelector( `#${outputId}` );
-
-    input.addEventListener( 'input', () => {
-        const value = Number( input.value );
-        output.value = value.toFixed( decimals );
-        onInput( value );
-    } );
-}
+const connectSlider = ( inputId, outputId, onInput, decimals = 2 ) => bindRangeControl( root, inputId, outputId, onInput, decimals );
 
 connectSlider( 'depth', 'depth-value', ( value ) => { parameters.depth = value; updateSurface(); } );
 connectSlider( 'width', 'width-value', ( value ) => { parameters.width = value; updateSurface(); } );
@@ -1164,62 +1097,27 @@ connectSlider( 'threshold', 'threshold-value', ( value ) => {
     moltenMaterial.uniforms.threshold.value = value;
 } );
 
-document.querySelector( '#diagnostic' ).addEventListener( 'change', ( event ) => {
+root.querySelector( '#diagnostic' ).addEventListener( 'change', ( event ) => {
     diagnostic.visible = event.currentTarget.checked;
 } );
 
-document.querySelector( '#velocity-vectors' ).addEventListener( 'change', ( event ) => {
+root.querySelector( '#velocity-vectors' ).addEventListener( 'change', ( event ) => {
     velocityVectors.visible = event.currentTarget.checked && parcelPoints.visible;
 } );
 
-document.querySelector( '#packet-diagnostics' ).addEventListener( 'change', ( event ) => {
+root.querySelector( '#packet-diagnostics' ).addEventListener( 'change', ( event ) => {
     const visible = event.currentTarget.checked;
     parcelPoints.visible = visible;
     sourceMarkers.visible = visible;
-    velocityVectors.visible = visible && document.querySelector( '#velocity-vectors' ).checked;
+    velocityVectors.visible = visible && root.querySelector( '#velocity-vectors' ).checked;
 } );
 
-document.querySelector( '#reset' ).addEventListener( 'click', resetParcels );
-document.querySelector( '#reseed' ).addEventListener( 'click', () => {
+root.querySelector( '#reset' ).addEventListener( 'click', resetParcels );
+root.querySelector( '#reseed' ).addEventListener( 'click', () => {
     parameters.sourceSeed += 1;
     regenerateSources();
     resetParcels();
 } );
-
-const cameraViews = {
-    monumental: {
-        position: new THREE.Vector3( 7.5, 4.5, 14 ),
-        target: new THREE.Vector3( 0, -1.6, 0 )
-    },
-    elevated: {
-        position: new THREE.Vector3( 10.5, 10, 12.5 ),
-        target: new THREE.Vector3( 0, -1.65, 0 )
-    }
-};
-
-function setCameraView( name )
-{
-    const view = cameraViews[name];
-    camera.position.copy( view.position );
-    orbitControls.target.copy( view.target );
-    orbitControls.update();
-}
-
-document.querySelectorAll( '[data-view]' ).forEach( ( button ) => {
-    button.addEventListener( 'click', () => setCameraView( button.dataset.view ) );
-} );
-
-function resize()
-{
-    const width = sceneElement.clientWidth;
-    const height = sceneElement.clientHeight;
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
-    renderer.setSize( width, height, false );
-}
-
-window.addEventListener( 'resize', resize );
 
 function animate( time )
 {
@@ -1261,13 +1159,23 @@ function animate( time )
         simulation.statisticsElapsed = 0;
     }
 
-    orbitControls.update();
-    renderer.render( scene, camera );
 }
 
 regenerateSources();
 resetParcels();
 updateSurface();
-setCameraView( 'elevated' );
-resize();
-renderer.setAnimationLoop( animate );
+world.addFrameCallback( animate );
+
+return {
+    parameters,
+    simulation,
+    environment: { membraneSurface, diagnostic, hemisphereLight, keyLight, rimLight, receiver },
+    updateSurface,
+    reset: resetParcels,
+    reseed() {
+        parameters.sourceSeed += 1;
+        regenerateSources();
+        resetParcels();
+    }
+};
+}

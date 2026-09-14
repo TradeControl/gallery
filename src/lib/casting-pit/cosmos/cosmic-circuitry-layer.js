@@ -1,26 +1,8 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { bindRangeControl } from '../controls.js';
+import { seededGenerator } from '../random.js';
 
-const sceneElement = document.querySelector( '#scene' );
-const scene = new THREE.Scene();
-scene.background = new THREE.Color( 0x030405 );
-
-const camera = new THREE.PerspectiveCamera( 48, 1, 0.1, 80 );
-const renderer = new THREE.WebGLRenderer( { antialias: true } );
-renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1;
-sceneElement.appendChild( renderer.domElement );
-
-const orbitControls = new OrbitControls( camera, renderer.domElement );
-orbitControls.enableDamping = true;
-orbitControls.dampingFactor = 0.07;
-orbitControls.minDistance = 3;
-orbitControls.maxDistance = 34;
-orbitControls.maxPolarAngle = Math.PI * 0.495;
-
-const parameters = {
+export const cosmicCircuitryDefaults = {
     depth: 7.1,
     width: 3.7,
     intensity: 0.65,
@@ -37,34 +19,13 @@ const parameters = {
     seed: 2
 };
 
-function membraneHeight( x, z )
+export function createCosmicCircuitryLayer( { world, membrane, parameters, root = document, includeEnvironment = true } )
 {
-    return -parameters.depth * Math.exp( -( x * x + z * z ) / ( parameters.width * parameters.width ) );
-}
-
-function createMembraneGeometry( segments )
-{
-    const geometry = new THREE.PlaneGeometry( 24, 24, segments, segments );
-    geometry.rotateX( -Math.PI / 2 );
-    geometry.userData.materialPositions = Float32Array.from( geometry.attributes.position.array );
-    return geometry;
-}
-
-function deformMembrane( geometry )
-{
-    const positions = geometry.attributes.position;
-    const materialPositions = geometry.userData.materialPositions;
-    for ( let index = 0; index < positions.count; index += 1 )
-    {
-        const offset = index * 3;
-        const x = materialPositions[offset];
-        const z = materialPositions[offset + 2];
-        positions.setXYZ( index, x, membraneHeight( x, z ), z );
-    }
-    positions.needsUpdate = true;
-    geometry.computeVertexNormals();
-    geometry.computeBoundingSphere();
-}
+const { scene, renderer } = world;
+const ownerDocument = root.ownerDocument ?? root;
+const membraneHeight = membrane.height;
+const createMembraneGeometry = membrane.createGeometry;
+const deformMembrane = membrane.deform;
 
 const membraneGeometry = createMembraneGeometry( 180 );
 const membraneMaterial = new THREE.MeshStandardMaterial( {
@@ -76,7 +37,8 @@ const membraneMaterial = new THREE.MeshStandardMaterial( {
     polygonOffsetFactor: 1,
     polygonOffsetUnits: 1
 } );
-scene.add( new THREE.Mesh( membraneGeometry, membraneMaterial ) );
+const membraneSurface = new THREE.Mesh( membraneGeometry, membraneMaterial );
+if ( includeEnvironment ) scene.add( membraneSurface );
 
 const diagnosticGeometry = createMembraneGeometry( 32 );
 const diagnostic = new THREE.Mesh( diagnosticGeometry, new THREE.MeshBasicMaterial( {
@@ -88,32 +50,22 @@ const diagnostic = new THREE.Mesh( diagnosticGeometry, new THREE.MeshBasicMateri
 } ) );
 diagnostic.visible = false;
 diagnostic.renderOrder = 4;
-scene.add( diagnostic );
+if ( includeEnvironment ) scene.add( diagnostic );
 
-scene.add( new THREE.HemisphereLight( 0x697580, 0x100d09, 0.8 ) );
+const hemisphereLight = new THREE.HemisphereLight( 0x697580, 0x100d09, 0.8 );
+if ( includeEnvironment ) scene.add( hemisphereLight );
 const keyLight = new THREE.DirectionalLight( 0xffd5a2, 3.2 );
 keyLight.position.set( -5, 9, 6 );
-scene.add( keyLight );
+if ( includeEnvironment ) scene.add( keyLight );
 const rimLight = new THREE.DirectionalLight( 0x506477, 1.1 );
 rimLight.position.set( 7, 3, -6 );
-scene.add( rimLight );
+if ( includeEnvironment ) scene.add( rimLight );
 
 const receiver = new THREE.Mesh(
     new THREE.CircleGeometry( 0.34, 48 ).rotateX( -Math.PI / 2 ),
     new THREE.MeshBasicMaterial( { color: 0x010202, side: THREE.DoubleSide } )
 );
-scene.add( receiver );
-
-function seededGenerator( seed )
-{
-    let state = seed >>> 0 || 1;
-    return () => {
-        state ^= state << 13;
-        state ^= state >>> 17;
-        state ^= state << 5;
-        return ( state >>> 0 ) / 4294967296;
-    };
-}
+if ( includeEnvironment ) scene.add( receiver );
 
 const network = { nodes: [], edges: [], adjacency: [], routes: [] };
 const grooveGeometry = new THREE.BufferGeometry();
@@ -196,7 +148,7 @@ signalHeadGeometry.setAttribute( 'position', new THREE.BufferAttribute( signalHe
 
 function createDropletTexture()
 {
-    const canvas = document.createElement( 'canvas' );
+    const canvas = ownerDocument.createElement( 'canvas' );
     canvas.width = 64;
     canvas.height = 64;
     const context = canvas.getContext( '2d' );
@@ -469,9 +421,9 @@ function generateNetwork()
     rebuildRoutes( seededGenerator( 0xd1b54a35 ^ parameters.seed ) );
     updateNetworkGeometry();
     resetSignals();
-    document.querySelector( '#node-count' ).textContent = network.nodes.length.toString();
-    document.querySelector( '#edge-count' ).textContent = network.edges.length.toString();
-    document.querySelector( '#seed-value' ).value = parameters.seed.toString();
+    root.querySelector( '#node-count' ).textContent = network.nodes.length.toString();
+    root.querySelector( '#edge-count' ).textContent = network.edges.length.toString();
+    root.querySelector( '#seed-value' ).value = parameters.seed.toString();
 }
 
 function rebuildRoutes( random )
@@ -736,7 +688,7 @@ function updateSignals( timeStep )
     signalMaterial.opacity = Math.min( parameters.signalBrightness * 0.82 * signalFlicker, 1 );
     signalHaloMaterial.opacity = Math.min( parameters.signalBrightness * 0.7 * signalFlicker, 0.95 );
     signalCoreMaterial.opacity = Math.min( parameters.signalBrightness * signalFlicker, 1 );
-    document.querySelector( '#pulse-count' ).textContent = count.toString();
+    root.querySelector( '#pulse-count' ).textContent = count.toString();
 }
 
 function updateSurface()
@@ -747,16 +699,7 @@ function updateSurface()
     updateNetworkGeometry();
 }
 
-function connectSlider( inputId, outputId, onInput, decimals = 2 )
-{
-    const input = document.querySelector( `#${inputId}` );
-    const output = document.querySelector( `#${outputId}` );
-    input.addEventListener( 'input', () => {
-        const value = Number( input.value );
-        output.value = value.toFixed( decimals );
-        onInput( value );
-    } );
-}
+const connectSlider = ( inputId, outputId, onInput, decimals = 2 ) => bindRangeControl( root, inputId, outputId, onInput, decimals );
 
 connectSlider( 'depth', 'depth-value', ( value ) => { parameters.depth = value; updateSurface(); } );
 connectSlider( 'width', 'width-value', ( value ) => { parameters.width = value; updateSurface(); } );
@@ -779,32 +722,9 @@ connectSlider( 'signal-density', 'signal-density-value', ( value ) => { paramete
 connectSlider( 'signal-speed', 'signal-speed-value', ( value ) => { parameters.signalSpeed = value; } );
 connectSlider( 'signal-brightness', 'signal-brightness-value', ( value ) => { parameters.signalBrightness = value; } );
 
-document.querySelector( '#diagnostic' ).addEventListener( 'change', ( event ) => { diagnostic.visible = event.currentTarget.checked; } );
-document.querySelector( '#reset' ).addEventListener( 'click', resetSignals );
-document.querySelector( '#reseed' ).addEventListener( 'click', () => { parameters.seed += 1; generateNetwork(); } );
-
-const cameraViews = {
-    monumental: { position: new THREE.Vector3( 7.5, 4.5, 14 ), target: new THREE.Vector3( 0, -1.6, 0 ) },
-    elevated: { position: new THREE.Vector3( 10.5, 10, 12.5 ), target: new THREE.Vector3( 0, -1.65, 0 ) }
-};
-function setCameraView( name )
-{
-    camera.position.copy( cameraViews[name].position );
-    orbitControls.target.copy( cameraViews[name].target );
-    orbitControls.update();
-}
-document.querySelectorAll( '[data-view]' ).forEach( ( button ) => button.addEventListener( 'click', () => setCameraView( button.dataset.view ) ) );
-
-function resize()
-{
-    const width = sceneElement.clientWidth;
-    const height = sceneElement.clientHeight;
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
-    renderer.setSize( width, height, false );
-}
-window.addEventListener( 'resize', resize );
+root.querySelector( '#diagnostic' ).addEventListener( 'change', ( event ) => { diagnostic.visible = event.currentTarget.checked; } );
+root.querySelector( '#reset' ).addEventListener( 'click', resetSignals );
+root.querySelector( '#reseed' ).addEventListener( 'click', () => { parameters.seed += 1; generateNetwork(); } );
 
 let previousTime = 0;
 function animate( time )
@@ -813,12 +733,18 @@ function animate( time )
     previousTime = time;
     emberMaterial.opacity = parameters.intensity * ( 0.84 + Math.sin( time * 0.0017 ) * 0.08 + Math.sin( time * 0.0043 ) * 0.04 );
     updateSignals( timeStep );
-    orbitControls.update();
-    renderer.render( scene, camera );
 }
 
 generateNetwork();
 updateSurface();
-setCameraView( 'elevated' );
-resize();
-renderer.setAnimationLoop( animate );
+world.addFrameCallback( animate );
+
+return {
+    parameters,
+    network,
+    environment: { membraneSurface, diagnostic, hemisphereLight, keyLight, rimLight, receiver },
+    updateSurface,
+    resetSignals,
+    regenerate: generateNetwork
+};
+}

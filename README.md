@@ -54,6 +54,13 @@ Avoid introducing frameworks, abstraction layers or reusable infrastructure unti
 
 Each stage should first succeed visually and technically on its own.
 
+## Project structure
+
+- `src/casting-pit/physical-layer/` is the signed-off Universe reference experiment.
+- `src/casting-pit/information-layer/` is the signed-off Cosmos reference experiment.
+- `src/lib/casting-pit/` contains the small shared ES-module library extracted from those references; its README documents module responsibilities and equivalence findings.
+- `src/casting-pit/archive/` preserves superseded runnable studies.
+
 ## Licence
 
 Source code is licensed by Trade Control Ltd under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
