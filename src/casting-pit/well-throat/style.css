@@ -1,0 +1,14 @@
+@import url('../physical-layer/style.css');
+
+h1 span,
+.control output,
+.seed output,
+.stats dd {
+  color: #d49c4b;
+}
+
+.control input,
+.switch input {
+  accent-color: #c28b3e;
+}
+

@@ -30,7 +30,8 @@ export function createSluiceGateLayer( {
     root = document,
     includeEnvironment = true,
     controlPrefix = '',
-    moltenRenderOrder = 2
+    moltenRenderOrder = 2,
+    onGateLayoutChange = null
 } )
 {
 const { scene, renderer } = world;
@@ -41,6 +42,7 @@ const membraneHeight = membrane.height;
 const membraneGradient = membrane.gradient;
 const createMembraneGeometry = membrane.createGeometry;
 const deformMembrane = membrane.deform;
+const hasOpening = typeof membrane.isInsideOpening === 'function';
 
 const parcelCountElement = control( 'parcel-count' );
 const interactionCountElement = control( 'interaction-count' );
@@ -140,6 +142,41 @@ field.texture.wrapS = THREE.ClampToEdgeWrapping;
 field.texture.wrapT = THREE.ClampToEdgeWrapping;
 field.texture.needsUpdate = true;
 
+const surfaceMaskData = new Uint8Array( field.resolution * field.resolution );
+const surfaceMaskTexture = new THREE.DataTexture(
+    surfaceMaskData,
+    field.resolution,
+    field.resolution,
+    THREE.RedFormat,
+    THREE.UnsignedByteType
+);
+surfaceMaskTexture.minFilter = THREE.LinearFilter;
+surfaceMaskTexture.magFilter = THREE.LinearFilter;
+surfaceMaskTexture.wrapS = THREE.ClampToEdgeWrapping;
+surfaceMaskTexture.wrapT = THREE.ClampToEdgeWrapping;
+
+function updateSurfaceMask()
+{
+    if ( !hasOpening )
+    {
+        surfaceMaskData.fill( 255 );
+        surfaceMaskTexture.needsUpdate = true;
+        return;
+    }
+    for ( let y = 0; y < field.resolution; y += 1 )
+    {
+        const z = 12 - y / ( field.resolution - 1 ) * 24;
+        for ( let x = 0; x < field.resolution; x += 1 )
+        {
+            const worldX = x / ( field.resolution - 1 ) * 24 - 12;
+            surfaceMaskData[y * field.resolution + x] = hasOpening && membrane.isInsideOpening( worldX, z ) ? 0 : 255;
+        }
+    }
+    surfaceMaskTexture.needsUpdate = true;
+}
+
+updateSurfaceMask();
+
 const moltenGeometry = createMembraneGeometry( 180 );
 const moltenMaterial = new THREE.ShaderMaterial( {
     transparent: true,
@@ -147,6 +184,7 @@ const moltenMaterial = new THREE.ShaderMaterial( {
     side: THREE.DoubleSide,
     uniforms: {
         moltenField: { value: field.texture },
+        surfaceMask: { value: surfaceMaskTexture },
         intensity: { value: parameters.moltenIntensity },
         threshold: { value: parameters.threshold }
     },
@@ -166,6 +204,7 @@ const moltenMaterial = new THREE.ShaderMaterial( {
     `,
     fragmentShader: `
         uniform sampler2D moltenField;
+        ${hasOpening ? 'uniform sampler2D surfaceMask;' : ''}
         uniform float intensity;
         uniform float threshold;
         varying vec2 vUv;
@@ -190,6 +229,7 @@ const moltenMaterial = new THREE.ShaderMaterial( {
 
         void main()
         {
+            ${hasOpening ? 'if ( texture2D( surfaceMask, vUv ).r < 0.5 ) discard;' : ''}
             vec2 material = texture2D( moltenField, vUv ).rg;
             float density = material.r;
             float heat = clamp( material.g / max( density, 0.001 ), 0.0, 1.0 );
@@ -220,7 +260,7 @@ const moltenSurface = new THREE.Mesh( moltenGeometry, moltenMaterial );
 moltenSurface.renderOrder = moltenRenderOrder;
 scene.add( moltenSurface );
 
-const diagnosticGeometry = createMembraneGeometry( 32 );
+const diagnosticGeometry = createMembraneGeometry( membrane.diagnosticSegments ?? 32 );
 const diagnosticMaterial = new THREE.MeshBasicMaterial( {
     color: 0x83949b,
     transparent: true,
@@ -232,6 +272,55 @@ const diagnostic = new THREE.Mesh( diagnosticGeometry, diagnosticMaterial );
 diagnostic.visible = false;
 diagnostic.renderOrder = 1;
 if ( includeEnvironment ) scene.add( diagnostic );
+
+let throatSurface = null;
+let throatDiagnostic = null;
+let historyGuides = null;
+let alignmentGuides = null;
+
+if ( includeEnvironment && typeof membrane.createThroatGeometry === 'function' )
+{
+    throatSurface = new THREE.Mesh(
+        membrane.createThroatGeometry(),
+        new THREE.MeshStandardMaterial( {
+            color: 0x313538,
+            metalness: 0.2,
+            roughness: 0.72,
+            side: THREE.FrontSide
+        } )
+    );
+    scene.add( throatSurface );
+
+    throatDiagnostic = new THREE.LineSegments(
+        new THREE.WireframeGeometry( throatSurface.geometry ),
+        new THREE.LineBasicMaterial( { color: 0x83949b, transparent: true, opacity: 0.36, depthWrite: false } )
+    );
+    throatDiagnostic.visible = false;
+    throatDiagnostic.renderOrder = 1;
+    scene.add( throatDiagnostic );
+
+    if ( typeof membrane.createHistoryGuideGeometry === 'function' )
+    {
+        historyGuides = new THREE.LineSegments(
+            membrane.createHistoryGuideGeometry(),
+            new THREE.LineBasicMaterial( { color: 0xffb34e, transparent: true, opacity: 0.9, depthWrite: false } )
+        );
+        historyGuides.visible = false;
+        historyGuides.renderOrder = 4;
+        scene.add( historyGuides );
+    }
+
+    if ( typeof membrane.createAlignmentGuideGeometry === 'function' )
+    {
+        alignmentGuides = new THREE.LineSegments(
+            membrane.createAlignmentGuideGeometry(),
+            new THREE.LineBasicMaterial( { color: 0x5de1ff, transparent: true, opacity: 0.95, depthWrite: false } )
+        );
+        alignmentGuides.visible = false;
+        alignmentGuides.renderOrder = 5;
+        scene.add( alignmentGuides );
+    }
+}
 
 const hemisphereLight = new THREE.HemisphereLight( 0x8795a1, 0x17110d, 1.25 );
 if ( includeEnvironment ) scene.add( hemisphereLight );
@@ -248,7 +337,7 @@ const receiver = new THREE.Mesh(
     new THREE.CircleGeometry( simulation.receiverRadius, 48 ).rotateX( -Math.PI / 2 ),
     new THREE.MeshBasicMaterial( { color: 0x020303, side: THREE.DoubleSide } )
 );
-if ( includeEnvironment ) scene.add( receiver );
+if ( includeEnvironment && !hasOpening ) scene.add( receiver );
 
 let sourceDefinitions = [];
 let rimReservoir = [];
@@ -429,6 +518,7 @@ function regenerateSources()
     buildGateMeshes();
     rebuildSourcePresentation();
     seedValueElement.value = parameters.sourceSeed.toString();
+    if ( onGateLayoutChange ) onGateLayoutChange( gates );
 }
 
 const parcelPositions = new Float32Array( simulation.maximumParcels * 3 );
@@ -944,6 +1034,10 @@ function integrateParcels( timeStep )
         parcel.age += timeStep;
         tryCaptureAtReservoir( parcel, radiusBeforeIntegration );
         depositTrail( parcel, previousX, previousZ, timeStep );
+        if ( parcel.heldByGate === -1 && hasOpening )
+        {
+            parcel.enteredOpening = membrane.crossesOpening( previousX, previousZ, parcel.x, parcel.z );
+        }
     } );
 
     simulation.parcels = simulation.parcels.filter( ( parcel ) => {
@@ -951,7 +1045,7 @@ function integrateParcels( timeStep )
         const radius = Math.hypot( parcel.x, parcel.z );
         const source = sourceDefinitions[parcel.sourceIndex];
 
-        if ( radius <= simulation.receiverRadius )
+        if ( parcel.enteredOpening || ( !hasOpening && radius <= simulation.receiverRadius ) )
         {
             source.captured += 1;
             return false;
@@ -1056,7 +1150,25 @@ function updateSurface()
     deformMembrane( membraneGeometry );
     deformMembrane( moltenGeometry );
     deformMembrane( diagnosticGeometry );
-    receiver.position.y = membraneHeight( 0, 0 ) + 0.04;
+    if ( receiver.parent ) receiver.position.y = membraneHeight( 0, 0 ) + 0.04;
+    updateSurfaceMask();
+    if ( throatSurface )
+    {
+        throatSurface.geometry.dispose();
+        throatSurface.geometry = membrane.createThroatGeometry();
+        throatDiagnostic.geometry.dispose();
+        throatDiagnostic.geometry = new THREE.WireframeGeometry( throatSurface.geometry );
+        if ( historyGuides )
+        {
+            historyGuides.geometry.dispose();
+            historyGuides.geometry = membrane.createHistoryGuideGeometry();
+        }
+        if ( alignmentGuides )
+        {
+            alignmentGuides.geometry.dispose();
+            alignmentGuides.geometry = membrane.createAlignmentGuideGeometry();
+        }
+    }
     updateGateGeometry();
     updateSourceMarkerGeometry();
     updateDiagnosticGeometry();
@@ -1115,6 +1227,9 @@ connectSlider( 'threshold', 'threshold-value', ( value ) => {
 
 control( 'diagnostic' ).addEventListener( 'change', ( event ) => {
     diagnostic.visible = event.currentTarget.checked;
+    if ( throatDiagnostic ) throatDiagnostic.visible = event.currentTarget.checked;
+    if ( historyGuides ) historyGuides.visible = event.currentTarget.checked;
+    if ( alignmentGuides ) alignmentGuides.visible = event.currentTarget.checked;
 } );
 
 let layerVisible = true;
@@ -1187,7 +1302,18 @@ world.addFrameCallback( animate );
 return {
     parameters,
     simulation,
-    environment: { membraneSurface, diagnostic, hemisphereLight, keyLight, rimLight, receiver },
+    environment: {
+        membraneSurface,
+        diagnostic,
+        throatSurface,
+        throatDiagnostic,
+        historyGuides,
+        alignmentGuides,
+        hemisphereLight,
+        keyLight,
+        rimLight,
+        receiver
+    },
     updateSurface,
     setVisible( visible ) {
         layerVisible = visible;

@@ -58,7 +58,8 @@ Each stage should first succeed visually and technically on its own.
 
 - `src/casting-pit/physical-layer/` is the signed-off Universe reference experiment.
 - `src/casting-pit/information-layer/` is the signed-off Cosmos reference experiment.
-- `src/casting-pit/universe-cosmos-v0.5a/` is the first diagnostic composition of both systems on one membrane.
+- `src/casting-pit/universe-cosmos/` is the evolving composition of both systems on one membrane.
+- `src/casting-pit/well-throat/` is the bounded v0.6a physical-only throat experiment.
 - `src/lib/casting-pit/` contains the small shared ES-module library extracted from those references; its README documents module responsibilities and equivalence findings.
 - `src/casting-pit/archive/` preserves superseded runnable studies.
 

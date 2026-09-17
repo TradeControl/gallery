@@ -5,10 +5,11 @@ This directory contains only mechanisms demonstrated by the signed-off Casting P
 ## Structure
 
 - `world.js` owns one Three.js scene, camera, renderer, orbit controls, resize handling and render loop. Multiple layers can register frame callbacks with the same world.
-- `membrane.js` supplies the shared Gaussian membrane height, gradient, geometry creation and deformation operations. Its live parameter object is shared with whichever layers inhabit the membrane.
+- `membrane.js` supplies the signed-off shared Gaussian membrane height, gradient, geometry creation and deformation operations. Its live parameter object is shared with whichever layers inhabit the membrane.
 - `controls.js` contains the native range-input and camera-button bindings used by the reference pages.
 - `random.js` contains the deterministic seeded generator used by both systems.
 - `universe/sluice-gate-layer.js` owns the signed-off material system: independent peripheral streams, invisible phased gates, rim reservoir, parcel interaction and molten-field reconstruction.
+- `universe/eroded-throat-membrane.js` is the bounded v0.6a physical extension: deterministic background erosion, gate-derived historical cuts, an irregular opening and a short tapering throat wall.
 - `cosmos/cosmic-circuitry-layer.js` owns the signed-off information system: independent hierarchical topology, manifested conduits, ember substrate and constant-spatial-speed communication droplets.
 - `index.js` is the public export surface.
 
@@ -23,7 +24,7 @@ The current reference roots are deliberately small:
 
 Each copies its exported defaults, creates the shared world and membrane, mounts one independent layer, binds the existing controls, selects the signed-off camera and starts the world loop.
 
-The first combined root is `src/casting-pit/universe-cosmos-v0.5a/main.js`. It gives both factories one parameter object and one membrane, retains the Universe environment, and mounts Cosmos without a second surface or lighting rig. The layer factories expose only the additional composition seams demonstrated by that experiment:
+The combined root is `src/casting-pit/universe-cosmos/main.js`. It gives both factories one parameter object and one membrane, retains the Universe environment, and mounts Cosmos without a second surface or lighting rig. The layer factories expose only the additional composition seams demonstrated by that experiment:
 
 - `controlPrefix` permits both established control sets to coexist without duplicate HTML identifiers;
 - `bindEnvironmentControls: false` lets a Cosmos layer defer membrane, light, exposure and wireframe controls to its host composition;
@@ -31,6 +32,8 @@ The first combined root is `src/casting-pit/universe-cosmos-v0.5a/main.js`. It g
 - `manifestationLiftScale` and `moltenRenderOrder` let the combined study establish stable physical foreground precedence without changing either standalone reference.
 
 These options default to the standalone reference behaviour.
+
+The v0.6a physical-only root is `src/casting-pit/well-throat/main.js`. It deliberately does not involve Cosmos. The optional gate-layout callback lets the throat derive a few historical erosion bearings from the same deterministic gates that release present-day material. Opening crossing, surface clipping and the short wall are exposed only when a membrane supplies the corresponding throat operations, so the signed-off Gaussian references retain their original behaviour.
 
 ## Equivalence notes
 
