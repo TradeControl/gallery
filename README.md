@@ -60,6 +60,7 @@ Each stage should first succeed visually and technically on its own.
 - `src/category-tree/casting-pit/physical-layer/` is the signed-off Universe reference experiment.
 - `src/category-tree/casting-pit/information-layer/` is the signed-off Cosmos reference experiment.
 - `src/category-tree/casting-pit/universe-cosmos/` is the active composition of both systems on one membrane.
+- `src/category-tree/tree/` is the standalone Tree study, beginning with an explicit topology skeleton before artistic form and activity are introduced.
 - `src/lib/casting-pit/` contains the small shared ES-module library extracted from those references; its README documents module responsibilities and equivalence findings.
 - `src/category-tree/casting-pit/archive/` preserves superseded runnable studies, including the rejected well-throat work and its throat-specific library variants.
 

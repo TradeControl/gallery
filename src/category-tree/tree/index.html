@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tree Phase 2c — Recursive Luminescence</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="Tree material study"></main>
+    <aside class="controls" aria-label="Tree material controls">
+      <header>
+        <p>Dynamic material study</p>
+        <h1>Tree <span>Phase 2c · recursive luminescence</span></h1>
+      </header>
+      <p class="statement">A windswept recursive instrument: responsive and tree-like, but deliberately engineered rather than botanical.</p>
+
+      <div class="section-label">Form</div>
+      <label class="control" for="crown-spread"><span>Crown spread</span><output id="crown-spread-value">1.14</output><input id="crown-spread" type="range" min="0.65" max="1.45" step="0.01" value="1.14"></label>
+      <label class="control" for="vertical-rise"><span>Vertical rise</span><output id="vertical-rise-value">0.95</output><input id="vertical-rise" type="range" min="0.70" max="1.35" step="0.01" value="0.95"></label>
+      <label class="control" for="asymmetry"><span>Asymmetry</span><output id="asymmetry-value">0.68</output><input id="asymmetry" type="range" min="0" max="1" step="0.01" value="0.68"></label>
+      <label class="control" for="conduit-weight"><span>Conduit weight</span><output id="conduit-weight-value">1.34</output><input id="conduit-weight" type="range" min="0.75" max="1.85" step="0.01" value="1.34"></label>
+      <label class="control" for="wind-sweep"><span>Wind sweep</span><output id="wind-sweep-value">0.48</output><input id="wind-sweep" type="range" min="-1.20" max="1.20" step="0.01" value="0.48"></label>
+
+      <div class="section-label">Material response</div>
+      <label class="control" for="surface-relief"><span>Surface relief</span><output id="surface-relief-value">0.10</output><input id="surface-relief" type="range" min="0" max="0.45" step="0.01" value="0.10"></label>
+      <label class="control" for="structural-response"><span>Structural response</span><output id="structural-response-value">0.22</output><input id="structural-response" type="range" min="0" max="0.65" step="0.01" value="0.22"></label>
+      <label class="switch" for="freeze-motion"><span>Freeze response</span><input id="freeze-motion" type="checkbox"></label>
+
+      <div class="section-label">Chromatic emergence</div>
+      <label class="control" for="emergence-intensity"><span>Emergence intensity</span><output id="emergence-intensity-value">0.86</output><input id="emergence-intensity" type="range" min="0" max="2.2" step="0.01" value="0.86"></label>
+      <label class="control" for="emergence-speed"><span>Emergence speed</span><output id="emergence-speed-value">0.58</output><input id="emergence-speed" type="range" min="0.08" max="1.5" step="0.01" value="0.58"></label>
+      <label class="control" for="gold-presence"><span>Gold presence</span><output id="gold-presence-value">0.20</output><input id="gold-presence" type="range" min="0" max="0.6" step="0.01" value="0.20"></label>
+      <div class="growth-actions">
+        <button id="replay-unfolding" class="wide-button" type="button">Replay recursive unfolding</button>
+        <div class="growth-readout"><span>Recursive complexity</span><output id="recursive-complexity">0%</output></div>
+      </div>
+      <label class="switch" for="neutral-background"><span>Neutral background</span><input id="neutral-background" type="checkbox"></label>
+      <button id="reset-form" class="wide-button" type="button">Reset material study</button>
+
+      <div class="section-label">Diagnostics</div>
+      <label class="switch" for="show-surface"><span>Engineered body</span><input id="show-surface" type="checkbox" checked></label>
+      <label class="switch" for="show-nodes"><span>Topology nodes</span><input id="show-nodes" type="checkbox"></label>
+      <label class="switch" for="show-edges"><span>Finite connections</span><input id="show-edges" type="checkbox"></label>
+      <label class="switch" for="role-colours"><span>Role colours</span><input id="role-colours" type="checkbox" checked></label>
+      <label class="switch" for="show-axes"><span>Local planting axes</span><input id="show-axes" type="checkbox"></label>
+
+      <fieldset>
+        <legend>Camera</legend>
+        <button type="button" data-view="silhouette">Silhouette</button>
+        <button type="button" data-view="elevated">Canopy</button>
+        <button type="button" data-view="structure">Structure</button>
+      </fieldset>
+
+      <div class="section-label">Validated topology</div>
+      <dl class="stats" aria-label="Hierarchy statistics">
+        <div><dt>Validation</dt><dd><output id="validation-state">pending</output></dd></div>
+        <div><dt>Nodes</dt><dd><output id="node-count">0</output></dd></div>
+        <div><dt>Connections</dt><dd><output id="edge-count">0</output></dd></div>
+        <div><dt>Roots</dt><dd><output id="root-count">0</output></dd></div>
+        <div><dt>Terminals</dt><dd><output id="terminal-count">0</output></dd></div>
+        <div><dt>Maximum depth</dt><dd><output id="depth-count">0</output></dd></div>
+      </dl>
+      <p class="hint">The coloured finite tubes and topology nodes are diagnostics only. The default artwork uses precision-cast swept conduits.</p>
+    </aside>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

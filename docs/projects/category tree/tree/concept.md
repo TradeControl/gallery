@@ -2,7 +2,7 @@
 
 ## Concept
 
-The Tree is a monumental recursive instrument: an engineered organism that receives many terminal activities and composes them into higher-order meaning.
+The Tree is a monumental recursive instrument: an engineered organism that receives many terminal activities and composes them into higher-order meaning. Its governing visual proposition is **a windswept, recursive, engineered organism—not a tree, but tree-like**. Biological resemblance is a structural analogy, not an invitation to bark, foliage, slime or naturalistic tree simulation; beauty, logic and deliberate construction come first.
 
 It should combine the presence of an ancient tree, the purpose of a refinery, the responsiveness of a nervous system and the precision of a computational structure. Stone, cast metal, glass, fibre, circuitry and living tissue are possible material associations, but none should dominate so completely that the object becomes merely botanical, mechanical or digital.
 
@@ -14,15 +14,21 @@ Terminal elements should be distinct from intermediate categories and larger con
 
 The structure need not resemble a conventional upright tree. It may be an arbor, suspended instrument, branching foundry or asymmetrical recursive architecture. It may contain dormant regions, disconnected structures or transverse devices that read across several branches. Whatever form it takes, a viewer should be able to sense that many specific things become fewer, larger meanings through a sequence of relationships.
 
+The trunk is a principal artistic and functional element, not merely the connector beneath the first branches. In the complete composition its roots are buried in the gravity-well singularity. Its internal channels form the transducer between domains: one transport draws released molten material upward from the physical Universe, while phloem-like channels carry aggregated information packets down from the canopy and trunk into the ordered Cosmos. These opposed transports must remain causally tied to their source systems and visibly distinguishable; arbitrary luminous pulses inside an oversized trunk would not satisfy the concept.
+
 ## Behaviour
 
 Animation should reveal the Tree's operation. Small pulses can enter at terminals, travel through conduits and resolve at confluences into slower, larger or brighter activity. Opposed kinds of flow may retain distinct directions, lanes, colours or rhythms. A selected interpretation may illuminate one meaningful route while leaving the rest present but subdued. A disabled branch may darken recursively; a disconnected branch may remain viable outside the main structure; a changed relationship may visibly reroute subsequent flow.
+
+The Tree should also reveal its own continuing formation. It begins with an established, recognisable structural scaffold—trunk, principal limbs and the initial 36-node hierarchy—not with a bare trunk or a replay of germination. Additional explicit category and terminal subtrees then unfold recursively across that existing crown until it reaches a visible viability threshold. This evolution is neither arbitrary procedural decoration nor ambient sway. It is the temporal manifestation of additional topology, with reproducible but unequal growth rhythms. Once viable, the Tree remains responsive rather than becoming a frozen still object.
 
 These behaviours offer an artistic vocabulary for classification, aggregation, polarity, selected roots, enablement, disconnection, reclassification and expressions. They should be introduced selectively. The Tree should first establish structural truth and visual presence before it attempts to portray the full conceptual range of Trade Control.
 
 ## Intended experience
 
 From a distance, the Tree should read as one extraordinary object with a strong silhouette and monumental balance. At closer range, its hierarchy should become discoverable: terminals, finite conduits, junctions, repeated motifs and traces of activity. Complexity should reward inspection without collapsing into noise.
+
+The structure should be materially dark and only partially knowable; dynamic colour should continually disclose its recursion. Illumination is therefore capable of manifesting broad connected regions and successive generations without pretending to be an information packet. The Tree should not need uniform visibility to prove that it exists.
 
 The object may move, but motion should preserve structural legibility. Slow organic response, loading, tension or minute adjustment can make the Tree feel alive; indiscriminate sway and flicker should not obscure its relationships. Light and colour should clarify stable differences or active events rather than provide interchangeable atmosphere.
 
