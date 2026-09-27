@@ -7,7 +7,7 @@ import {
     createGaussianMembrane,
     createSluiceGateLayer,
     sluiceGateDefaults
-} from '../../lib/casting-pit/index.js';
+} from '../../../lib/casting-pit/index.js';
 
 const parameters = {
     ...cosmicCircuitryDefaults,

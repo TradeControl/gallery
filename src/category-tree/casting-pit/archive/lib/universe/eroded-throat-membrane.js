@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { seededGenerator } from '../random.js';
+import { seededGenerator } from '../../../../../lib/casting-pit/random.js';
 
 const WORLD_SIZE = 24;
 const OUTER_TRANSITION_RADIUS = 3.15;
@@ -167,20 +167,49 @@ export function createErodedThroatMembrane( parameters, options = {} )
         return openingDistance( x, z ) <= 0;
     }
 
-    function crossesOpening( startX, startZ, endX, endZ )
+    function findOpeningCrossing( startX, startZ, endX, endZ )
     {
-        if ( isInsideOpening( startX, startZ ) || isInsideOpening( endX, endZ ) ) return true;
+        if ( isInsideOpening( startX, startZ ) )
+        {
+            return { x: startX, z: startZ, ratio: 0 };
+        }
+
         const distance = Math.hypot( endX - startX, endZ - startZ );
         const samples = Math.max( 2, Math.ceil( distance / 0.04 ) );
-        for ( let sample = 1; sample < samples; sample += 1 )
+        let previousRatio = 0;
+
+        for ( let sample = 1; sample <= samples; sample += 1 )
         {
             const ratio = sample / samples;
             if ( isInsideOpening(
                 THREE.MathUtils.lerp( startX, endX, ratio ),
                 THREE.MathUtils.lerp( startZ, endZ, ratio )
-            ) ) return true;
+            ) )
+            {
+                let outsideRatio = previousRatio;
+                let insideRatio = ratio;
+                for ( let iteration = 0; iteration < 8; iteration += 1 )
+                {
+                    const middleRatio = ( outsideRatio + insideRatio ) * 0.5;
+                    const middleX = THREE.MathUtils.lerp( startX, endX, middleRatio );
+                    const middleZ = THREE.MathUtils.lerp( startZ, endZ, middleRatio );
+                    if ( isInsideOpening( middleX, middleZ ) ) insideRatio = middleRatio;
+                    else outsideRatio = middleRatio;
+                }
+                return {
+                    x: THREE.MathUtils.lerp( startX, endX, insideRatio ),
+                    z: THREE.MathUtils.lerp( startZ, endZ, insideRatio ),
+                    ratio: insideRatio
+                };
+            }
+            previousRatio = ratio;
         }
-        return false;
+        return null;
+    }
+
+    function crossesOpening( startX, startZ, endX, endZ )
+    {
+        return findOpeningCrossing( startX, startZ, endX, endZ ) !== null;
     }
 
     function baseHeight( x, z )
@@ -370,6 +399,8 @@ export function createErodedThroatMembrane( parameters, options = {} )
     function createThroatGeometry( radialSegments = 128, verticalSegments = 8, continuationSegments = 48 )
     {
         const positions = [];
+        const depthFactors = [];
+        const colors = [];
         const indices = [];
         const sharedRimHeight = meanThroatRimHeight();
         const shaftRadius = meanOpeningRadius() * parameters.throatConstriction;
@@ -383,6 +414,9 @@ export function createErodedThroatMembrane( parameters, options = {} )
                 const angle = radial / radialSegments * Math.PI * 2;
                 const point = throatPoint( angle, depthRatio, sharedRimHeight, shaftRadius );
                 positions.push( point.x, point.y, point.z );
+                depthFactors.push( depthRatio * parameters.throatDepth / ( parameters.throatDepth + THROAT_CONTINUATION_DEPTH ) );
+                const brightness = THREE.MathUtils.lerp( 1, 0.06, smoothstep( 0, 0.34, depthRatio ) );
+                colors.push( brightness, brightness, brightness );
             }
         }
 
@@ -394,6 +428,9 @@ export function createErodedThroatMembrane( parameters, options = {} )
                 const angle = radial / radialSegments * Math.PI * 2;
                 const point = continuationPoint( angle, depthRatio, sharedRimHeight, shaftRadius );
                 positions.push( point.x, point.y, point.z );
+                depthFactors.push( ( parameters.throatDepth + THROAT_CONTINUATION_DEPTH * depthRatio )
+                    / ( parameters.throatDepth + THROAT_CONTINUATION_DEPTH ) );
+                colors.push( 0.06, 0.06, 0.06 );
             }
         }
 
@@ -411,6 +448,8 @@ export function createErodedThroatMembrane( parameters, options = {} )
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+        geometry.setAttribute( 'throatDepth', new THREE.Float32BufferAttribute( depthFactors, 1 ) );
+        geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
         geometry.setIndex( indices );
         geometry.computeVertexNormals();
         return geometry;
@@ -468,6 +507,7 @@ export function createErodedThroatMembrane( parameters, options = {} )
         deform,
         openingDistance,
         isInsideOpening,
+        findOpeningCrossing,
         crossesOpening,
         createThroatGeometry,
         createHistoryGuideGeometry,

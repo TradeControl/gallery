@@ -5,7 +5,7 @@ import {
     createCastingPitWorld,
     createCosmicCircuitryLayer,
     createGaussianMembrane
-} from '../../lib/casting-pit/index.js';
+} from '../../../lib/casting-pit/index.js';
 
 const parameters = { ...cosmicCircuitryDefaults };
 const world = createCastingPitWorld( document.querySelector( '#scene' ), { background: 0x030405 } );

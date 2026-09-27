@@ -3,10 +3,10 @@ import {
     bindRangeControl,
     castingPitCameraViews,
     createCastingPitWorld,
-    createErodedThroatMembrane,
-    createSluiceGateLayer,
     sluiceGateDefaults
-} from '../../lib/casting-pit/index.js';
+} from '../../../../lib/casting-pit/index.js';
+import { createErodedThroatMembrane } from '../lib/universe/eroded-throat-membrane.js';
+import { createSluiceGateLayer } from '../lib/universe/sluice-gate-layer.js';
 
 const parameters = {
     ...sluiceGateDefaults,

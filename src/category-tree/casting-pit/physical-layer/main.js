@@ -5,7 +5,7 @@ import {
     createGaussianMembrane,
     createSluiceGateLayer,
     sluiceGateDefaults
-} from '../../lib/casting-pit/index.js';
+} from '../../../lib/casting-pit/index.js';
 
 const parameters = { ...sluiceGateDefaults };
 const world = createCastingPitWorld( document.querySelector( '#scene' ), { background: 0x050607 } );

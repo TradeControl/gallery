@@ -56,12 +56,12 @@ Each stage should first succeed visually and technically on its own.
 
 ## Project structure
 
-- `src/casting-pit/physical-layer/` is the signed-off Universe reference experiment.
-- `src/casting-pit/information-layer/` is the signed-off Cosmos reference experiment.
-- `src/casting-pit/universe-cosmos/` is the evolving composition of both systems on one membrane.
-- `src/casting-pit/well-throat/` is the bounded v0.6a physical-only throat experiment.
+- `src/category-tree/` contains the Category Tree artwork and its component studies.
+- `src/category-tree/casting-pit/physical-layer/` is the signed-off Universe reference experiment.
+- `src/category-tree/casting-pit/information-layer/` is the signed-off Cosmos reference experiment.
+- `src/category-tree/casting-pit/universe-cosmos/` is the active composition of both systems on one membrane.
 - `src/lib/casting-pit/` contains the small shared ES-module library extracted from those references; its README documents module responsibilities and equivalence findings.
-- `src/casting-pit/archive/` preserves superseded runnable studies.
+- `src/category-tree/casting-pit/archive/` preserves superseded runnable studies, including the rejected well-throat work and its throat-specific library variants.
 
 ## Licence
 

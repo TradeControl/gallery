@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Casting Pit v0.6c — Continued Well Throat</title>
+    <title>Casting Pit v0.6d — Mouth-Crossing Continuity</title>
     <link rel="stylesheet" href="./style.css">
   </head>
   <body>
@@ -12,7 +12,7 @@
     <aside class="controls" aria-label="Eroded well throat controls">
       <header>
         <p>Physical layer experiment</p>
-        <h1>Casting Pit <span>v0.6c continued throat</span></h1>
+        <h1>Casting Pit <span>v0.6d mouth-crossing continuity</span></h1>
       </header>
 
       <div class="section-label">Membrane</div>
@@ -28,6 +28,10 @@
       <label class="control" for="throat-constriction"><span>Throat constriction</span><output id="throat-constriction-value">0.62</output><input id="throat-constriction" type="range" min="0.35" max="1" step="0.01" value="0.62"></label>
       <label class="control" for="throat-depth"><span>Throat depth</span><output id="throat-depth-value">2.25</output><input id="throat-depth" type="range" min="0.6" max="4" step="0.05" value="2.25"></label>
       <div class="button-row"><button id="reseed-history" type="button">Reseed history</button><p class="seed">History <output id="history-seed-value">1</output></p></div>
+
+      <div class="section-label">Throat continuity</div>
+      <label class="switch" for="throat-traces"><span>Captured molten traces</span><input id="throat-traces" type="checkbox" checked></label>
+      <label class="switch" for="throat-illumination"><span>Event-driven illumination</span><input id="throat-illumination" type="checkbox" checked></label>
 
       <div class="section-label">Gate system</div>
       <label class="control" for="gate-count"><span>Number of gates</span><output id="gate-count-value">4</output><input id="gate-count" type="range" min="2" max="8" step="1" value="4"></label>
@@ -63,12 +67,14 @@
       <p class="seed">Rim reservoir <output id="reservoir-count">0</output></p>
       <dl class="stats" aria-label="Simulation statistics">
         <div><dt>Parcels</dt><dd id="parcel-count">0 / 700</dd></div>
+        <div><dt>Throat crossings</dt><dd id="throat-transition-count">0</dd></div>
+        <div><dt>Gate releases</dt><dd id="gate-release-count">0</dd></div>
         <div><dt>Neighbour pairs</dt><dd id="interaction-count">0</dd></div>
         <div><dt>Cross-source pairs</dt><dd id="cross-source-count">0</dd></div>
         <div><dt>Reconstruction</dt><dd id="reconstruction-time">0.00 ms</dd></div>
         <div><dt>Simulation</dt><dd id="simulation-time">0.00 ms</dd></div>
       </dl>
-      <p class="hint">Historical erosion · gate-derived cuts · present transport unchanged</p>
+      <p class="hint">Historical erosion · gate-derived cuts · causal continuation below the mouth</p>
     </aside>
 
     <script type="module" src="./main.js"></script>
