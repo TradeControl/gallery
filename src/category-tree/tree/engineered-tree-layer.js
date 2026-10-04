@@ -121,6 +121,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
 
     function principalLimb( node )
     {
+        if ( node.limb ) return node.limb;
         let cursor = node;
         while ( cursor.parentId && cursor.parentId !== 'meaning' ) cursor = hierarchy.byId.get( cursor.parentId );
         return cursor.parentId === 'meaning' ? cursor.id : 'trunk';
@@ -154,9 +155,18 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             mesh.userData.emergence = {
                 edgePhase: stableUnit( edge.child.id ) * Math.PI * 0.72,
                 limbPhase: limbPhases[principalLimb( edge.child )] ?? 0,
-                depth: edge.child.depth
+                depth: isTrunk ? 0 : edge.child.depth
             };
             mesh.userData.node = edge.child;
+            if ( isTrunk )
+            {
+                mesh.userData.ringGrowth = {
+                    curve,
+                    startRadius: radii.start,
+                    endRadius: Math.max( radii.end, 0.045 ),
+                    step: -1
+                };
+            }
             mesh.onBeforeRender = () => {
                 entry.uniforms.edgePhase.value = mesh.userData.emergence.edgePhase;
                 entry.uniforms.limbPhase.value = mesh.userData.emergence.limbPhase;
@@ -169,10 +179,36 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
 
     function applyGrowthProgress()
     {
+        const eligibleLatent = hierarchy.nodes.filter( ( node ) => node.latent && node.growthEligible !== false );
+        const crownProgress = eligibleLatent.length > 0
+            ? eligibleLatent.reduce( ( sum, node ) => sum + ( growthProgress.get( node.id ) ?? 0 ), 0 ) / eligibleLatent.length
+            : 1;
         for ( const mesh of group.children )
         {
             const node = mesh.userData.node;
-            const progress = node.latent ? ( growthProgress.get( node.id ) ?? 0 ) : 1;
+            const progress = node.growthEligible === false
+                ? 0
+                : node.latent ? ( growthProgress.get( node.id ) ?? 0 ) : 1;
+            const ringGrowth = mesh.userData.ringGrowth;
+            if ( ringGrowth )
+            {
+                const ringProgress = node.latent
+                    ? 0.48 + progress * 0.52
+                    : 0.58 + crownProgress * 0.42;
+                const step = Math.round( ringProgress * 28 );
+                if ( step !== ringGrowth.step )
+                {
+                    ringGrowth.step = step;
+                    mesh.geometry.dispose();
+                    mesh.geometry = createTaperedTubeGeometry(
+                        ringGrowth.curve,
+                        ringGrowth.startRadius * ringProgress,
+                        ringGrowth.endRadius * ringProgress,
+                        28,
+                        14
+                    );
+                }
+            }
             const indexCount = mesh.geometry.index.count;
             const segmentSize = 14 * 6;
             const visibleCount = Math.floor( indexCount * progress / segmentSize ) * segmentSize;

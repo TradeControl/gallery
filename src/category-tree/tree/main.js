@@ -97,6 +97,17 @@ function rebuildTree()
     positions = createPositions();
     diagnostics.update( positions, form );
     engineeredTree.rebuild( positions, form );
+    updateConstraintStats();
+}
+
+function updateConstraintStats()
+{
+    const manifestedOutput = document.querySelector( '#manifested-count' );
+    const dormantOutput = document.querySelector( '#dormant-count' );
+    if ( !manifestedOutput || !dormantOutput ) return;
+    const manifested = hierarchy.nodes.filter( ( node ) => node.growthEligible !== false ).length;
+    manifestedOutput.value = manifested;
+    dormantOutput.value = hierarchy.nodes.length - manifested;
 }
 
 function bindRange( id, property, decimals = 2, rebuild = true )
@@ -200,6 +211,7 @@ document.querySelector( '#edge-count' ).value = hierarchy.edges.length;
 document.querySelector( '#root-count' ).value = hierarchy.roots.length;
 document.querySelector( '#terminal-count' ).value = hierarchy.terminals.length;
 document.querySelector( '#depth-count' ).value = hierarchy.maxDepth;
+updateConstraintStats();
 
 function resize()
 {
@@ -223,7 +235,7 @@ function animate( now )
     if ( unfoldingActive )
     {
         unfoldingElapsed += frameDelta;
-        const growth = growthCycle.sample( unfoldingElapsed, 0.72 );
+        const growth = growthCycle.sample( unfoldingElapsed, 0.42 );
         engineeredTree.setGrowthProgress( growth.progress );
         diagnostics.setGrowthProgress( growth.progress );
         document.querySelector( '#recursive-complexity' ).value = `${Math.round( growth.viability * 100 )}%`;

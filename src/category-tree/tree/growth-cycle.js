@@ -30,10 +30,17 @@ export function createGrowthCycle( hierarchy, initialSeed = 1 )
         {
             const parentEntry = schedule.get( node.parentId );
             const jitter = hashUnit( `${seed}:${node.id}` );
+            const parentCommitment = node.structuralRole === 'trunk-stage'
+                ? 0.9
+                : node.structuralRole === 'branch-site'
+                    ? 1.12
+                    : 0.72 + jitter * 0.18;
             const start = parentEntry
-                ? parentEntry.start + parentEntry.duration * ( 0.72 + jitter * 0.18 )
+                ? parentEntry.start + parentEntry.duration * parentCommitment
                 : ( limbOffsets[node.limb] ?? 0 ) + jitter * 0.7;
-            const duration = 1.15 + hashUnit( `${seed}:${node.id}:duration` ) * 0.8;
+            const duration = node.structuralRole === 'trunk-stage'
+                ? 1.8 + hashUnit( `${seed}:${node.id}:duration` ) * 0.55
+                : 1.15 + hashUnit( `${seed}:${node.id}:duration` ) * 0.8;
             schedule.set( node.id, { start, duration } );
         }
     }
@@ -42,16 +49,24 @@ export function createGrowthCycle( hierarchy, initialSeed = 1 )
     {
         const progress = new Map();
         let total = 0;
+        let eligibleCount = 0;
         for ( const node of latentNodes )
         {
             const entry = schedule.get( node.id );
-            const value = ease( ( elapsed * speed - entry.start ) / entry.duration );
+            const eligible = node.growthEligible !== false;
+            const value = eligible
+                ? ease( ( elapsed * speed - entry.start ) / entry.duration )
+                : 0;
             progress.set( node.id, value );
-            total += value;
+            if ( eligible )
+            {
+                eligibleCount += 1;
+                total += value;
+            }
         }
         return {
             progress,
-            viability: latentNodes.length > 0 ? total / latentNodes.length : 1
+            viability: eligibleCount > 0 ? total / eligibleCount : 1
         };
     }
 
@@ -70,7 +85,7 @@ export function createGrowthCycle( hierarchy, initialSeed = 1 )
             return seed;
         },
         get latentCount() {
-            return latentNodes.length;
+            return latentNodes.filter( ( node ) => node.growthEligible !== false ).length;
         }
     };
 }

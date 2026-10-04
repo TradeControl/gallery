@@ -1,6 +1,6 @@
 # Tree — phased work plan
 
-**Status:** proposed for review before implementation  
+**Status:** active experimental plan; revised after Phase 2c visual review
 **Scope:** the Tree as an independent construction problem, followed by deliberate integration with the signed-off Casting Pit
 
 ## Decision: develop the Tree separately first
@@ -234,6 +234,158 @@ Find the Tree's material language without obscuring the proven structure.
 - Material noise does not break the readability of endpoints and junctions.
 - Motion can be frozen without causing the Tree to lose its structural meaning.
 - There are no arbitrary glowing points or decorative pulses masquerading as topology.
+
+## Phase 2d — corrective crown, light and trunk studies
+
+### Why this phase was added
+
+Phase 2c proved that a dark engineered body can be disclosed by changing cool and
+occasional gold light, but visual review also exposed three more fundamental
+limitations:
+
+- the trunk is still a sapling-like enlarged conduit rather than a monumental
+  load-bearing body;
+- the 90-node crown remains sparse, static and antler-like, especially from the
+  silhouette and elevated views;
+- the chromatic field appears projected onto the outside of the conduits rather
+  than generated and transported inside them.
+
+These are experimental findings rather than a rejection of the topology contract.
+The corrective work remains incremental and must preserve explicit finite
+parent-child relationships.
+
+### Experiment A — sustained recursive crown
+
+1. Preserve the original 36-node scaffold and triadic Operations, Finance and
+   Resources division.
+2. Treat canopy formation as two coupled recursions rather than unlimited growth
+   at the tips of one fixed crown:
+   - lateral branch recursion continues while its cantilever, accumulated terminal
+     load and support thickness remain structurally credible;
+   - trunk recursion continues upward, thickens the common support and creates new
+     authored branch tiers after older lateral structures approach their load limit.
+3. Allow the original three principal limbs to form recognisable antler-like
+   structures, then slow or stop their outward extension before they would appear
+   to collapse under gravity.
+4. Add a substantially denser authored hierarchy through successive trunk stages
+   rather than decorative branches, particles or shader repetition.
+5. Continue parent-before-child unfolding across both the trunk and its emitted
+   branch tiers until the crown accumulates as a volumetric recursive canopy and
+   approaches self-occlusion from above.
+6. Use shorter later-generation reach, local three-dimensional sibling frames,
+   unequal recursive clusters and gravity-aware loading to prevent long parallel
+   antler fans.
+7. Keep replay and topology diagnostics capable of proving that every manifested
+   trunk segment and conduit belongs to the validated structural hierarchy.
+
+#### Coupled growth model
+
+The next implementation must make the distinction explicit rather than merely
+altering layout parameters:
+
+- **branch state:** accumulated descendant load, cantilever length, support radius
+  and remaining extension capacity;
+- **trunk state:** current height, radial support capacity, active crown level and
+  the authored branch sites made available at that level;
+- **growth event:** either extend an eligible lateral relationship or establish the
+  next trunk stage and release its branch sites;
+- **halt condition:** a lateral tip becomes structurally established but stops
+  extending when its load budget is exhausted; the whole Tree does not stop while
+  the trunk can still create another viable tier.
+
+This structural recursion is distinct from the later semantic aggregation of
+Phase 3. Gravity and support determine when geometry may manifest; they do not
+invent category relationships or substitute arbitrary physical branches for the
+explicit hierarchy.
+
+#### Acceptance gate
+
+- Growth feels sustained rather than like a brief reveal of a few extra twigs.
+- Each principal limb develops several visible nested forks.
+- The elevated view reads as a dense recursive volume without becoming an
+  indiscriminate tangle.
+- Node and connection counts remain exact and validation continues to pass.
+
+#### Current checkpoint — 4 October 2026
+
+The first bounded densification pass expands the fixture from 90 to 360 validated
+nodes and from 89 to 359 explicit relationships. It retains the established
+36-node opening structure, reaches 200 terminals and maximum depth 11, and unfolds
+over roughly twenty seconds at the default review rate. Later generations use
+shorter reach, stronger local sibling turns and unequal vertical pitch.
+
+This passes the exact-topology and sustained-growth parts of the gate and produces
+several nested forks per principal limb. It does not yet make the elevated crown
+substantially self-occluding: broad radial gaps and the three primary structural
+arms remain visible. Treat it as an incremental branch-only control, not completion
+of Experiment A. The next iteration should replace the fixed-trunk/expanding-tip
+assumption with coupled trunk and load-limited branch recursion. It should improve
+interior occupation by creating successive supported branch tiers rather than
+merely appending another uniform outer generation.
+
+The first coupled-recursion prototype adds three explicit trunk stages and six
+authored branch sites to that control, producing 453 validated nodes, 452
+relationships and 248 terminals. Supporting trunk segments establish in sequence;
+each stage then releases its own finite lateral subtrees. This materially improves
+interior occupation and begins to conceal the original limbs from above. The load
+limit is presently authored through finite subtree depth and scheduling rather than
+calculated from geometry, so this remains a structural prototype. It nevertheless
+demonstrates that trunk continuation and crown recursion belong to one growth
+process and provides real staged geometry for the later monumental trunk study.
+
+A first gravity constraint now accumulates horizontal cantilever strain along each
+root-to-tip route and weights it by descendant terminal load. Approaching the
+support budget shortens horizontal reach and redirects growth upward; exceeding a
+reserve margin leaves the relationship and its descendants dormant without
+deleting them from the explicit hierarchy. At the current defaults, 407 of 453
+nodes manifest and 46 remain load-dormant. This removes the most implausible long
+lever while retaining a broad crown. The aerial canopy is consequently less dense
+than the eventual target, so subsequent tuning should redistribute viable branch
+sites through new trunk stages rather than relaxing gravity enough to recreate the
+unbounded antler.
+
+Ring growth now connects trunk form to that support calculation. Each trunk
+segment's mature radius derives from the terminal load carried above it, producing
+a broad lower support and progressively smaller upper stages. Established trunk
+segments thicken as the latent crown manifests; a new stage first gains length,
+then its branch sites wait through a short radial-maturation interval before they
+are released. Cantilever capacity is calculated from the radius of the nearest
+supporting trunk stage. Circumference therefore supplies additional viable branch
+sites instead of acting as a decorative scale change. This remains a simplified
+load model, but it provides the first causal bridge between canopy viability and
+the later monumental trunk rendering phase.
+
+### Experiment B — internally generated disclosure
+
+1. Replace edge-local surface projections with route-continuous coordinates and
+   parent-to-child inherited phase.
+2. Make emission appear to originate inside a conduit and illuminate its material
+   boundary rather than slide across the outside like a projected spotlight.
+3. Preserve broad limb and generation disclosure while allowing connected routes
+   to become legible across junctions.
+4. Keep this manifestation distinct from Phase 3 packets and aggregation events.
+
+#### Acceptance gate
+
+- Illumination appears contained by, and generated within, the engineered body.
+- A connected recursive route can be followed across more than one relationship.
+- Dark intervals retain material presence without relying on excessive bloom.
+
+### Experiment C — monumental trunk
+
+1. Replace the enlarged branch treatment with dedicated trunk geometry.
+2. Establish broad mass, slow taper, asymmetrical load-bearing form and a credible
+   rootward transition.
+3. Reserve sufficient longitudinal surface and internal volume for later downward
+   transport routes and restrained techno-rune language.
+4. Avoid helices, regular bands, stripes and decorative repeated lanes.
+
+#### Acceptance gate
+
+- The trunk reads as the monumental support of the complete crown rather than a
+  sapling or pipe.
+- Future routes could be etched or contained without overwhelming its mass.
+- The trunk remains dark and structurally convincing with all activity disabled.
 
 ## Phase 3 — truthful activity and aggregation
 

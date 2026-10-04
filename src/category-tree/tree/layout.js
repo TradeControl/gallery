@@ -93,6 +93,31 @@ export function createUnfoldingLayout( establishedHierarchy, unfoldingHierarchy,
         const parent = unfoldingHierarchy.byId.get( node.parentId );
         const parentPosition = positions.get( parent.id );
         const grandparentPosition = parent.parentId ? positions.get( parent.parentId ) : null;
+
+        if ( node.structuralRole === 'trunk-stage' )
+        {
+            const stage = node.trunkStage ?? 1;
+            positions.set( node.id, {
+                x: parentPosition.x + stableOffset( `${node.id}-support-x` ) * 0.13,
+                y: parentPosition.y + ( node.stageRise ?? 1.35 ),
+                z: parentPosition.z + stableOffset( `${node.id}-support-z` ) * 0.1 + stage * 0.035
+            } );
+            continue;
+        }
+
+        if ( node.structuralRole === 'branch-site' )
+        {
+            const angle = node.structuralAngle ?? 0;
+            const stage = parent.trunkStage ?? 1;
+            const reach = 1.8 + stage * 0.16;
+            positions.set( node.id, {
+                x: parentPosition.x + Math.cos( angle ) * reach,
+                y: parentPosition.y + 0.28 + stableOffset( `${node.id}-support-rise` ) * 0.16,
+                z: parentPosition.z + Math.sin( angle ) * reach
+            } );
+            continue;
+        }
+
         const siblings = parent.children.filter( ( child ) => child.latent );
         const siblingIndex = siblings.findIndex( ( sibling ) => sibling.id === node.id );
         const siblingOffset = siblingIndex - ( siblings.length - 1 ) * 0.5;
@@ -104,15 +129,37 @@ export function createUnfoldingLayout( establishedHierarchy, unfoldingHierarchy,
             : { x: 1, z: 0 };
         const outwardLength = Math.hypot( outward.x, outward.z ) || 1;
         const baseAngle = Math.atan2( outward.z / outwardLength, outward.x / outwardLength );
-        const spread = node.kind === 'terminal' ? 0.5 : 0.38;
-        const jitter = stableOffset( `${node.id}-emergence-angle` ) * 0.2 * asymmetry;
-        const angle = baseAngle + siblingOffset * spread + jitter;
+        const denseCrown = node.denseCrown === true;
+        const denseLevel = node.denseLevel ?? 0;
+        const spread = denseCrown
+            ? ( denseLevel === 2 ? 0.92
+                : denseLevel === 3 ? 0.84
+                    : denseLevel === 4 ? 0.74
+                        : 0.52 )
+            : ( node.kind === 'terminal' ? 0.5 : 0.38 );
+        const jitter = stableOffset( `${node.id}-emergence-angle` )
+            * ( denseCrown ? 0.4 : 0.2 ) * asymmetry;
+        const rawClusterTurn = stableOffset( `${node.id}-cluster-turn` );
+        const clusterTurn = denseLevel === 1
+            ? Math.sign( rawClusterTurn ) * ( 0.72 + Math.abs( rawClusterTurn ) * 0.95 )
+            : 0;
+        const angle = baseAngle + clusterTurn + siblingOffset * spread + jitter;
         const relativeDepth = node.depth - parent.depth;
-        const reach = ( node.kind === 'terminal' ? 1.58 : 2.02 )
+        const denseDepth = Math.max( 0, node.depth - 7 );
+        const reach = ( denseCrown
+            ? ( node.kind === 'terminal' ? 0.9 : 1.22 )
+            : ( node.kind === 'terminal' ? 1.58 : 2.02 ) )
             * ( 1 + stableOffset( `${node.id}-emergence-reach` ) * 0.13 * asymmetry )
-            * Math.pow( 0.92, relativeDepth - 1 );
-        const rise = ( node.kind === 'terminal' ? 0.82 : 1.08 )
-            * ( 1 + stableOffset( `${node.id}-emergence-rise` ) * 0.12 * asymmetry );
+            * Math.pow( denseCrown ? 0.86 : 0.92, denseCrown ? denseDepth : relativeDepth - 1 );
+        const pitch = denseCrown
+            ? stableOffset( `${node.id}-emergence-pitch` ) * 0.42
+                + siblingOffset * 0.11
+            : 0;
+        const rise = ( denseCrown
+            ? ( node.kind === 'terminal' ? 0.46 : 0.68 )
+            : ( node.kind === 'terminal' ? 0.82 : 1.08 ) )
+            * ( 1 + stableOffset( `${node.id}-emergence-rise` ) * 0.12 * asymmetry )
+            + pitch;
 
         positions.set( node.id, {
             x: parentPosition.x + Math.cos( angle ) * reach,
@@ -128,9 +175,96 @@ export function createUnfoldingLayout( establishedHierarchy, unfoldingHierarchy,
         const generation = Math.max( 0, node.depth - crownDepth );
         if ( generation === 0 ) continue;
         const position = positions.get( node.id );
-        const sweep = windSweep * Math.pow( generation, 1.22 );
+        const sweepScale = node.structuralRole === 'trunk-stage'
+            ? 0.12
+            : node.structuralRole === 'branch-site' || node.supportTier
+                ? 0.55
+                : 1;
+        const sweep = windSweep * Math.pow( generation, 1.22 ) * sweepScale;
         position.x += sweep;
         position.z += sweep * 0.16;
+    }
+
+    const terminalLoads = new Map();
+    function countTerminalLoad( node )
+    {
+        const load = node.children.length === 0
+            ? 1
+            : node.children.reduce( ( sum, child ) => sum + countTerminalLoad( child ), 0 );
+        terminalLoads.set( node.id, load );
+        return load;
+    }
+    countTerminalLoad( unfoldingHierarchy.root );
+
+    for ( const node of unfoldingHierarchy.nodes )
+    {
+        if ( node.kind !== 'trunk' && node.kind !== 'root' ) continue;
+        node.supportRadius = 0.2 + Math.sqrt( terminalLoads.get( node.id ) ) * 0.018;
+    }
+
+    // Gravity constrains manifestation without deleting topology. Horizontal path
+    // length accumulates as cantilever strain, weighted gently by descendant load.
+    // Approaching the support budget turns growth upward and reduces reach; crossing
+    // it leaves that relationship and its descendants dormant for this layout.
+    const rawPositions = new Map( [ ...positions ].map( ( [ id, position ] ) => [ id, { ...position } ] ) );
+    const supportStates = new Map();
+    const orderedNodes = unfoldingHierarchy.nodes.slice().sort( ( a, b ) => a.depth - b.depth );
+    for ( const node of orderedNodes )
+    {
+        const rawPosition = rawPositions.get( node.id );
+        if ( node.parentId === null )
+        {
+            node.growthEligible = true;
+            supportStates.set( node.id, { strain: 0, eligible: true, radius: node.supportRadius } );
+            continue;
+        }
+
+        const parent = unfoldingHierarchy.byId.get( node.parentId );
+        const parentState = supportStates.get( parent.id ) ?? {
+            strain: 0,
+            eligible: true,
+            radius: parent.supportRadius ?? 0.28
+        };
+        const parentRaw = rawPositions.get( parent.id );
+        const parentPosition = positions.get( parent.id );
+        const rawEdge = {
+            x: rawPosition.x - parentRaw.x,
+            y: rawPosition.y - parentRaw.y,
+            z: rawPosition.z - parentRaw.z
+        };
+
+        if ( node.kind === 'trunk' )
+        {
+            positions.set( node.id, {
+                x: parentPosition.x + rawEdge.x,
+                y: parentPosition.y + rawEdge.y,
+                z: parentPosition.z + rawEdge.z
+            } );
+            node.growthEligible = parentState.eligible;
+            supportStates.set( node.id, {
+                strain: 0,
+                eligible: parentState.eligible,
+                radius: node.supportRadius
+            } );
+            continue;
+        }
+
+        const horizontalLength = Math.hypot( rawEdge.x, rawEdge.z );
+        const loadFactor = 1 + Math.log2( terminalLoads.get( node.id ) + 1 ) * 0.035;
+        const rawStrain = parentState.strain + horizontalLength * loadFactor;
+        const supportLimit = ( node.supportTier ? 6.4 : 9.0 ) + parentState.radius * 10.5;
+        const utilisation = rawStrain / supportLimit;
+        const pressure = Math.max( 0, Math.min( 1, ( utilisation - 0.72 ) / 0.28 ) );
+        const horizontalScale = 1 - pressure * 0.4;
+        const eligible = parentState.eligible && rawStrain <= supportLimit * 1.28;
+
+        positions.set( node.id, {
+            x: parentPosition.x + rawEdge.x * horizontalScale,
+            y: parentPosition.y + rawEdge.y + horizontalLength * ( 1 - horizontalScale ) * 0.65,
+            z: parentPosition.z + rawEdge.z * horizontalScale
+        } );
+        node.growthEligible = eligible;
+        supportStates.set( node.id, { strain: rawStrain, eligible, radius: parentState.radius } );
     }
 
     return positions;

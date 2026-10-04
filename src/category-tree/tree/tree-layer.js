@@ -72,8 +72,8 @@ export function createBranchCurve( start, end, edge, asymmetry )
 export function getConduitRadii( edge, conduitWeight = 1 )
 {
     return {
-        start: conduitScales[edge.parent.kind] * conduitWeight,
-        end: conduitScales[edge.child.kind] * conduitWeight * 0.9
+        start: ( edge.parent.supportRadius ?? conduitScales[edge.parent.kind] ) * conduitWeight,
+        end: ( edge.child.supportRadius ?? conduitScales[edge.child.kind] ) * conduitWeight * 0.9
     };
 }
 
@@ -190,7 +190,9 @@ export function createTreeLayer( hierarchy, initialPositions, initialParameters 
         for ( const connection of edgeGroup.children )
         {
             const node = connection.userData.edge.child;
-            const progress = node.latent ? ( growthProgress.get( node.id ) ?? 0 ) : 1;
+            const progress = node.growthEligible === false
+                ? 0
+                : node.latent ? ( growthProgress.get( node.id ) ?? 0 ) : 1;
             const indexCount = connection.geometry.index.count;
             const segmentCount = Math.floor( progress * 14 );
             connection.geometry.setDrawRange( 0, Math.min( indexCount, segmentCount * 9 * 6 ) );
@@ -199,7 +201,9 @@ export function createTreeLayer( hierarchy, initialPositions, initialParameters 
 
         for ( const node of hierarchy.nodes )
         {
-            const progress = node.latent ? ( growthProgress.get( node.id ) ?? 0 ) : 1;
+            const progress = node.growthEligible === false
+                ? 0
+                : node.latent ? ( growthProgress.get( node.id ) ?? 0 ) : 1;
             nodeMeshes.get( node.id ).visible = nodesVisible && progress >= 0.98;
         }
     }
