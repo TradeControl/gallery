@@ -81,6 +81,7 @@ export function createTaperedTubeGeometry( curve, startRadius, endRadius, tubula
 {
     const frames = curve.computeFrenetFrames( tubularSegments, false );
     const vertices = [];
+    const branchProgress = [];
     const indices = [];
 
     for ( let ring = 0; ring <= tubularSegments; ring += 1 )
@@ -96,6 +97,7 @@ export function createTaperedTubeGeometry( curve, startRadius, endRadius, tubula
             const offset = frames.normals[ring].clone().multiplyScalar( Math.cos( angle ) * radius )
                 .addScaledVector( frames.binormals[ring], Math.sin( angle ) * radius );
             vertices.push( point.x + offset.x, point.y + offset.y, point.z + offset.z );
+            branchProgress.push( t );
         }
     }
 
@@ -114,6 +116,7 @@ export function createTaperedTubeGeometry( curve, startRadius, endRadius, tubula
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+    geometry.setAttribute( 'branchProgress', new THREE.Float32BufferAttribute( branchProgress, 1 ) );
     geometry.setIndex( indices );
     geometry.computeVertexNormals();
     geometry.computeBoundingSphere();

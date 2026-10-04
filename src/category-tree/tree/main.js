@@ -60,9 +60,15 @@ const formDefaults = {
     windSweep: 0.48,
     surfaceRelief: 0.1,
     structuralResponse: 0.22,
-    emergenceIntensity: 0.86,
+    emergenceIntensity: 0.78,
     emergenceSpeed: 0.58,
-    goldPresence: 0.2,
+    pulseSpeed: 0.9,
+    goldPresence: 0.3,
+    growthTiers: 3,
+    tierFloor: 0.45,
+    tierPhase: 1,
+    newestTierHold: 1,
+    tierColourLock: false,
     motionFrozen: false
 };
 const form = { ...formDefaults };
@@ -74,7 +80,8 @@ function createPositions()
         branchRise: 1.45 * form.verticalRise,
         principalReach: 2.8 * form.crownSpread,
         asymmetry: form.asymmetry,
-        windSweep: form.windSweep
+        windSweep: form.windSweep,
+        growthTiers: form.growthTiers
     } );
 }
 
@@ -110,7 +117,7 @@ function updateConstraintStats()
     dormantOutput.value = hierarchy.nodes.length - manifested;
 }
 
-function bindRange( id, property, decimals = 2, rebuild = true )
+function bindRange( id, property, decimals = 2, rebuild = true, restartGrowth = false )
 {
     const control = document.querySelector( `#${id}` );
     const output = document.querySelector( `#${id}-value` );
@@ -119,6 +126,11 @@ function bindRange( id, property, decimals = 2, rebuild = true )
         form[property] = Number( control.value );
         output.value = form[property].toFixed( decimals );
         if ( rebuild ) rebuildTree();
+        if ( restartGrowth )
+        {
+            unfoldingElapsed = 0;
+            unfoldingActive = true;
+        }
     }
     control.addEventListener( 'input', apply );
     output.value = form[property].toFixed( decimals );
@@ -133,7 +145,12 @@ bindRange( 'surface-relief', 'surfaceRelief', 2, false );
 bindRange( 'structural-response', 'structuralResponse', 2, false );
 bindRange( 'emergence-intensity', 'emergenceIntensity', 2, false );
 bindRange( 'emergence-speed', 'emergenceSpeed', 2, false );
+bindRange( 'pulse-speed', 'pulseSpeed', 2, false );
 bindRange( 'gold-presence', 'goldPresence', 2, false );
+bindRange( 'growth-tiers', 'growthTiers', 0, true, true );
+bindRange( 'tier-floor', 'tierFloor', 2, false );
+bindRange( 'tier-phase', 'tierPhase', 2, false );
+bindRange( 'newest-tier-hold', 'newestTierHold', 2, false );
 
 document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
     const ids = {
@@ -146,7 +163,12 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
         structuralResponse: 'structural-response',
         emergenceIntensity: 'emergence-intensity',
         emergenceSpeed: 'emergence-speed',
-        goldPresence: 'gold-presence'
+        pulseSpeed: 'pulse-speed',
+        goldPresence: 'gold-presence',
+        growthTiers: 'growth-tiers',
+        tierFloor: 'tier-floor',
+        tierPhase: 'tier-phase',
+        newestTierHold: 'newest-tier-hold'
     };
     for ( const [ property, id ] of Object.entries( ids ) )
     {
@@ -154,6 +176,9 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
         control.value = formDefaults[property];
         control.dispatchEvent( new Event( 'input' ) );
     }
+    const tierColourLock = document.querySelector( '#tier-colour-lock' );
+    tierColourLock.checked = formDefaults.tierColourLock;
+    tierColourLock.dispatchEvent( new Event( 'change' ) );
 } );
 
 document.querySelector( '#replay-unfolding' ).addEventListener( 'click', () => {
@@ -200,6 +225,7 @@ bindSwitch( 'show-edges', diagnostics.setEdgesVisible );
 bindSwitch( 'show-axes', diagnostics.setAxesVisible );
 bindSwitch( 'role-colours', diagnostics.setRoleColoursVisible );
 bindSwitch( 'freeze-motion', ( frozen ) => { form.motionFrozen = frozen; } );
+bindSwitch( 'tier-colour-lock', ( locked ) => { form.tierColourLock = locked; } );
 bindSwitch( 'neutral-background', ( neutral ) => {
     scene.background = neutral ? neutralBackground : darkBackground;
     datum.visible = !neutral;

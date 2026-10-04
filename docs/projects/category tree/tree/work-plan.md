@@ -371,6 +371,103 @@ the later monumental trunk rendering phase.
 - A connected recursive route can be followed across more than one relationship.
 - Dark intervals retain material presence without relying on excessive bloom.
 
+#### Phase 2e checkpoint — route-continuous internal light
+
+The first replacement for the projected chromatic treatment is now implemented.
+Every swept conduit carries a longitudinal progress attribute, while each edge
+inherits its parent's accumulated root distance. The shader therefore evaluates
+one continuous route coordinate through parent-child junctions instead of using
+world-space bands or an unrelated phase for every edge.
+
+Emission is concentrated at the apparent inner boundary of the conduit, with a
+low residual core glow to preserve long routes at whole-tree scale. Broad,
+slow-moving route envelopes disclose connected spans in deep cyan and restrained
+gold. The trunk remains suppressed so this study cannot pre-empt the dedicated
+monumental-trunk treatment.
+
+Visual review in silhouette, canopy and structure views confirms that the former
+disco-light effect has been removed: there are no isolated projected spots, and
+the canopy view makes several inherited routes legible across multiple junctions.
+The default intensity was lifted slightly after the first pass proved too dark at
+silhouette scale, without allowing the surface to bleach cyan. Separate swept
+tubes still reveal small junction seams in the close structure view; that is a
+geometry-continuity issue for a later construction pass rather than a reason to
+reintroduce surface projection.
+
+The initial route envelope still caused too much of the crown to pulse in and out
+together. An attempted correction partitioned illumination by recursive node
+depth, but that was the wrong growth model: it produced alternating coloured
+segments inside the same antler. Growth tiers are trunk-release cohorts, not
+recursion depths.
+
+The corrected model uses one illumination identity: the trunk-release cohort.
+The initial Operations, Finance and Resources antlers form cohort zero. Every
+branch site released by the first new trunk stage forms cohort one, and so on.
+Pulse and colour belong to that complete growth tier, not to individual antlers
+or recursive node depth. The newest visible cohort retains a higher visibility
+floor but continues to breathe; older cohorts retain independent
+cyan-to-ice-to-gold sequences over a non-zero visibility floor. Route distance
+shapes highlights inside a tier but never decides its lifecycle or colour.
+
+Perceptual review correction: the first tiered pass retained a non-zero signal
+but its practical luminosity was still negligible against the dark background.
+That pass did not satisfy the intent of the acceptance gate. The contained colour
+range, internal-boundary contribution and persistent radiance floor have since
+been raised. Repeated silhouette samples now keep the complete crown clearly
+legible at the weakest observed phase without restoring a crown-wide flash.
+
+A subsequent user canopy capture showed that the luminosity correction was still
+being read mainly as faint specular reflection. Canopy view is therefore the
+governing test for this experiment. The growth-tier palette uses HDR cyan, ice and
+gold states which cross the existing bloom threshold; no state in the colour
+sequence is near-black.
+
+A second canopy capture exposed an implementation fault: per-edge cohort values
+had been supplied as uniforms on shared materials, allowing one mesh's state to
+leak across other draws. All edge-specific route, cohort, limb and depth data now
+live in geometry attributes. Visual review during growth and at maturity shows
+continuous colour across each complete release cohort, a fully disclosed newest
+cohort and independently changing older tiers. The alternating depth stripes in
+the failed capture are no longer possible under the shader's data model.
+
+Six live controls now expose the experimental assumptions. Growth tiers selects
+zero to eight trunk-release cohorts; zero retains only the initial crown and each
+additional value activates another trunk stage. Older-tier visibility sets the
+pulse floor, tier pulse speed controls brightness timing, tier phase separation
+controls the offset between cohorts, newest-tier visibility controls how firmly
+the current cohort is held open, and growth-tier colour lock makes every cohort
+share one colour sequence without synchronising its pulse. Existing emergence
+intensity, emergence speed and gold presence controls remain available for the
+overall material response.
+
+Motion correction: solving the near-black phases initially over-stabilised the
+render. Colour was carrying most of the animation while luminosity remained
+almost constant, leaving the mature tree readable but visually static. Colour
+now evolves as a slow state sequence and tier-specific luminosity is the primary
+motion. Each cohort breathes from its safe floor to a bright bloom; the newest
+cohort uses a raised floor rather than being frozen at maximum brightness. The
+default tier pulse speed has been raised to 0.90.
+
+A 30-second user observation exposed a second motion failure: the nominal light
+cycle was still perceptually static and the previous physical response displaced
+the surface by only about 0.09% at its default setting. The tier pulse now runs
+on a shorter cadence and drives a travelling route bloom rather than sitting
+behind a large steady emissive term. Mature physical motion now comes from a
+continuous height-weighted deformation field. It leaves the trunk foot planted
+and moves coincident junction positions together, avoiding cracks between swept
+tubes. Paired canopy observations at 33 and 35.5 seconds, after recursive
+complexity reached 100%, show both processes continuing beyond maturation while
+the whole structure remains continuously legible.
+
+The five tiers beyond the original three use validated structural placeholder
+topology with three evenly distributed branch sites per stage. They are explicitly
+for testing density, radial uniformity and cadence, not final domain categories.
+Changing the tier count rebuilds the load model and restarts unfolding. At the
+default three tiers, 407 nodes manifest. At eight tiers, 653 manifest and the same
+camera view no longer contains the full crown; the user must zoom out. A timed
+review found the eight-tier tree only 76% unfolded after 25 seconds, confirming
+that tier count also controls the duration of the growth event.
+
 ### Experiment C — monumental trunk
 
 1. Replace the enlarged branch treatment with dedicated trunk geometry.

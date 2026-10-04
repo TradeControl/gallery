@@ -242,7 +242,48 @@ const trunkGrowthStages = [
     ] }
 ];
 
+// Additional authored-shape cohorts support the variable growth-tier study.
+// Their identifiers and relationships are materialised before validation; the
+// renderer still cannot invent branches. These are structural placeholders for
+// testing crown density and growth cadence, not final domain classifications.
+const maximumGrowthTiers = 8;
+for ( let stageNumber = trunkGrowthStages.length + 1; stageNumber <= maximumGrowthTiers; stageNumber += 1 )
+{
+    const stageId = `crown-trunk-${stageNumber}`;
+    const angleOffset = stageNumber * 0.79;
+    const sites = Array.from( { length: 3 }, ( _, siteIndex ) => {
+        const siteNumber = siteIndex + 1;
+        const siteId = `growth-${stageNumber}-antler-${siteNumber}`;
+        const arms = Array.from( { length: 2 }, ( __, armIndex ) => {
+            const armNumber = armIndex + 1;
+            const armId = `${siteId}-arm-${armNumber}`;
+            return {
+                id: armId,
+                label: `Growth tier ${stageNumber} arm ${siteNumber}.${armNumber}`,
+                fields: [
+                    [ `${armId}-field-1`, `Growth tier ${stageNumber} field ${siteNumber}.${armNumber}.1` ],
+                    [ `${armId}-field-2`, `Growth tier ${stageNumber} field ${siteNumber}.${armNumber}.2` ]
+                ]
+            };
+        } );
+        return {
+            id: siteId,
+            label: `Growth tier ${stageNumber} antler ${siteNumber}`,
+            limb: [ 'operations', 'finance', 'resources' ][siteIndex],
+            angle: angleOffset + siteIndex * Math.PI * 2 / 3,
+            arms
+        };
+    } );
+    trunkGrowthStages.push( {
+        id: stageId,
+        parentId: `crown-trunk-${stageNumber - 1}`,
+        rise: Math.max( 0.82, 1.25 - ( stageNumber - 3 ) * 0.07 ),
+        sites
+    } );
+}
+
 export const trunkGrowthHierarchy = trunkGrowthStages.flatMap( ( stage, stageIndex ) => {
+    const growthTier = stageIndex + 1;
     const nodes = [ {
         id: stage.id,
         label: `Crown support stage ${stageIndex + 1}`,
@@ -250,13 +291,14 @@ export const trunkGrowthHierarchy = trunkGrowthStages.flatMap( ( stage, stageInd
         parentId: stage.parentId,
         latent: true,
         structuralRole: 'trunk-stage',
-        trunkStage: stageIndex + 1,
+        trunkStage: growthTier,
+        growthTier,
         stageRise: stage.rise
     } ];
 
     for ( const site of stage.sites )
     {
-        const shared = { latent: true, limb: site.limb, supportTier: true };
+        const shared = { latent: true, limb: site.limb, supportTier: true, growthTier };
         nodes.push( {
             id: site.id,
             label: site.label,

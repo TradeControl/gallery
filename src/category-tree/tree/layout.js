@@ -84,6 +84,8 @@ export function createUnfoldingLayout( establishedHierarchy, unfoldingHierarchy,
 {
     const positions = createDiagnosticLayout( establishedHierarchy, options );
     const asymmetry = options.asymmetry ?? 0.55;
+    const growthTiers = options.growthTiers ?? Number.POSITIVE_INFINITY;
+    const tierIsActive = ( node ) => ( node.growthTier ?? node.trunkStage ?? 0 ) <= growthTiers;
     const latentNodes = unfoldingHierarchy.nodes
         .filter( ( node ) => node.latent )
         .sort( ( a, b ) => a.depth - b.depth );
@@ -188,9 +190,10 @@ export function createUnfoldingLayout( establishedHierarchy, unfoldingHierarchy,
     const terminalLoads = new Map();
     function countTerminalLoad( node )
     {
-        const load = node.children.length === 0
-            ? 1
-            : node.children.reduce( ( sum, child ) => sum + countTerminalLoad( child ), 0 );
+        const childLoad = node.children.reduce( ( sum, child ) => sum + countTerminalLoad( child ), 0 );
+        const load = tierIsActive( node )
+            ? ( node.children.length === 0 ? 1 : childLoad )
+            : 0;
         terminalLoads.set( node.id, load );
         return load;
     }
@@ -199,7 +202,7 @@ export function createUnfoldingLayout( establishedHierarchy, unfoldingHierarchy,
     for ( const node of unfoldingHierarchy.nodes )
     {
         if ( node.kind !== 'trunk' && node.kind !== 'root' ) continue;
-        node.supportRadius = 0.2 + Math.sqrt( terminalLoads.get( node.id ) ) * 0.018;
+        node.supportRadius = 0.2 + Math.sqrt( terminalLoads.get( node.id ) ?? 0 ) * 0.018;
     }
 
     // Gravity constrains manifestation without deleting topology. Horizontal path
@@ -240,23 +243,25 @@ export function createUnfoldingLayout( establishedHierarchy, unfoldingHierarchy,
                 y: parentPosition.y + rawEdge.y,
                 z: parentPosition.z + rawEdge.z
             } );
-            node.growthEligible = parentState.eligible;
+            const eligible = parentState.eligible && tierIsActive( node );
+            node.growthEligible = eligible;
             supportStates.set( node.id, {
                 strain: 0,
-                eligible: parentState.eligible,
+                eligible,
                 radius: node.supportRadius
             } );
             continue;
         }
 
         const horizontalLength = Math.hypot( rawEdge.x, rawEdge.z );
-        const loadFactor = 1 + Math.log2( terminalLoads.get( node.id ) + 1 ) * 0.035;
+        const loadFactor = 1 + Math.log2( ( terminalLoads.get( node.id ) ?? 0 ) + 1 ) * 0.035;
         const rawStrain = parentState.strain + horizontalLength * loadFactor;
         const supportLimit = ( node.supportTier ? 6.4 : 9.0 ) + parentState.radius * 10.5;
         const utilisation = rawStrain / supportLimit;
         const pressure = Math.max( 0, Math.min( 1, ( utilisation - 0.72 ) / 0.28 ) );
         const horizontalScale = 1 - pressure * 0.4;
-        const eligible = parentState.eligible && rawStrain <= supportLimit * 1.28;
+        const eligible = parentState.eligible && tierIsActive( node )
+            && rawStrain <= supportLimit * 1.28;
 
         positions.set( node.id, {
             x: parentPosition.x + rawEdge.x * horizontalScale,
