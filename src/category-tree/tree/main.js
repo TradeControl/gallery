@@ -1,8 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { createHierarchy, representativeHierarchy, unfoldingHierarchy } from './hierarchy.js';
 import { createUnfoldingLayout } from './layout.js';
 import { createTreeLayer } from './tree-layer.js';
@@ -24,11 +21,6 @@ renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 sceneElement.appendChild( renderer.domElement );
-
-const composer = new EffectComposer( renderer );
-composer.addPass( new RenderPass( scene, camera ) );
-const bloom = new UnrealBloomPass( new THREE.Vector2( 1, 1 ), 0.72, 0.58, 0.82 );
-composer.addPass( bloom );
 
 const orbitControls = new OrbitControls( camera, renderer.domElement );
 orbitControls.enableDamping = true;
@@ -58,18 +50,7 @@ const formDefaults = {
     asymmetry: 0.68,
     conduitWeight: 1.34,
     windSweep: 0.48,
-    surfaceRelief: 0.1,
-    structuralResponse: 0.22,
-    emergenceIntensity: 0.78,
-    emergenceSpeed: 0.58,
-    pulseSpeed: 0.9,
-    goldPresence: 0.3,
-    growthTiers: 3,
-    tierFloor: 0.45,
-    tierPhase: 1,
-    newestTierHold: 1,
-    tierColourLock: false,
-    motionFrozen: false
+    growthTiers: 3
 };
 const form = { ...formDefaults };
 
@@ -98,13 +79,51 @@ const growthCycle = createGrowthCycle( hierarchy, 2 );
 let unfoldingElapsed = 0;
 let unfoldingActive = true;
 let previousAnimationTime = null;
+let previousSurfaceReadoutTime = -Infinity;
+let rebuildTimer = null;
+let pendingGrowthRestart = false;
+let pageDisposed = false;
 
-function rebuildTree()
+function resetUnfoldingState()
 {
+    unfoldingElapsed = 0;
+    unfoldingActive = true;
+    const growth = growthCycle.sample( 0, 0.42 );
+    diagnostics.setGrowthProgress( growth.progress );
+    document.querySelector( '#recursive-complexity' ).value = '0%';
+    return growth.progress;
+}
+
+function rebuildTree( restartGrowth = false )
+{
+    if ( pageDisposed ) return;
     positions = createPositions();
     diagnostics.update( positions, form );
-    engineeredTree.rebuild( positions, form );
+    const progress = restartGrowth ? resetUnfoldingState() : undefined;
+    engineeredTree.rebuild( positions, form, progress );
     updateConstraintStats();
+}
+
+function cancelScheduledTreeRebuild()
+{
+    const hadScheduledRebuild = rebuildTimer !== null;
+    if ( hadScheduledRebuild ) clearTimeout( rebuildTimer );
+    rebuildTimer = null;
+    pendingGrowthRestart = false;
+    return hadScheduledRebuild;
+}
+
+function scheduleTreeRebuild( restartGrowth = false )
+{
+    if ( pageDisposed ) return;
+    pendingGrowthRestart ||= restartGrowth;
+    if ( rebuildTimer !== null ) clearTimeout( rebuildTimer );
+    rebuildTimer = setTimeout( () => {
+        rebuildTimer = null;
+        const restart = pendingGrowthRestart;
+        pendingGrowthRestart = false;
+        rebuildTree( restart );
+    }, 120 );
 }
 
 function updateConstraintStats()
@@ -125,12 +144,7 @@ function bindRange( id, property, decimals = 2, rebuild = true, restartGrowth = 
     {
         form[property] = Number( control.value );
         output.value = form[property].toFixed( decimals );
-        if ( rebuild ) rebuildTree();
-        if ( restartGrowth )
-        {
-            unfoldingElapsed = 0;
-            unfoldingActive = true;
-        }
+        if ( rebuild ) scheduleTreeRebuild( restartGrowth );
     }
     control.addEventListener( 'input', apply );
     output.value = form[property].toFixed( decimals );
@@ -141,16 +155,7 @@ bindRange( 'vertical-rise', 'verticalRise' );
 bindRange( 'asymmetry', 'asymmetry' );
 bindRange( 'conduit-weight', 'conduitWeight' );
 bindRange( 'wind-sweep', 'windSweep' );
-bindRange( 'surface-relief', 'surfaceRelief', 2, false );
-bindRange( 'structural-response', 'structuralResponse', 2, false );
-bindRange( 'emergence-intensity', 'emergenceIntensity', 2, false );
-bindRange( 'emergence-speed', 'emergenceSpeed', 2, false );
-bindRange( 'pulse-speed', 'pulseSpeed', 2, false );
-bindRange( 'gold-presence', 'goldPresence', 2, false );
 bindRange( 'growth-tiers', 'growthTiers', 0, true, true );
-bindRange( 'tier-floor', 'tierFloor', 2, false );
-bindRange( 'tier-phase', 'tierPhase', 2, false );
-bindRange( 'newest-tier-hold', 'newestTierHold', 2, false );
 
 document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
     const ids = {
@@ -159,31 +164,24 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
         asymmetry: 'asymmetry',
         conduitWeight: 'conduit-weight',
         windSweep: 'wind-sweep',
-        surfaceRelief: 'surface-relief',
-        structuralResponse: 'structural-response',
-        emergenceIntensity: 'emergence-intensity',
-        emergenceSpeed: 'emergence-speed',
-        pulseSpeed: 'pulse-speed',
-        goldPresence: 'gold-presence',
-        growthTiers: 'growth-tiers',
-        tierFloor: 'tier-floor',
-        tierPhase: 'tier-phase',
-        newestTierHold: 'newest-tier-hold'
+        growthTiers: 'growth-tiers'
     };
     for ( const [ property, id ] of Object.entries( ids ) )
     {
         const control = document.querySelector( `#${id}` );
         control.value = formDefaults[property];
-        control.dispatchEvent( new Event( 'input' ) );
+        form[property] = formDefaults[property];
+        document.querySelector( `#${id}-value` ).value = form[property].toFixed(
+            property === 'growthTiers' ? 0 : 2
+        );
     }
-    const tierColourLock = document.querySelector( '#tier-colour-lock' );
-    tierColourLock.checked = formDefaults.tierColourLock;
-    tierColourLock.dispatchEvent( new Event( 'change' ) );
+    cancelScheduledTreeRebuild();
+    rebuildTree( true );
 } );
 
 document.querySelector( '#replay-unfolding' ).addEventListener( 'click', () => {
-    unfoldingElapsed = 0;
-    unfoldingActive = true;
+    if ( cancelScheduledTreeRebuild() ) rebuildTree( true );
+    else engineeredTree.setGrowthProgress( resetUnfoldingState() );
 } );
 
 const cameraViews = {
@@ -224,8 +222,6 @@ bindSwitch( 'show-nodes', diagnostics.setNodesVisible );
 bindSwitch( 'show-edges', diagnostics.setEdgesVisible );
 bindSwitch( 'show-axes', diagnostics.setAxesVisible );
 bindSwitch( 'role-colours', diagnostics.setRoleColoursVisible );
-bindSwitch( 'freeze-motion', ( frozen ) => { form.motionFrozen = frozen; } );
-bindSwitch( 'tier-colour-lock', ( locked ) => { form.tierColourLock = locked; } );
 bindSwitch( 'neutral-background', ( neutral ) => {
     scene.background = neutral ? neutralBackground : darkBackground;
     datum.visible = !neutral;
@@ -247,13 +243,11 @@ function resize()
     camera.updateProjectionMatrix();
     renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
     renderer.setSize( width, height, false );
-    composer.setSize( width, height );
 }
 
-const animationStart = performance.now();
 function animate( now )
 {
-    const elapsed = ( now - animationStart ) / 1000;
+    if ( pageDisposed ) return;
     const frameDelta = previousAnimationTime === null
         ? 0
         : Math.min( ( now - previousAnimationTime ) / 1000, 0.1 );
@@ -265,14 +259,83 @@ function animate( now )
         engineeredTree.setGrowthProgress( growth.progress );
         diagnostics.setGrowthProgress( growth.progress );
         document.querySelector( '#recursive-complexity' ).value = `${Math.round( growth.viability * 100 )}%`;
-        if ( growth.viability >= 0.999 ) unfoldingActive = false;
+        if ( growth.complete ) unfoldingActive = false;
     }
-    engineeredTree.update( elapsed, form );
+    if ( now - previousSurfaceReadoutTime > 250 )
+    {
+        previousSurfaceReadoutTime = now;
+        const state = engineeredTree.getSurfaceState();
+        const status = document.querySelector( '#surface-state' );
+        const triangles = document.querySelector( '#surface-triangles' );
+        const rebuild = document.querySelector( '#surface-rebuild' );
+        status.value = state.error ? 'error' : state.busy ? 'meshing' : 'closed';
+        triangles.value = state.build?.triangles?.toLocaleString() ?? '0';
+        rebuild.value = state.build?.totalBuildMilliseconds === undefined
+            ? '—'
+            : `${Math.round( state.build.totalBuildMilliseconds )} ms`;
+    }
     orbitControls.update();
-    composer.render();
+    renderer.render( scene, camera );
 }
 
 window.addEventListener( 'resize', resize );
 resize();
 setCameraView( cameraViews.silhouette );
 renderer.setAnimationLoop( animate );
+
+// Read-only diagnostics used by the Gate 2 audit and visual inspection harness.
+const gate2Diagnostics = {
+    hierarchy,
+    engineeredTree,
+    growthCycle,
+    form,
+    get positions() { return positions; }
+};
+globalThis.__categoryTreeGate2 = gate2Diagnostics;
+
+function disposeSceneResources( root )
+{
+    const geometries = new Set();
+    const materials = new Set();
+    root.traverse( ( object ) => {
+        if ( object.geometry ) geometries.add( object.geometry );
+        if ( Array.isArray( object.material ) )
+        {
+            for ( const material of object.material ) materials.add( material );
+        }
+        else if ( object.material ) materials.add( object.material );
+    } );
+    for ( const geometry of geometries ) geometry.dispose();
+    for ( const material of materials ) material.dispose();
+}
+
+function disposePage()
+{
+    if ( pageDisposed ) return;
+    pageDisposed = true;
+    renderer.setAnimationLoop( null );
+    cancelScheduledTreeRebuild();
+    unfoldingActive = false;
+    window.removeEventListener( 'resize', resize );
+    window.removeEventListener( 'pagehide', handlePageHide );
+    engineeredTree.dispose();
+    orbitControls.dispose();
+    disposeSceneResources( scene );
+    scene.clear();
+    renderer.dispose();
+    renderer.forceContextLoss();
+    renderer.domElement.remove();
+    if ( globalThis.__categoryTreeGate2 === gate2Diagnostics )
+    {
+        delete globalThis.__categoryTreeGate2;
+    }
+}
+
+function handlePageHide( event )
+{
+    // A persisted page is frozen in the back/forward cache and must remain
+    // usable when restored. A terminal pagehide owns the complete teardown.
+    if ( event.persisted !== true ) disposePage();
+}
+
+window.addEventListener( 'pagehide', handlePageHide );

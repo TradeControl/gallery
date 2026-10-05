@@ -484,6 +484,185 @@ that tier count also controls the duration of the growth event.
 - Future routes could be etched or contained without overwhelming its mass.
 - The trunk remains dark and structurally convincing with all activity disabled.
 
+## Phase 2f — staged structural reset
+
+### Why the reset is necessary
+
+The internally illuminated study proved growth-tier sequencing and persistent
+motion, but light began to conceal unresolved form. Trunk mass, branch continuity
+and the complete silhouette must now be judged without emissive assistance. Work
+returns to checkpoint `51e7d84` and advances through explicit sign-off gates. A
+later gate must not begin merely because its implementation is convenient.
+
+### Gate 1 — white structural baseline
+
+1. Remove Tree emission, bloom-dependent disclosure, chromatic sequencing and
+   their obsolete controls.
+2. Render the complete Tree as one neutral white clay study under simple external
+   lighting.
+3. Retain topology, gravity constraints, tier count and recursive unfolding so
+   the structural model remains inspectable.
+4. Use silhouette, canopy and close structure views to expose intersections,
+   open ends, discontinuities and implausible load paths.
+
+**Sign-off:** the Tree is continuously visible and its faults can be judged
+without colour, glow or animation manufacturing coherence.
+
+**Implementation status — signed off:** the emissive shader,
+chromatic and pulse controls, bloom composer and structural sway have been removed.
+One shared matte-white material now renders trunk, limbs and terminals under the
+scene's external lights. Mature silhouette, canopy and close-structure review
+clearly exposes the stacked trunk rings, open tube ends, intersecting fork wedges
+and the still-sapling-like overall support. These visible failures are the intended
+Gate 1 baseline and define the work for Gates 2 and 3.
+
+### Gate 2 — continuous trunk and branch field
+
+#### Objective
+
+Convert the signed-off Gate 1 skeleton into one genuinely continuous Tree surface.
+Continuity applies to the entire visible hierarchy: established trunk segments,
+the three principal antlers, every later trunk release and every recursive
+parent/child branch division. A branch is a division of the same organism, not a
+separate tube intersecting, touching or appearing to be bolted onto another tube.
+
+#### Baseline and non-negotiable invariants
+
+1. Begin from the exact white Gate 1 form. Do not redesign the silhouette, change
+   hierarchy, add luminosity or conceal faults with dark materials, bloom, texture,
+   foliage, collars or junction objects.
+2. Preserve all 683 validated nodes, 682 parent-child relationships, gravity
+   eligibility, tier selection, recursive unfolding and circumference maturation.
+3. Preserve a recoverable mapping from every hierarchy edge and node to the
+   surface region it generated. Fusion must not destroy semantic ownership needed
+   by later information-flow routes.
+4. The mature active Tree must be one connected, watertight, consistently oriented
+   two-manifold surface. Overlapping meshes, coincident skins and hidden open tube
+   ends do not satisfy this requirement.
+5. Terminal tips must close cleanly. The only permissible special boundary is the
+   deliberately unfinished planting/root interface reserved for Gate 3; document
+   and isolate it if it remains open.
+
+#### Failed approaches and evidence
+
+- Rendering one swept tube per edge leaves circular ends, wedge intersections and
+  disconnected trunk rings. This is the Gate 1 evidence, not an acceptable result.
+- Merely extending or overlapping a child tube inside its parent hides its cap from
+  some cameras but retains intersecting surfaces and produces hard cut-lines.
+- A global uniform Marching Cubes field for only the trunk and short branch roots
+  produced isolated protrusions and left downstream branch divisions discontinuous.
+- Smooth metaball-style union accumulated volume at crowded forks and created
+  swollen pendant/cauliflower masses. Hard union reduced swelling but did not join
+  the continuation tubes and was strongly dependent on the viewing angle.
+- Filler spheres, collars, local blobs and shader-normal tricks are specifically
+  rejected. The attached Gate 2 rejection screenshot shows why a front view alone
+  cannot be treated as proof of continuity.
+
+#### Required technical investigation before implementation
+
+1. Inspect the hierarchy, layout, curve and radius-generation code and quantify the
+   active skeleton's spatial scale, minimum conduit radius, closest unrelated
+   branches, maximum junction valence and growth-state changes.
+2. Compare at least these representation families against those measurements:
+   adaptive implicit meshing of the complete active skeleton; a welded generalized-
+   cylinder mesh with explicit multi-way junction topology; and a robust solid/CSG
+   union followed by remeshing. A uniform global voxel grid is acceptable only if
+   demonstrated to resolve the thinnest active conduit without merging nearby
+   unrelated branches or exceeding the performance budget.
+3. Prototype the hardest representative set before converting the full Tree: one
+   trunk continuation with several releases, the three-way principal crown fork,
+   a high-valence recursive crown junction, a thin terminal fork and two spatially
+   close but semantically unrelated branches that must remain separate.
+4. Select an architecture from measured evidence. Explain how it handles adaptive
+   resolution, taper, fork crotches, normals, terminal closure, hierarchy metadata,
+   rebuilds after slider changes and intermediate growth states.
+
+#### Implementation constraints
+
+1. Generate one surface component for the complete active Tree rather than a trunk
+   core plus unfused continuation tubes. If chunking is required for performance,
+   chunk boundaries must share welded vertices and still pass global manifold and
+   component tests.
+2. Use support radii at shared nodes as explicit constraints. Radius continuity and
+   tangent behaviour must be solved at the junction, not approximated with a blob.
+3. Unrelated branches must never merge merely because they pass within the support
+   radius or occupy adjacent field cells.
+4. Every rebuild must dispose superseded geometry and remain responsive under all
+   existing form and Growth tiers controls. Growth may rebuild quantised surface
+   states, but no state may reveal phantom stubs belonging to unreleased tiers.
+5. Keep the Gate 1 white material and external lighting throughout development so
+   topology and shading failures remain visible.
+
+#### Automated proof
+
+Add a geometry audit that can run independently of visual inspection and reports:
+
+- connected surface components (expected: one for the active Tree);
+- boundary edges (expected: zero, except an explicitly isolated planting boundary);
+- non-manifold edges and vertices (expected: zero);
+- degenerate and zero-area triangles (expected: zero);
+- non-finite positions/normals (expected: zero);
+- consistent triangle orientation and valid normals;
+- correspondence coverage for all active hierarchy nodes and edges;
+- absence of surface contact or fusion between unrelated close branches.
+
+Run the audit at Growth tiers 0, 1, 3 and 8, at minimum and maximum conduit weight,
+and at the completed state of a replayed recursive unfolding. Record timings and
+peak geometry size so a visually successful result cannot silently become
+impractical.
+
+#### Visual proof
+
+1. Review white Structure, Canopy and Silhouette cameras at maturity and during
+   unfolding. Orbit a complete 360 degrees around the principal fork and at least
+   three representative recursive junctions.
+2. Provide close views of the hardest prototype junctions and the same junctions
+   in the completed Tree. No view may reveal caps, sockets, seams, collars, pinched
+   wedges, detached nodes, unintended mergers or swelling unrelated to load.
+3. Compare directly with Gate 1 so the improvement is structural rather than a
+   consequence of camera, lighting or material changes.
+
+**Sign-off:** every principal fork and released trunk tier reads as one grown
+load-bearing surface, and every recursive branch division is part of that same
+watertight organism. Automated audits pass, diagnostic relationships remain
+recoverable, and a full orbit cannot reveal a disconnected or falsely fused region.
+
+**Implementation status — reset after rejected experiment:** the first Gate 2
+attempt fused only the trunk and short release roots, leaving obvious detached
+protrusions and discontinuous downstream branch tubes. It failed the user's close
+view and therefore has been removed completely. The application is restored to
+the signed-off Gate 1 white baseline. Gate 2 and Gate 3 have not begun from that
+restored baseline.
+
+### Gate 3 — artistic silhouette
+
+1. Re-establish the Tree as monumental asymmetric architecture rather than a
+   centred pole carrying a radial crown.
+2. Use the original `.local\category-tree.png` painting as an artistic reference for
+   mass, deep planting, major bough hierarchy, negative space and environmental
+   scale, without copying its schematic topology.
+3. Develop an architectural shoulder, lateral trunk mass and a root transition
+   capable of entering the gravity well.
+4. Judge the Tree in the wider Universe/Cosmos mise en scène before polishing
+   isolated material details.
+
+**Sign-off:** the unlit white Tree has a convincing distant silhouette, credible
+load paths and sufficient trunk volume for two later transport systems.
+
+### Gate 4 — semantic luminosity, deferred
+
+Only after Gates 1–3 are signed off may luminosity return. It must no longer be
+general disclosure or decorative pulsing. Information originates in the crown,
+aggregates through real routes, descends through restrained techno-glyph channels
+and becomes packets delivered to the Cosmos layer inside the gravity well. Molten
+matter rising from the Universe layer is a separate upward physical flow. The two
+systems must differ by source, direction, cadence and behaviour rather than only
+by colour.
+
+**Sign-off:** removing either flow leaves the white structural organism intact;
+enabling it explains a real transfer between layers rather than decorating the
+Tree.
+
 ## Phase 3 — truthful activity and aggregation
 
 ### Purpose

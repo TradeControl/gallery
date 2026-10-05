@@ -30,13 +30,17 @@ export function createGrowthCycle( hierarchy, initialSeed = 1 )
         {
             const parentEntry = schedule.get( node.parentId );
             const jitter = hashUnit( `${seed}:${node.id}` );
-            const parentCommitment = node.structuralRole === 'trunk-stage'
-                ? 0.9
-                : node.structuralRole === 'branch-site'
-                    ? 1.12
-                    : 0.72 + jitter * 0.18;
+            // A child is released only after its parent's surface has reached the
+            // junction.  Earlier studies deliberately overlapped the timings,
+            // which was harmless for independent tubes but exposed disconnected
+            // fragments once the body became a single surface.
+            const releaseDelay = node.structuralRole === 'branch-site'
+                ? 0.08 + jitter * 0.08
+                : node.structuralRole === 'trunk-stage'
+                    ? 0.03 + jitter * 0.04
+                    : 0.02 + jitter * 0.06;
             const start = parentEntry
-                ? parentEntry.start + parentEntry.duration * parentCommitment
+                ? parentEntry.start + parentEntry.duration + releaseDelay
                 : ( limbOffsets[node.limb] ?? 0 ) + jitter * 0.7;
             const duration = node.structuralRole === 'trunk-stage'
                 ? 1.8 + hashUnit( `${seed}:${node.id}:duration` ) * 0.55
@@ -50,6 +54,7 @@ export function createGrowthCycle( hierarchy, initialSeed = 1 )
         const progress = new Map();
         let total = 0;
         let eligibleCount = 0;
+        let completedCount = 0;
         for ( const node of latentNodes )
         {
             const entry = schedule.get( node.id );
@@ -62,11 +67,15 @@ export function createGrowthCycle( hierarchy, initialSeed = 1 )
             {
                 eligibleCount += 1;
                 total += value;
+                if ( value >= 1 ) completedCount += 1;
             }
         }
         return {
             progress,
-            viability: eligibleCount > 0 ? total / eligibleCount : 1
+            viability: eligibleCount > 0 ? total / eligibleCount : 1,
+            completedCount,
+            eligibleCount,
+            complete: completedCount === eligibleCount
         };
     }
 

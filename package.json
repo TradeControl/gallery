@@ -1,4 +1,10 @@
 {
+  "scripts": {
+    "test:mesh-audit": "node --experimental-default-type=module --test tests/category-tree/mesh-audit.test.mjs",
+    "test:tree-worker": "node --experimental-default-type=module --test tests/category-tree/engineered-tree-layer.test.mjs",
+    "test:gate2:unit": "node --experimental-default-type=module --test tests/category-tree/engineered-tree-layer.test.mjs tests/category-tree/mesh-audit.test.mjs tests/category-tree/semantic-collision-resolver.test.mjs tests/category-tree/sparse-union-mesher.test.mjs tests/category-tree/hybrid-tree-mesher.test.mjs",
+    "test:gate2": "node --experimental-default-type=module tests/category-tree/gate2-scenarios.mjs"
+  },
   "devDependencies": {
     "vite": "^8.2.2"
   },

@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tree Phase 2e — Internal Recursive Light</title>
+    <title>Tree Phase 2f — White Structural Baseline</title>
     <link rel="stylesheet" href="./style.css">
   </head>
   <body>
     <main id="scene" aria-label="Tree material study"></main>
     <aside class="controls" aria-label="Tree material controls">
       <header>
-        <p>Dynamic material study</p>
-        <h1>Tree <span>Phase 2e · internal recursive light</span></h1>
+        <p>Structural reset</p>
+        <h1>Tree <span>Phase 2f · white baseline</span></h1>
       </header>
       <p class="statement">A windswept recursive instrument: responsive and tree-like, but deliberately engineered rather than botanical.</p>
 
@@ -22,28 +22,14 @@
       <label class="control" for="conduit-weight"><span>Conduit weight</span><output id="conduit-weight-value">1.34</output><input id="conduit-weight" type="range" min="0.75" max="1.85" step="0.01" value="1.34"></label>
       <label class="control" for="wind-sweep"><span>Wind sweep</span><output id="wind-sweep-value">0.48</output><input id="wind-sweep" type="range" min="-1.20" max="1.20" step="0.01" value="0.48"></label>
 
-      <div class="section-label">Material response</div>
-      <label class="control" for="surface-relief"><span>Surface relief</span><output id="surface-relief-value">0.10</output><input id="surface-relief" type="range" min="0" max="0.45" step="0.01" value="0.10"></label>
-      <label class="control" for="structural-response"><span>Structural response</span><output id="structural-response-value">0.22</output><input id="structural-response" type="range" min="0" max="0.65" step="0.01" value="0.22"></label>
-      <label class="switch" for="freeze-motion"><span>Freeze response</span><input id="freeze-motion" type="checkbox"></label>
-
-      <div class="section-label">Chromatic emergence</div>
-      <label class="control" for="emergence-intensity"><span>Emergence intensity</span><output id="emergence-intensity-value">0.78</output><input id="emergence-intensity" type="range" min="0" max="2.2" step="0.01" value="0.78"></label>
-      <label class="control" for="emergence-speed"><span>Emergence speed</span><output id="emergence-speed-value">0.58</output><input id="emergence-speed" type="range" min="0.08" max="1.5" step="0.01" value="0.58"></label>
-      <label class="control" for="gold-presence"><span>Gold presence</span><output id="gold-presence-value">0.30</output><input id="gold-presence" type="range" min="0" max="0.6" step="0.01" value="0.30"></label>
-      <div class="section-label">Growth tier sequencing</div>
+      <div class="section-label">Structural growth</div>
       <label class="control" for="growth-tiers"><span>Growth tiers</span><output id="growth-tiers-value">3</output><input id="growth-tiers" type="range" min="0" max="8" step="1" value="3"></label>
-      <label class="control" for="tier-floor"><span>Older-tier visibility</span><output id="tier-floor-value">0.45</output><input id="tier-floor" type="range" min="0.08" max="1" step="0.01" value="0.45"></label>
-      <label class="control" for="pulse-speed"><span>Tier pulse speed</span><output id="pulse-speed-value">0.90</output><input id="pulse-speed" type="range" min="0.04" max="1.5" step="0.01" value="0.90"></label>
-      <label class="control" for="tier-phase"><span>Tier phase separation</span><output id="tier-phase-value">1.00</output><input id="tier-phase" type="range" min="0" max="2" step="0.01" value="1.00"></label>
-      <label class="control" for="newest-tier-hold"><span>Newest-tier visibility</span><output id="newest-tier-hold-value">1.00</output><input id="newest-tier-hold" type="range" min="0" max="1" step="0.01" value="1.00"></label>
-      <label class="switch" for="tier-colour-lock"><span>Growth tier colour lock</span><input id="tier-colour-lock" type="checkbox"></label>
       <div class="growth-actions">
         <button id="replay-unfolding" class="wide-button" type="button">Replay recursive unfolding</button>
         <div class="growth-readout"><span>Recursive complexity</span><output id="recursive-complexity">0%</output></div>
       </div>
       <label class="switch" for="neutral-background"><span>Neutral background</span><input id="neutral-background" type="checkbox"></label>
-      <button id="reset-form" class="wide-button" type="button">Reset material study</button>
+      <button id="reset-form" class="wide-button" type="button">Reset structural study</button>
 
       <div class="section-label">Diagnostics</div>
       <label class="switch" for="show-surface"><span>Engineered body</span><input id="show-surface" type="checkbox" checked></label>
@@ -69,8 +55,11 @@
         <div><dt>Maximum depth</dt><dd><output id="depth-count">0</output></dd></div>
         <div><dt>Manifested</dt><dd><output id="manifested-count">0</output></dd></div>
         <div><dt>Load-dormant</dt><dd><output id="dormant-count">0</output></dd></div>
+        <div><dt>Surface</dt><dd><output id="surface-state">meshing</output></dd></div>
+        <div><dt>Triangles</dt><dd><output id="surface-triangles">0</output></dd></div>
+        <div><dt>Last rebuild</dt><dd><output id="surface-rebuild">—</output></dd></div>
       </dl>
-      <p class="hint">The coloured finite tubes and topology nodes are diagnostics only. The default artwork uses precision-cast swept conduits.</p>
+      <p class="hint">Coloured finite tubes and topology nodes are diagnostics only. The white body deliberately exposes every disconnected tube and junction.</p>
     </aside>
     <script type="module" src="./main.js"></script>
   </body>
