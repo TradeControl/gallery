@@ -1,8 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { createHierarchy, representativeHierarchy, unfoldingHierarchy } from './hierarchy.js';
 import { createUnfoldingLayout } from './layout.js';
 import { createTreeLayer } from './tree-layer.js';
@@ -24,11 +21,6 @@ renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 sceneElement.appendChild( renderer.domElement );
-
-const composer = new EffectComposer( renderer );
-composer.addPass( new RenderPass( scene, camera ) );
-const bloom = new UnrealBloomPass( new THREE.Vector2( 1, 1 ), 0.72, 0.58, 0.82 );
-composer.addPass( bloom );
 
 const orbitControls = new OrbitControls( camera, renderer.domElement );
 orbitControls.enableDamping = true;
@@ -60,15 +52,7 @@ const formDefaults = {
     windSweep: 0.48,
     surfaceRelief: 0.1,
     structuralResponse: 0.22,
-    emergenceIntensity: 0.78,
-    emergenceSpeed: 0.58,
-    pulseSpeed: 0.9,
-    goldPresence: 0.3,
     growthTiers: 3,
-    tierFloor: 0.45,
-    tierPhase: 1,
-    newestTierHold: 1,
-    tierColourLock: false,
     motionFrozen: false
 };
 const form = { ...formDefaults };
@@ -143,14 +127,7 @@ bindRange( 'conduit-weight', 'conduitWeight' );
 bindRange( 'wind-sweep', 'windSweep' );
 bindRange( 'surface-relief', 'surfaceRelief', 2, false );
 bindRange( 'structural-response', 'structuralResponse', 2, false );
-bindRange( 'emergence-intensity', 'emergenceIntensity', 2, false );
-bindRange( 'emergence-speed', 'emergenceSpeed', 2, false );
-bindRange( 'pulse-speed', 'pulseSpeed', 2, false );
-bindRange( 'gold-presence', 'goldPresence', 2, false );
 bindRange( 'growth-tiers', 'growthTiers', 0, true, true );
-bindRange( 'tier-floor', 'tierFloor', 2, false );
-bindRange( 'tier-phase', 'tierPhase', 2, false );
-bindRange( 'newest-tier-hold', 'newestTierHold', 2, false );
 
 document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
     const ids = {
@@ -161,14 +138,7 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
         windSweep: 'wind-sweep',
         surfaceRelief: 'surface-relief',
         structuralResponse: 'structural-response',
-        emergenceIntensity: 'emergence-intensity',
-        emergenceSpeed: 'emergence-speed',
-        pulseSpeed: 'pulse-speed',
-        goldPresence: 'gold-presence',
-        growthTiers: 'growth-tiers',
-        tierFloor: 'tier-floor',
-        tierPhase: 'tier-phase',
-        newestTierHold: 'newest-tier-hold'
+        growthTiers: 'growth-tiers'
     };
     for ( const [ property, id ] of Object.entries( ids ) )
     {
@@ -176,9 +146,6 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
         control.value = formDefaults[property];
         control.dispatchEvent( new Event( 'input' ) );
     }
-    const tierColourLock = document.querySelector( '#tier-colour-lock' );
-    tierColourLock.checked = formDefaults.tierColourLock;
-    tierColourLock.dispatchEvent( new Event( 'change' ) );
 } );
 
 document.querySelector( '#replay-unfolding' ).addEventListener( 'click', () => {
@@ -225,7 +192,6 @@ bindSwitch( 'show-edges', diagnostics.setEdgesVisible );
 bindSwitch( 'show-axes', diagnostics.setAxesVisible );
 bindSwitch( 'role-colours', diagnostics.setRoleColoursVisible );
 bindSwitch( 'freeze-motion', ( frozen ) => { form.motionFrozen = frozen; } );
-bindSwitch( 'tier-colour-lock', ( locked ) => { form.tierColourLock = locked; } );
 bindSwitch( 'neutral-background', ( neutral ) => {
     scene.background = neutral ? neutralBackground : darkBackground;
     datum.visible = !neutral;
@@ -247,7 +213,6 @@ function resize()
     camera.updateProjectionMatrix();
     renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
     renderer.setSize( width, height, false );
-    composer.setSize( width, height );
 }
 
 const animationStart = performance.now();
@@ -269,7 +234,7 @@ function animate( now )
     }
     engineeredTree.update( elapsed, form );
     orbitControls.update();
-    composer.render();
+    renderer.render( scene, camera );
 }
 
 window.addEventListener( 'resize', resize );
