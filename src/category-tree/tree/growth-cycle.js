@@ -50,6 +50,7 @@ export function createGrowthCycle( hierarchy, initialSeed = 1 )
         const progress = new Map();
         let total = 0;
         let eligibleCount = 0;
+        let complete = true;
         for ( const node of latentNodes )
         {
             const entry = schedule.get( node.id );
@@ -62,11 +63,13 @@ export function createGrowthCycle( hierarchy, initialSeed = 1 )
             {
                 eligibleCount += 1;
                 total += value;
+                if ( value < 0.999 ) complete = false;
             }
         }
         return {
             progress,
-            viability: eligibleCount > 0 ? total / eligibleCount : 1
+            viability: eligibleCount > 0 ? total / eligibleCount : 1,
+            complete
         };
     }
 

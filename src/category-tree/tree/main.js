@@ -52,6 +52,8 @@ const formDefaults = {
     windSweep: 0.48,
     surfaceRelief: 0.1,
     structuralResponse: 0.22,
+    packetSpeed: 1.55,
+    informationStartTier: 1,
     growthTiers: 3,
     motionFrozen: false
 };
@@ -127,7 +129,45 @@ bindRange( 'conduit-weight', 'conduitWeight' );
 bindRange( 'wind-sweep', 'windSweep' );
 bindRange( 'surface-relief', 'surfaceRelief', 2, false );
 bindRange( 'structural-response', 'structuralResponse', 2, false );
-bindRange( 'growth-tiers', 'growthTiers', 0, true, true );
+bindRange( 'packet-speed', 'packetSpeed', 2, false );
+
+const growthTiersControl = document.querySelector( '#growth-tiers' );
+const growthTiersOutput = document.querySelector( '#growth-tiers-value' );
+const startTierControl = document.querySelector( '#start-tier' );
+const startTierOutput = document.querySelector( '#start-tier-value' );
+
+function syncStartTierControl()
+{
+    const activeTiers = Math.max( 0, Math.round( form.growthTiers ) );
+    startTierControl.max = String( Math.max( 1, activeTiers ) );
+    startTierControl.disabled = activeTiers === 0;
+    form.informationStartTier = THREE.MathUtils.clamp(
+        Math.round( form.informationStartTier ),
+        1,
+        Math.max( 1, activeTiers )
+    );
+    startTierControl.value = String( form.informationStartTier );
+    startTierOutput.value = String( form.informationStartTier );
+}
+
+function applyGrowthTiers()
+{
+    form.growthTiers = Number( growthTiersControl.value );
+    growthTiersOutput.value = String( form.growthTiers );
+    syncStartTierControl();
+    rebuildTree();
+    unfoldingElapsed = 0;
+    unfoldingActive = true;
+}
+
+growthTiersControl.addEventListener( 'input', applyGrowthTiers );
+growthTiersOutput.value = String( form.growthTiers );
+startTierControl.addEventListener( 'input', () => {
+    form.informationStartTier = Number( startTierControl.value );
+    startTierOutput.value = String( form.informationStartTier );
+    rebuildTree();
+} );
+syncStartTierControl();
 
 document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
     const ids = {
@@ -138,6 +178,8 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
         windSweep: 'wind-sweep',
         surfaceRelief: 'surface-relief',
         structuralResponse: 'structural-response',
+        packetSpeed: 'packet-speed',
+        informationStartTier: 'start-tier',
         growthTiers: 'growth-tiers'
     };
     for ( const [ property, id ] of Object.entries( ids ) )
@@ -230,7 +272,7 @@ function animate( now )
         engineeredTree.setGrowthProgress( growth.progress );
         diagnostics.setGrowthProgress( growth.progress );
         document.querySelector( '#recursive-complexity' ).value = `${Math.round( growth.viability * 100 )}%`;
-        if ( growth.viability >= 0.999 ) unfoldingActive = false;
+        if ( growth.complete ) unfoldingActive = false;
     }
     engineeredTree.update( elapsed, form );
     orbitControls.update();
