@@ -261,3 +261,133 @@ Keep the accepted Tree, one core, route selector and clock unchanged. Test one
 bounded lower-trunk glyph coupling: a single authored glyph sequence should
 respond only as this packet passes, then return fully dark. Do not add the
 gravity well, Cosmos layer, multiple packets or aggregation in that block.
+
+---
+
+## Block 3 — Distributed canopy traffic
+
+### Implementation
+
+The accepted route-local core was extended into one shared internal traffic
+network. At the default three growth tiers there are 213 eligible terminal
+emitters and 388 unique authored child-to-parent edges. Every route is still
+derived only by walking `parentId` from a real terminal to `planting-root`.
+
+The internal geometry contains each eligible authored edge once. Its per-edge
+traffic samples are updated from a set of independent packet records, so two
+packets can retain separate terminals, clocks and complete authored routes while
+using the same parent edge and trunk. Coincident light samples are visually
+bounded by a maximum operation; this is only optical compositing and does not
+combine packet identities or payloads.
+
+Emission is deterministic and distributed:
+
+- eligible terminal IDs are stably hash-ordered, with a manifested established
+  terminal rotated into the first slot so the study can emit immediately;
+- **Packet frequency** is a whole-canopy rate from `0.05` to `0.60` packets per
+  second, default `0.20`;
+- for `N` routes and frequency `f`, each terminal has period `N / f` and phase
+  offset `rank / f`, producing one staggered canopy event every `1 / f` rather
+  than a simultaneous terminal flash;
+- a due event is emitted only when its terminal and complete authored route are
+  manifested. An immature due slot is skipped rather than queued for a later
+  maturation burst;
+- active packets integrate their own head distances. Packet-speed changes alter
+  their onward velocity without returning them to their terminals, and
+  frequency changes rephase only future waits without deleting active events;
+- each packet is removed after its head and wake have passed the planting root.
+
+The former **Start tier** control was removed and replaced by **Packet
+frequency**. Packet speed remains. The graphite materials, monumental trunk,
+hierarchy, growth process and accepted `GreaterDepth` internal-core containment
+were not redesigned.
+
+### Files changed for Block 3
+
+- `src/category-tree/tree/engineered-tree-layer.js`
+- `src/category-tree/tree/index.html`
+- `src/category-tree/tree/main.js`
+- `tests/category-tree/routed-light.test.mjs`
+- `docs/projects/category tree/tree/routed-light-investigation.md`
+
+### Technical verification
+
+`node --test tests/category-tree/monumental-trunk.test.mjs tests/category-tree/routed-light.test.mjs`
+
+- 13 tests passed.
+- Regressions prove deterministic eligible-terminal ordering, active-tier
+  filtering, exact authored routes, and one geometry row for each unique shared
+  edge.
+- Runtime coverage proves that only manifested routes emit, phases are distinct,
+  higher frequency produces richer independent traffic, low frequency includes
+  a fully dark interval, shared parent routes do not collapse packet identity,
+  and completed wakes disappear.
+- Live speed and frequency changes preserve active packet identity. Snapshot
+  comparisons prove that the accepted trunk and an unrelated branch retain the
+  same graphite material objects and geometry while traffic changes.
+- Sparse and fine-grained update cadences produce the same scheduled packet
+  identities at a fixed time, and a newly manifested route cannot receive a
+  backdated event from a slot that elapsed while that route was dormant.
+- Static control coverage proves that Packet speed and Packet frequency each
+  occur once and no Start tier control or `informationStartTier` remains.
+
+`npx vite build src/category-tree/tree`
+
+- Production build passed. The existing bundle-size advisory remains.
+
+Browser verification used a clean Vite session and produced no console errors.
+Default (`0.20`), minimum (`0.05`) and maximum (`0.60`) frequency were inspected
+in Silhouette, Canopy and Structure. Successive observations were used to judge
+motion rather than a single frozen frame.
+
+### Browser and visual review
+
+#### Strengths
+
+- At minimum frequency, one narrow terminal-to-root journey is legible and the
+  complete Tree subsequently returns to graphite before the next event.
+- At maximum frequency, several small luminous regions occupy different canopy
+  limbs and move between observations. They do not begin together or produce a
+  whole-crown flash.
+- Separate events naturally meet on shared authored supports and become denser
+  in the trunk. The crown nevertheless remains predominantly graphite, and the
+  high-frequency frame does not become uniform branch illumination.
+- Structure gives the clearest view of multiple branch-to-trunk hand-offs;
+  Canopy confirms spatially distributed origins; Silhouette preserves the
+  monumental dark mass with restrained blue motion inside it.
+- The one-network/one-texture implementation keeps a single core draw object
+  instead of multiplying complete route meshes for every eligible terminal.
+
+#### Defects and limits
+
+- At maximum frequency, overlapping independent wakes can temporarily read as a
+  longer blue spine through the lower trunk. This is a plausible convergence
+  effect and it still clears, but it is close to the useful upper density bound.
+- Very fine terminal generations remain subtle at full-tree scale. Their origin
+  is clearest from Canopy or Structure rather than the default Silhouette view.
+- The accepted `GreaterDepth` method still has its known screen-depth overlap
+  limitation. In particular, the lower-trunk filament remains a camera-facing
+  projection when the Tree is spun; Block 3 deliberately did not investigate or
+  alter that deferred trunk-rendering defect.
+- The traffic atlas visually takes the maximum where packet wakes occupy the
+  same sample. Packet records remain independent, but an exact visual overlap
+  cannot show both identities separately without a later semantic or rendering
+  decision.
+
+### Verdict
+
+**CONTINUE**
+
+Distributed route-local events make the mature Tree read as an active gathering
+hierarchy while retaining graphite darkness, authored terminal-to-root motion,
+and the accepted outer Tree. The frequency range is genuinely inspectable: its
+minimum isolates journeys and returns fully dark, while its maximum establishes
+canopy-wide traffic and trunk convergence without synchronised pulsing.
+
+### One recommended next block
+
+Test one bounded semantic-convergence rule at the existing `meaning` trunk node:
+independent canopy packets should retain identity until they arrive there, then
+produce one explicitly traceable trunk-bound packet carrying their provenance.
+Do not add glyphs, lava, the gravity well, Cosmos integration, new geometry or a
+fix for the known camera-facing trunk projection in that block.

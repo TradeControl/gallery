@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import * as THREE from 'three';
 import {
     createHierarchy,
     representativeHierarchy,
@@ -10,9 +10,9 @@ import { createUnfoldingLayout } from '../../src/category-tree/tree/layout.js';
 import { createGrowthCycle } from '../../src/category-tree/tree/growth-cycle.js';
 import {
     createEngineeredTreeLayer,
-    createInformationCoreGeometry,
     createInformationRoute,
-    selectInformationTerminalForTier
+    createInformationTrafficGeometry,
+    selectInformationTrafficTerminals
 } from '../../src/category-tree/tree/engineered-tree-layer.js';
 
 function createFixture( growthTiers = 3 )
@@ -26,7 +26,7 @@ function createFixture( growthTiers = 3 )
         conduitWeight: 1.34,
         windSweep: 0.48,
         growthTiers,
-        informationStartTier: 1,
+        packetFrequency: 0.2,
         packetSpeed: 1.55
     };
     const positions = createUnfoldingLayout( established, hierarchy, {
@@ -82,37 +82,31 @@ test( 'routed light follows one exact continuous authored route', () => {
     assert.equal( route.totalDistance, lengthSum );
 } );
 
-test( 'start tiers resolve deterministic authored terminal routes', () => {
-    const { form, hierarchy, positions } = createFixture( 8 );
-    const expected = [
-        'process-readiness-state',
-        'people-readiness-state',
-        'earned-value-state',
-        'growth-4-antler-1-arm-1-field-1-state',
-        'growth-5-antler-1-arm-1-field-1-state',
-        'growth-6-antler-1-arm-1-field-1-state',
-        'growth-7-antler-1-arm-1-field-1-state',
-        'growth-8-antler-1-arm-1-field-1-state'
-    ];
-    const routes = expected.map( ( expectedId, index ) => {
-        const tier = index + 1;
-        const terminal = selectInformationTerminalForTier( hierarchy, tier );
-        assert.equal( terminal.id, expectedId );
-        assert.equal( terminal.kind, 'terminal' );
-        assert.equal( terminal.supportTier, true );
-        assert.equal( terminal.growthTier, tier );
-        assert.notEqual( terminal.growthEligible, false );
-        return createInformationRoute( hierarchy, positions, terminal.id, form.asymmetry );
-    } );
+test( 'traffic terminals are deterministic and limited to active authored topology', () => {
+    const { hierarchy } = createFixture( 3 );
+    const first = selectInformationTrafficTerminals( hierarchy );
+    const second = selectInformationTrafficTerminals( hierarchy );
 
-    assert.notEqual( routes[0].totalDistance, routes[1].totalDistance );
-    assert.notEqual( routes[1].totalDistance, routes[2].totalDistance );
-    assert.ok( routes[2].nodeIds.includes( 'crown-trunk-3' ) );
-    assert.ok( routes[2].nodeIds.includes( 'crown-trunk-2' ) );
-    assert.ok( routes[2].nodeIds.includes( 'crown-trunk-1' ) );
+    assert.deepEqual(
+        first.map( ( terminal ) => terminal.id ),
+        second.map( ( terminal ) => terminal.id )
+    );
+    assert.equal( new Set( first.map( ( terminal ) => terminal.id ) ).size, first.length );
+    assert.ok( first.length > 1 );
+    assert.ok( first.every( ( terminal ) =>
+        terminal.kind === 'terminal' && terminal.growthEligible !== false
+    ) );
+    assert.ok( first.some( ( terminal ) => !terminal.latent ) );
+    for ( const tier of [ 1, 2, 3 ] )
+    {
+        assert.ok( first.some( ( terminal ) => terminal.growthTier === tier ) );
+    }
+    assert.ok( first.every( ( terminal ) =>
+        terminal.growthTier === undefined || terminal.growthTier <= 3
+    ) );
 } );
 
-test( 'growth remains active until the selected late-tier terminal is mature', () => {
+test( 'growth remains active until eligible tier-three traffic is mature', () => {
     const { hierarchy } = createFixture();
     const growthCycle = createGrowthCycle( hierarchy, 2 );
     let elapsed = 0;
@@ -135,134 +129,290 @@ test( 'growth remains active until the selected late-tier terminal is mature', (
     assert.ok( growth.progress.get( 'earned-value-state' ) >= 0.999 );
 } );
 
-test( 'one route-local packet advances inward and leaves unrelated graphite untouched', () => {
+test( 'traffic geometry converges shared authored routes without duplicating edges', () => {
     const { form, hierarchy, positions } = createFixture();
-    const layer = createEngineeredTreeLayer( hierarchy, positions, form );
-    const routedMeshes = layer.group.children.filter( ( mesh ) => mesh.userData.informationRoute );
-    const routedTerminal = layer.group.getObjectByName(
-        'process-readiness -> process-readiness-state'
+    const routes = [ 'process-readiness-state', 'people-readiness-state' ].map(
+        ( terminalId ) => createInformationRoute(
+            hierarchy, positions, terminalId, form.asymmetry
+        )
     );
-    const unrelated = layer.group.getObjectByName( 'assembly -> joining' );
-    const trunk = layer.group.getObjectByName( 'monumental trunk' );
-    const core = layer.group.getObjectByName( 'routed information core' );
+    const expectedByChildId = new Map( routes.flatMap( ( route ) =>
+        route.segments.map( ( segment ) => [ segment.childId, segment ] )
+    ) );
+    const sharedChildIds = routes[0].segments
+        .map( ( segment ) => segment.childId )
+        .filter( ( childId ) => routes[1].byChildId.has( childId ) );
 
-    assert.equal( routedMeshes.length, 4 );
-    assert.ok( core );
-    assert.equal( layer.group.children.filter( ( mesh ) =>
-        mesh.userData.informationCore
-    ).length, 1 );
-    assert.ok( routedTerminal.geometry.getAttribute( 'informationDistance' ) );
-    assert.equal( unrelated.geometry.getAttribute( 'informationDistance' ), undefined );
-    assert.equal( routedTerminal.material, unrelated.material );
-    assert.equal( routedTerminal.material.color.getHex(), 0x1b1e1e );
-    assert.equal( routedTerminal.material.alphaHash, false );
-    assert.equal( unrelated.material.alphaHash, false );
-    assert.equal( core.material.depthTest, true );
-    assert.equal( core.material.depthFunc, THREE.GreaterDepth );
-    assert.equal( core.material.depthWrite, false );
-    assert.equal( core.material.blending, THREE.AdditiveBlending );
-    const trunkMask = trunk.geometry.getAttribute( 'informationRoute' );
-    assert.ok( Array.from( trunkMask.array ).some( ( value ) => value === 1 ) );
-    assert.ok( Array.from( trunkMask.array ).some( ( value ) => value === 0 ) );
-    const coreDistances = core.geometry.getAttribute( 'informationDistance' );
-    assert.equal( coreDistances.getX( 0 ), 0 );
-    assert.ok( Math.abs(
-        coreDistances.getX( coreDistances.count - 1 )
-        - core.geometry.userData.informationCore.totalDistance
-    ) < 1e-5 );
-    for ( let index = 1; index < coreDistances.count; index += 1 )
+    assert.ok( sharedChildIds.length > 0 );
+    const geometry = createInformationTrafficGeometry( routes, form.conduitWeight );
+    const metadata = geometry.userData.informationTraffic;
+    const trafficUvs = geometry.getAttribute( 'trafficUv' );
+
+    assert.ok( trafficUvs );
+    assert.equal( trafficUvs.count, geometry.getAttribute( 'position' ).count );
+    assert.deepEqual(
+        metadata.trafficEdges.map( ( edge ) => edge.childId ).sort(),
+        [ ...expectedByChildId.keys() ].sort()
+    );
+    for ( const edge of metadata.trafficEdges )
     {
-        assert.ok( coreDistances.getX( index ) >= coreDistances.getX( index - 1 ) );
+        assert.equal( hierarchy.byId.get( edge.childId ).parentId, edge.parentId );
+        assert.ok( edge.length > 0 );
     }
-    const terminalPosition = positions.get( 'process-readiness-state' );
-    const rootPosition = positions.get( 'planting-root' );
-    assert.ok( core.geometry.userData.informationCore.terminal.distanceTo(
-        new THREE.Vector3( terminalPosition.x, terminalPosition.y, terminalPosition.z )
-    ) < 1e-6 );
-    assert.ok( core.geometry.userData.informationCore.root.distanceTo(
-        new THREE.Vector3( rootPosition.x, rootPosition.y, rootPosition.z )
-    ) < 1e-6 );
-
-    const maximumWeightCore = createInformationCoreGeometry(
-        createInformationRoute(
-            hierarchy, positions, 'process-readiness-state', form.asymmetry
-        ),
-        1.85
-    );
-    assert.ok( maximumWeightCore.userData.informationCore.radius < 0.045 );
-    maximumWeightCore.dispose();
-
-    const mature = new Map( hierarchy.nodes
-        .filter( ( node ) => node.latent && node.growthEligible !== false )
-        .map( ( node ) => [ node.id, 1 ] ) );
-    layer.setGrowthProgress( mature );
-    const protectedPositions = trunk.geometry.getAttribute( 'position' ).array;
-    layer.update( 100, form );
-    const start = { ...layer.group.userData.routedLight };
-    layer.update( 101, form );
-    const later = { ...layer.group.userData.routedLight };
-
-    assert.equal( start.packetCount, 1 );
-    assert.equal( later.packetCount, 1 );
-    assert.equal( start.headDistance, 0 );
-    assert.ok( later.headDistance > start.headDistance );
-    assert.equal( later.terminalId, 'process-readiness-state' );
-    assert.equal( later.startTier, 1 );
-    assert.equal( later.packetSpeed, 1.55 );
-    assert.equal( later.coreMeshCount, 1 );
-    assert.equal( trunk.geometry.getAttribute( 'position' ).array, protectedPositions );
-
-    layer.update( 102, { ...form, packetSpeed: 0.5 } );
-    assert.equal( layer.group.userData.routedLight.headDistance, 0 );
-    layer.update( 103, { ...form, packetSpeed: 0.5 } );
-    assert.ok( Math.abs( layer.group.userData.routedLight.headDistance - 0.5 ) < 1e-9 );
-
-    const travelDuration = ( later.totalDistance + 2.2 ) / 0.5;
-    layer.update( 102 + travelDuration + 0.2, { ...form, packetSpeed: 0.5 } );
-    assert.equal( layer.group.userData.routedLight.packetCount, 0 );
-    assert.equal( layer.group.userData.routedLight.headDistance, -100 );
-    assert.equal( core.material.uniforms.informationHead.value, -100 );
+    geometry.dispose();
 } );
 
-test( 'changing start tier retains mature growth and leaves the outer Tree unchanged', () => {
-    const { form, hierarchy, positions } = createFixture( 3 );
+test( 'only manifested terminals emit from deterministic distributed phases', () => {
+    const { form, hierarchy, positions } = createFixture();
+    const firstLayer = createEngineeredTreeLayer( hierarchy, positions, form );
+    firstLayer.update( 0, form );
+    firstLayer.update( 10, form );
+    const growing = firstLayer.group.userData.routedLight;
+
+    assert.ok( growing.manifestedEmitterCount > 0 );
+    assert.ok( growing.manifestedEmitterCount < growing.eligibleEmitterCount );
+    assert.equal( growing.eligibleTerminalIds.length, growing.eligibleEmitterCount );
+    assert.equal( growing.emissionSchedule.length, growing.eligibleEmitterCount );
+    assert.equal(
+        new Set( growing.emissionSchedule.map( ( emitter ) => emitter.phase ) ).size,
+        growing.emissionSchedule.length
+    );
+    for ( const packet of growing.activePackets )
+    {
+        assert.ok( packet.routeNodeIds.every( ( id ) => !hierarchy.byId.get( id ).latent ) );
+    }
+
+    const { form: repeatedForm, hierarchy: repeatedHierarchy, positions: repeatedPositions }
+        = createFixture();
+    const repeatedLayer = createEngineeredTreeLayer(
+        repeatedHierarchy,
+        repeatedPositions,
+        repeatedForm
+    );
+    repeatedLayer.update( 0, repeatedForm );
+    repeatedLayer.update( 10, repeatedForm );
+    const repeated = repeatedLayer.group.userData.routedLight;
+    assert.deepEqual( repeated.emissionSchedule, growing.emissionSchedule );
+    assert.deepEqual( repeated.activePackets, growing.activePackets );
+} );
+
+test( 'distributed packets are deterministic, authored, and frequency controlled', () => {
+    function sampleTraffic( packetFrequency )
+    {
+        const { form, hierarchy, positions } = createFixture();
+        const layer = createEngineeredTreeLayer( hierarchy, positions, {
+            ...form,
+            packetFrequency
+        } );
+        const mature = new Map( hierarchy.nodes
+            .filter( ( node ) => node.latent && node.growthEligible !== false )
+            .map( ( node ) => [ node.id, 1 ] ) );
+        layer.setGrowthProgress( mature );
+
+        const samples = [];
+        for ( let elapsed = 0; elapsed <= 60; elapsed += 0.5 )
+        {
+            layer.update( elapsed, { ...form, packetFrequency } );
+            const diagnostics = layer.group.userData.routedLight;
+            samples.push( {
+                packetCount: diagnostics.packetCount,
+                emittedPacketCount: diagnostics.emittedPacketCount,
+                activePackets: diagnostics.activePackets.map( ( packet ) => ( {
+                    id: packet.id,
+                    terminalId: packet.terminalId,
+                    emittedAt: packet.emittedAt,
+                    headDistance: packet.headDistance,
+                    totalDistance: packet.totalDistance,
+                    routeNodeIds: packet.routeNodeIds,
+                    activeSegment: packet.activeSegment
+                } ) )
+            } );
+        }
+        return { hierarchy, samples };
+    }
+
+    const low = sampleTraffic( 0.05 );
+    const repeatedLow = sampleTraffic( 0.05 );
+    const high = sampleTraffic( 0.6 );
+    assert.deepEqual( low.samples, repeatedLow.samples );
+    assert.ok( low.samples.some( ( sample ) => sample.packetCount === 0 ) );
+    assert.ok(
+        high.samples.at( -1 ).emittedPacketCount
+        > low.samples.at( -1 ).emittedPacketCount
+    );
+    assert.ok( high.samples.some( ( sample ) => sample.packetCount > 1 ) );
+    const converged = high.samples.find( ( sample ) =>
+        sample.activePackets.some( ( packet, index ) =>
+            sample.activePackets.slice( index + 1 ).some( ( other ) =>
+                packet.id !== other.id
+                && packet.activeSegment !== null
+                && packet.activeSegment === other.activeSegment
+            )
+        )
+    );
+    assert.ok( converged, 'independent packets should simultaneously occupy one shared edge' );
+    assert.equal(
+        new Set( converged.activePackets.map( ( packet ) => packet.id ) ).size,
+        converged.activePackets.length
+    );
+
+    for ( const sample of high.samples )
+    {
+        for ( const packet of sample.activePackets )
+        {
+            assert.equal( packet.routeNodeIds[0], packet.terminalId );
+            assert.equal( packet.routeNodeIds.at( -1 ), high.hierarchy.root.id );
+            for ( let index = 0; index < packet.routeNodeIds.length - 1; index += 1 )
+            {
+                const child = high.hierarchy.byId.get( packet.routeNodeIds[index] );
+                assert.equal( child.parentId, packet.routeNodeIds[index + 1] );
+            }
+        }
+    }
+} );
+
+test( 'traffic at a fixed time is independent of update cadence', () => {
+    function sampleAtSixty( step )
+    {
+        const { form, hierarchy, positions } = createFixture();
+        const parameters = { ...form, packetFrequency: 0.6 };
+        const layer = createEngineeredTreeLayer( hierarchy, positions, parameters );
+        const mature = new Map( hierarchy.nodes
+            .filter( ( node ) => node.latent && node.growthEligible !== false )
+            .map( ( node ) => [ node.id, 1 ] ) );
+        layer.setGrowthProgress( mature );
+        layer.update( 0, parameters );
+        for ( let elapsed = step; elapsed < 60; elapsed += step )
+        {
+            layer.update( elapsed, parameters );
+        }
+        layer.update( 60, parameters );
+        return layer.group.userData.routedLight.activePackets
+            .map( ( packet ) => ( {
+                id: packet.id,
+                emittedAt: packet.emittedAt,
+                headDistance: packet.headDistance
+            } ) )
+            .sort( ( left, right ) => left.id.localeCompare( right.id ) );
+    }
+
+    const fine = sampleAtSixty( 0.25 );
+    const coarse = sampleAtSixty( 60 );
+    assert.ok( fine.length > 1 );
+    assert.deepEqual(
+        fine.map( ( packet ) => [ packet.id, packet.emittedAt ] ),
+        coarse.map( ( packet ) => [ packet.id, packet.emittedAt ] )
+    );
+    for ( let index = 0; index < fine.length; index += 1 )
+    {
+        assert.ok(
+            Math.abs( fine[index].headDistance - coarse[index].headDistance ) < 1e-9
+        );
+    }
+} );
+
+test( 'newly manifested routes never receive backdated packets', () => {
+    const { form, hierarchy, positions } = createFixture();
+    const parameters = {
+        ...form,
+        packetFrequency: 0.6,
+        packetSpeed: 0.5
+    };
+    const layer = createEngineeredTreeLayer( hierarchy, positions, parameters );
+    layer.update( 0, parameters );
+    const initial = layer.group.userData.routedLight;
+    const manifestedAtZero = new Set( initial.eligibleTerminalIds.filter( ( terminalId ) =>
+        createInformationRoute( hierarchy, positions, terminalId, form.asymmetry )
+            .nodes.every( ( node ) => !node.latent )
+    ) );
+    assert.ok( manifestedAtZero.size < initial.eligibleEmitterCount );
+
+    const mature = new Map( hierarchy.nodes
+        .filter( ( node ) => node.latent && node.growthEligible !== false )
+        .map( ( node ) => [ node.id, 1 ] ) );
+    layer.setGrowthProgress( mature );
+    layer.update( 10, parameters );
+    const matureTraffic = layer.group.userData.routedLight;
+    const packetsFromNewRoutes = matureTraffic.activePackets.filter(
+        ( packet ) => !manifestedAtZero.has( packet.terminalId )
+    );
+
+    assert.equal(
+        matureTraffic.manifestedEmitterCount,
+        matureTraffic.eligibleEmitterCount
+    );
+    assert.ok( packetsFromNewRoutes.length > 0 );
+    assert.ok( packetsFromNewRoutes.every( ( packet ) => packet.emittedAt >= 10 ) );
+} );
+
+test( 'speed changes advance existing packets and frequency changes preserve them', () => {
+    const { form, hierarchy, positions } = createFixture();
     const layer = createEngineeredTreeLayer( hierarchy, positions, form );
     const mature = new Map( hierarchy.nodes
         .filter( ( node ) => node.latent && node.growthEligible !== false )
         .map( ( node ) => [ node.id, 1 ] ) );
     layer.setGrowthProgress( mature );
-    layer.update( 20, form );
-    const tierOne = { ...layer.group.userData.routedLight };
-    const tierOneTrunk = layer.group.getObjectByName( 'monumental trunk' );
-    const tierOneUnrelated = layer.group.getObjectByName( 'assembly -> joining' );
-    const trunkPositions = Array.from(
-        tierOneTrunk.geometry.getAttribute( 'position' ).array
+
+    layer.update( 0, { ...form, packetSpeed: 0.5, packetFrequency: 0.6 } );
+    const initial = layer.group.userData.routedLight.activePackets[0];
+    assert.ok( initial );
+    layer.update( 1, { ...form, packetSpeed: 0.5, packetFrequency: 0.6 } );
+    const slow = layer.group.userData.routedLight.activePackets.find(
+        ( packet ) => packet.id === initial.id
     );
-    const unrelatedPositions = Array.from(
-        tierOneUnrelated.geometry.getAttribute( 'position' ).array
+    assert.ok( Math.abs( slow.headDistance - initial.headDistance - 0.5 ) < 1e-9 );
+
+    layer.update( 2, { ...form, packetSpeed: 3, packetFrequency: 0.05 } );
+    const accelerated = layer.group.userData.routedLight.activePackets.find(
+        ( packet ) => packet.id === initial.id
+    );
+    assert.ok( accelerated );
+    assert.ok( Math.abs( accelerated.headDistance - slow.headDistance - 3 ) < 1e-9 );
+    assert.equal( layer.group.userData.routedLight.packetSpeed, 3 );
+    assert.equal( layer.group.userData.routedLight.packetFrequency, 0.05 );
+} );
+
+test( 'traffic updates preserve the accepted graphite Tree geometry', () => {
+    const { form, hierarchy, positions } = createFixture();
+    const layer = createEngineeredTreeLayer( hierarchy, positions, form );
+    const mature = new Map( hierarchy.nodes
+        .filter( ( node ) => node.latent && node.growthEligible !== false )
+        .map( ( node ) => [ node.id, 1 ] ) );
+    layer.setGrowthProgress( mature );
+    const protectedMeshes = [
+        layer.group.getObjectByName( 'monumental trunk' ),
+        layer.group.getObjectByName( 'assembly -> joining' )
+    ];
+    const snapshots = protectedMeshes.map( ( mesh ) => ( {
+        material: mesh.material,
+        positions: Array.from( mesh.geometry.getAttribute( 'position' ).array ),
+        indices: Array.from( mesh.geometry.index.array )
+    } ) );
+
+    layer.update( 0, { ...form, packetFrequency: 0.05 } );
+    layer.update( 20, { ...form, packetFrequency: 0.6 } );
+    protectedMeshes.forEach( ( mesh, index ) => {
+        assert.equal( mesh.material, snapshots[index].material );
+        assert.deepEqual(
+            Array.from( mesh.geometry.getAttribute( 'position' ).array ),
+            snapshots[index].positions
+        );
+        assert.deepEqual( Array.from( mesh.geometry.index.array ), snapshots[index].indices );
+    } );
+} );
+
+test( 'packet frequency replaces the former Start tier control', () => {
+    const markup = readFileSync(
+        new URL( '../../src/category-tree/tree/index.html', import.meta.url ),
+        'utf8'
+    );
+    const mainSource = readFileSync(
+        new URL( '../../src/category-tree/tree/main.js', import.meta.url ),
+        'utf8'
     );
 
-    layer.rebuild( positions, { ...form, informationStartTier: 3 } );
-    layer.update( 30, { ...form, informationStartTier: 3 } );
-    const tierThree = { ...layer.group.userData.routedLight };
-    const tierThreeTrunk = layer.group.getObjectByName( 'monumental trunk' );
-    const tierThreeUnrelated = layer.group.getObjectByName( 'assembly -> joining' );
-
-    assert.equal( tierOne.terminalId, 'process-readiness-state' );
-    assert.equal( tierThree.terminalId, 'earned-value-state' );
-    assert.equal( tierThree.startTier, 3 );
-    assert.ok( tierThree.routeNodeIds.includes( 'crown-trunk-3' ) );
-    assert.notEqual( tierThree.totalDistance, tierOne.totalDistance );
-    assert.equal( tierThree.packetCount, 1 );
-    assert.equal( tierThree.coreMeshCount, 1 );
-    assert.equal( tierThreeTrunk.material, tierOneTrunk.material );
-    assert.equal( tierThreeUnrelated.material, tierOneUnrelated.material );
-    assert.deepEqual(
-        Array.from( tierThreeTrunk.geometry.getAttribute( 'position' ).array ),
-        trunkPositions
-    );
-    assert.deepEqual(
-        Array.from( tierThreeUnrelated.geometry.getAttribute( 'position' ).array ),
-        unrelatedPositions
-    );
+    assert.equal( [ ...markup.matchAll( /id="packet-speed"/g ) ].length, 1 );
+    assert.equal( [ ...markup.matchAll( /id="packet-frequency"/g ) ].length, 1 );
+    assert.doesNotMatch( markup, /start-tier|Start tier/ );
+    assert.doesNotMatch( mainSource, /informationStartTier|start-tier/ );
 } );

@@ -1,11 +1,13 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createBranchCurve, createTaperedTubeGeometry, getConduitRadii } from './tree-layer.js';
 
 const routedTerminalId = 'process-readiness-state';
 const defaultInformationSpeed = 1.55;
+const defaultInformationFrequency = 0.2;
 const informationTrailLength = 2.2;
-const informationPause = 2.6;
 const informationCoreRadius = 0.032;
+const informationTrafficSamples = 64;
 
 function createMaterial( colour, roughness, metalness )
 {
@@ -57,25 +59,23 @@ function createInformationCoreMaterial()
     const uniforms = {
         time: { value: 0 },
         response: { value: 0.22 },
-        informationHead: { value: -100 },
-        informationTrail: { value: informationTrailLength }
+        trafficTexture: { value: null }
     };
     const material = new THREE.ShaderMaterial( {
         uniforms: {
             treeTime: uniforms.time,
             treeResponse: uniforms.response,
-            informationHead: uniforms.informationHead,
-            informationTrail: uniforms.informationTrail
+            trafficTexture: uniforms.trafficTexture
         },
         vertexShader: `
             uniform float treeTime;
             uniform float treeResponse;
-            attribute float informationDistance;
-            varying float routedInformationDistance;
+            attribute vec2 trafficUv;
+            varying vec2 routedTrafficUv;
 
             void main()
             {
-                routedInformationDistance = informationDistance;
+                routedTrafficUv = trafficUv;
                 vec3 transformed = position;
                 float motionReach = smoothstep( 0.25, 5.6, max( position.y, 0.0 ) );
                 float swayX = sin( treeTime * 0.72 + position.y * 0.38 + position.z * 0.12 );
@@ -89,19 +89,12 @@ function createInformationCoreMaterial()
             }
         `,
         fragmentShader: `
-            uniform float informationHead;
-            uniform float informationTrail;
-            varying float routedInformationDistance;
+            uniform sampler2D trafficTexture;
+            varying vec2 routedTrafficUv;
 
             void main()
             {
-                float routedDelta = informationHead - routedInformationDistance;
-                float routedHead = exp( -pow(
-                    ( routedInformationDistance - informationHead ) / 0.46, 2.0 ) );
-                float routedWake = step( 0.0, routedDelta )
-                    * ( 1.0 - smoothstep( 0.0, informationTrail, routedDelta ) )
-                    * exp( -routedDelta * 0.42 );
-                float routedSignal = clamp( routedHead + routedWake * 0.42, 0.0, 1.0 );
+                float routedSignal = texture2D( trafficTexture, routedTrafficUv ).r;
                 if ( routedSignal < 0.004 ) discard;
                 gl_FragColor = vec4( 0.02, 0.48, 1.45, routedSignal * 0.95 );
             }
@@ -207,6 +200,29 @@ export function selectInformationTerminalForTier( hierarchy, requestedTier = 1 )
         : authoredCandidates );
 }
 
+function stableInformationHash( value )
+{
+    let hash = 2166136261;
+    for ( let index = 0; index < value.length; index += 1 )
+    {
+        hash ^= value.charCodeAt( index );
+        hash = Math.imul( hash, 16777619 );
+    }
+    return hash >>> 0;
+}
+
+export function selectInformationTrafficTerminals( hierarchy )
+{
+    return hierarchy.terminals
+        .filter( ( node ) => node.growthEligible !== false )
+        .slice()
+        .sort( ( left, right ) => {
+            const hashDifference = stableInformationHash( left.id )
+                - stableInformationHash( right.id );
+            return hashDifference || left.id.localeCompare( right.id );
+        } );
+}
+
 export function createInformationCoreGeometry(
     informationRoute,
     conduitWeight = 1.34
@@ -261,6 +277,116 @@ export function createInformationCoreGeometry(
         totalDistance: informationRoute.totalDistance
     };
     return geometry;
+}
+
+export function createInformationTrafficGeometry(
+    informationRoutes,
+    conduitWeight = 1.34,
+    samplesPerEdge = 64
+)
+{
+    const segmentsByChildId = new Map();
+    for ( const route of informationRoutes )
+    {
+        for ( const segment of route.segments )
+        {
+            if ( !segmentsByChildId.has( segment.childId ) )
+            {
+                segmentsByChildId.set( segment.childId, segment );
+            }
+        }
+    }
+    const trafficEdges = Array.from( segmentsByChildId.values() )
+        .sort( ( left, right ) => left.childId.localeCompare( right.childId ) );
+    const radialSegments = 8;
+    const radius = THREE.MathUtils.clamp(
+        informationCoreRadius * conduitWeight / 1.34,
+        0.014,
+        0.04
+    );
+    const geometries = trafficEdges.map( ( segment, row ) => {
+        const curve = segment.curve;
+        const path = new THREE.CubicBezierCurve3(
+            curve.v3.clone(),
+            curve.v2.clone(),
+            curve.v1.clone(),
+            curve.v0.clone()
+        );
+        const tubularSegments = Math.max( 12, Math.ceil( segment.length * 20 ) );
+        const geometry = new THREE.TubeGeometry(
+            path,
+            tubularSegments,
+            radius,
+            radialSegments,
+            false
+        );
+        const ringSize = radialSegments + 1;
+        const trafficUvs = new Float32Array(
+            geometry.getAttribute( 'position' ).count * 2
+        );
+        for ( let index = 0; index < trafficUvs.length / 2; index += 1 )
+        {
+            const ring = Math.floor( index / ringSize );
+            trafficUvs[index * 2] = ring / tubularSegments;
+            trafficUvs[index * 2 + 1] = ( row + 0.5 ) / trafficEdges.length;
+        }
+        geometry.setAttribute(
+            'trafficUv',
+            new THREE.Float32BufferAttribute( trafficUvs, 2 )
+        );
+        return geometry;
+    } );
+    const geometry = mergeGeometries( geometries, false );
+    geometries.forEach( ( source ) => source.dispose() );
+    if ( !geometry )
+    {
+        throw new Error( 'Information traffic core requires at least one routed edge.' );
+    }
+    geometry.computeBoundingSphere();
+    geometry.userData.informationTraffic = {
+        radius,
+        radialSegments,
+        samplesPerEdge,
+        trafficEdges: trafficEdges.map( ( segment, row ) => ( {
+            childId: segment.childId,
+            parentId: segment.parentId,
+            length: segment.length,
+            row,
+            segment
+        } ) )
+    };
+    return geometry;
+}
+
+function createInformationTrafficTexture( width, height )
+{
+    const data = new Uint8Array( width * height * 4 );
+    const texture = new THREE.DataTexture(
+        data,
+        width,
+        height,
+        THREE.RGBAFormat,
+        THREE.UnsignedByteType
+    );
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
+    return { data, texture, width, height };
+}
+
+function getInformationSignal( routeDistance, headDistance )
+{
+    const delta = headDistance - routeDistance;
+    const head = Math.exp( -Math.pow(
+        ( routeDistance - headDistance ) / 0.46,
+        2
+    ) );
+    const wake = delta >= 0
+        ? ( 1 - THREE.MathUtils.smoothstep( delta, 0, informationTrailLength ) )
+            * Math.exp( -delta * 0.42 )
+        : 0;
+    return THREE.MathUtils.clamp( head + wake * 0.42, 0, 1 );
 }
 
 function applyInformationRouteAttributes( geometry, segment )
@@ -549,12 +675,163 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     const materialEntries = [ trunk, limb, terminal ];
     let growthProgress = new Map();
     let informationRoute = null;
-    let informationReady = false;
-    let informationStartElapsed = null;
-    let informationLastSpeed = null;
+    let informationRoutes = [];
+    let informationTraffic = null;
+    let trafficEdges = [];
+    let trafficEdgeByChildId = new Map();
+    let emitters = [];
+    let activePackets = [];
+    let routeManifestedAt = new Map();
+    let informationLastElapsed = null;
+    let informationLastFrequency = null;
+    let emittedPacketCount = 0;
+
+    function routeIsManifested( route )
+    {
+        return route.nodes.every( ( node ) =>
+            node.growthEligible !== false
+            && ( !node.latent || ( growthProgress.get( node.id ) ?? 0 ) >= 0.999 )
+        );
+    }
+
+    function refreshRouteManifestationTimes( elapsed )
+    {
+        for ( const route of informationRoutes )
+        {
+            if ( routeIsManifested( route ) )
+            {
+                if ( !routeManifestedAt.has( route.terminalId ) )
+                {
+                    routeManifestedAt.set( route.terminalId, elapsed );
+                }
+            }
+            else
+            {
+                routeManifestedAt.delete( route.terminalId );
+            }
+        }
+    }
+
+    function initialiseEmitters( elapsed, packetFrequency )
+    {
+        const period = informationRoutes.length / packetFrequency;
+        emitters = informationRoutes.map( ( route, rank ) => ( {
+            route,
+            rank,
+            phase: rank / informationRoutes.length,
+            period,
+            nextEmissionAt: elapsed + rank / packetFrequency
+        } ) );
+        informationLastFrequency = packetFrequency;
+    }
+
+    function rephaseEmitters( elapsed, packetFrequency )
+    {
+        if ( informationLastFrequency === null || emitters.length === 0 )
+        {
+            initialiseEmitters( elapsed, packetFrequency );
+            return;
+        }
+
+        const period = informationRoutes.length / packetFrequency;
+        const waitScale = informationLastFrequency / packetFrequency;
+        for ( const emitter of emitters )
+        {
+            const remaining = Math.max( 0, emitter.nextEmissionAt - elapsed );
+            emitter.nextEmissionAt = elapsed + remaining * waitScale;
+            emitter.period = period;
+        }
+        informationLastFrequency = packetFrequency;
+    }
+
+    function emitDuePackets( elapsed, packetSpeed )
+    {
+        for ( const emitter of emitters )
+        {
+            let safety = 0;
+            while ( emitter.nextEmissionAt <= elapsed + 1e-9 && safety < 2048 )
+            {
+                const emittedAt = emitter.nextEmissionAt;
+                emitter.nextEmissionAt += emitter.period;
+                safety += 1;
+                const manifestedAt = routeManifestedAt.get( emitter.route.terminalId );
+                if ( manifestedAt === undefined || emittedAt + 1e-9 < manifestedAt )
+                {
+                    continue;
+                }
+                const headDistance = Math.max( 0, elapsed - emittedAt ) * packetSpeed;
+                emittedPacketCount += 1;
+                if ( headDistance > emitter.route.totalDistance + informationTrailLength )
+                {
+                    continue;
+                }
+                activePackets.push( {
+                    id: `${emitter.route.terminalId}@${emittedAt.toFixed( 6 )}`,
+                    route: emitter.route,
+                    terminalId: emitter.route.terminalId,
+                    emittedAt,
+                    headDistance
+                } );
+            }
+        }
+    }
+
+    function stampInformationTraffic()
+    {
+        if ( !informationTraffic ) return { occupiedEdgeCount: 0, illuminatedSampleRatio: 0 };
+        const { data, width, height, texture } = informationTraffic;
+        data.fill( 0 );
+        const occupiedRows = new Set();
+
+        for ( const packet of activePackets )
+        {
+            for ( const segment of packet.route.segments )
+            {
+                const edge = trafficEdgeByChildId.get( segment.childId );
+                if ( !edge ) continue;
+                let segmentOccupied = false;
+                for ( let sample = 0; sample < width; sample += 1 )
+                {
+                    const edgeProgress = sample / ( width - 1 );
+                    const routeDistance = segment.childDistance
+                        + edgeProgress * segment.length;
+                    const signal = getInformationSignal(
+                        routeDistance,
+                        packet.headDistance
+                    );
+                    const byte = Math.round( signal * 255 );
+                    if ( byte < 2 ) continue;
+                    const index = ( edge.row * width + sample ) * 4;
+                    if ( byte > data[index] )
+                    {
+                        data[index] = byte;
+                        data[index + 1] = byte;
+                        data[index + 2] = byte;
+                        data[index + 3] = 255;
+                    }
+                    segmentOccupied = true;
+                }
+                if ( segmentOccupied ) occupiedRows.add( edge.row );
+            }
+        }
+
+        let illuminatedSamples = 0;
+        for ( let index = 0; index < data.length; index += 4 )
+        {
+            if ( data[index] >= 2 ) illuminatedSamples += 1;
+        }
+        texture.needsUpdate = true;
+        return {
+            occupiedEdgeCount: occupiedRows.size,
+            illuminatedSampleRatio: illuminatedSamples / ( width * height )
+        };
+    }
 
     function rebuild( positions, parameters = {} )
     {
+        if ( informationTraffic ) informationTraffic.texture.dispose();
+        informationTraffic = null;
+        informationCore.uniforms.trafficTexture.value = null;
         while ( group.children.length > 0 )
         {
             const child = group.children.at( -1 );
@@ -564,19 +841,36 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
 
         const asymmetry = parameters.asymmetry ?? 0.55;
         const selectedTerminalId = parameters.informationTerminalId
-            ?? selectInformationTerminalForTier(
-                hierarchy,
-                parameters.informationStartTier ?? 1
-            ).id;
+            ?? routedTerminalId;
         informationRoute = createInformationRoute(
             hierarchy,
             positions,
             selectedTerminalId,
             asymmetry
         );
-        informationReady = false;
-        informationStartElapsed = null;
-        informationLastSpeed = null;
+        const trafficTerminals = selectInformationTrafficTerminals( hierarchy );
+        informationRoutes = trafficTerminals.map( ( node ) => createInformationRoute(
+            hierarchy,
+            positions,
+            node.id,
+            asymmetry
+        ) );
+        const establishedIndex = informationRoutes.findIndex( ( route ) =>
+            route.nodes.every( ( node ) => !node.latent )
+        );
+        if ( establishedIndex > 0 )
+        {
+            informationRoutes = [
+                ...informationRoutes.slice( establishedIndex ),
+                ...informationRoutes.slice( 0, establishedIndex )
+            ];
+        }
+        emitters = [];
+        activePackets = [];
+        routeManifestedAt = new Map();
+        informationLastElapsed = null;
+        informationLastFrequency = null;
+        emittedPacketCount = 0;
         const trunkNodes = getActiveTrunkNodes( hierarchy );
         const loadDirection = getCrownLoadDirection( hierarchy, positions );
         const trunkGeometry = createMonumentalTrunkGeometry( trunkNodes, positions, {
@@ -624,14 +918,29 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             group.add( mesh );
         }
 
-        const coreGeometry = createInformationCoreGeometry(
-            informationRoute,
-            parameters.conduitWeight ?? 1.34
+        const coreGeometry = createInformationTrafficGeometry(
+            informationRoutes,
+            parameters.conduitWeight ?? 1.34,
+            informationTrafficSamples
         );
+        trafficEdges = coreGeometry.userData.informationTraffic.trafficEdges;
+        trafficEdgeByChildId = new Map( trafficEdges.map( ( edge ) => [
+            edge.childId,
+            edge
+        ] ) );
+        informationTraffic = createInformationTrafficTexture(
+            informationTrafficSamples,
+            trafficEdges.length
+        );
+        informationCore.uniforms.trafficTexture.value = informationTraffic.texture;
         const coreMesh = new THREE.Mesh( coreGeometry, informationCore.material );
         coreMesh.name = 'routed information core';
         coreMesh.renderOrder = 3;
-        coreMesh.userData.informationCore = informationRoute;
+        coreMesh.userData.informationCore = {
+            routeCount: informationRoutes.length,
+            uniqueEdgeCount: trafficEdges.length
+        };
+        coreMesh.userData.informationTraffic = coreGeometry.userData.informationTraffic;
         group.add( coreMesh );
         applyGrowthProgress();
     }
@@ -717,15 +1026,6 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             mesh.visible = progress > 0;
         }
 
-        informationReady = informationRoute.nodes.every( ( node ) =>
-            node.growthEligible !== false
-            && ( !node.latent || ( growthProgress.get( node.id ) ?? 0 ) >= 0.999 )
-        );
-        if ( !informationReady )
-        {
-            informationStartElapsed = null;
-            informationLastSpeed = null;
-        }
     }
 
     rebuild( initialPositions, initialParameters );
@@ -733,29 +1033,40 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         group,
         rebuild,
         update( elapsed, parameters = {} ) {
-            let informationHead = -100;
-            let packetCount = 0;
             const packetSpeed = Math.max(
                 0.05,
                 parameters.packetSpeed ?? defaultInformationSpeed
             );
-            if ( informationReady )
+            const packetFrequency = Math.max(
+                0.01,
+                parameters.packetFrequency ?? defaultInformationFrequency
+            );
+            const delta = informationLastElapsed === null
+                ? 0
+                : Math.max( 0, elapsed - informationLastElapsed );
+            informationLastElapsed = elapsed;
+
+            for ( const packet of activePackets )
             {
-                if ( informationStartElapsed === null || informationLastSpeed !== packetSpeed )
-                {
-                    informationStartElapsed = elapsed;
-                    informationLastSpeed = packetSpeed;
-                }
-                const travelDuration = ( informationRoute.totalDistance
-                    + informationTrailLength ) / packetSpeed;
-                const cycleDuration = travelDuration + informationPause;
-                const phase = ( elapsed - informationStartElapsed ) % cycleDuration;
-                if ( phase <= travelDuration )
-                {
-                    informationHead = phase * packetSpeed;
-                    packetCount = 1;
-                }
+                packet.headDistance += delta * packetSpeed;
             }
+            activePackets = activePackets.filter( ( packet ) =>
+                routeIsManifested( packet.route )
+                && packet.headDistance <= packet.route.totalDistance + informationTrailLength
+            );
+            refreshRouteManifestationTimes( elapsed );
+
+            if ( emitters.length === 0 ) initialiseEmitters( elapsed, packetFrequency );
+            else if ( informationLastFrequency !== packetFrequency )
+            {
+                // Settle the old distributed schedule before compressing or
+                // expanding its remaining waits. This avoids collapsing any
+                // overdue emitters into one slider-change flash.
+                emitDuePackets( elapsed, packetSpeed );
+                rephaseEmitters( elapsed, packetFrequency );
+            }
+            emitDuePackets( elapsed, packetSpeed );
+
             for ( const entry of materialEntries )
             {
                 entry.uniforms.time.value = elapsed;
@@ -766,27 +1077,45 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             informationCore.uniforms.response.value = parameters.motionFrozen
                 ? 0
                 : ( parameters.structuralResponse ?? 0.22 );
-            informationCore.uniforms.informationHead.value = informationHead;
-            const activeSegment = informationHead >= 0
-                ? informationRoute.segments.find( ( segment ) =>
-                    informationHead >= segment.childDistance
-                    && informationHead <= segment.parentDistance
-                )
-                : null;
+            const trafficState = stampInformationTraffic();
+            const manifestedRoutes = informationRoutes.filter( routeIsManifested );
+            const packetDiagnostics = activePackets.map( ( packet ) => {
+                const activeSegment = packet.route.segments.find( ( segment ) =>
+                    packet.headDistance >= segment.childDistance
+                    && packet.headDistance <= segment.parentDistance
+                );
+                return {
+                    id: packet.id,
+                    terminalId: packet.terminalId,
+                    emittedAt: packet.emittedAt,
+                    headDistance: packet.headDistance,
+                    totalDistance: packet.route.totalDistance,
+                    routeNodeIds: packet.route.nodeIds,
+                    activeSegment: activeSegment
+                        ? `${activeSegment.childId} -> ${activeSegment.parentId}`
+                        : packet.headDistance > packet.route.totalDistance ? 'root fade' : null
+                };
+            } );
             group.userData.routedLight = {
-                terminalId: informationRoute.terminalId,
-                startTier: informationRoute.terminal.growthTier ?? null,
-                routeNodeIds: informationRoute.nodeIds,
-                packetCount,
-                headDistance: informationHead,
-                totalDistance: informationRoute.totalDistance,
+                eligibleTerminalIds: informationRoutes.map( ( route ) => route.terminalId ),
+                eligibleEmitterCount: informationRoutes.length,
+                manifestedEmitterCount: manifestedRoutes.length,
+                packetCount: activePackets.length,
+                emittedPacketCount,
+                activePackets: packetDiagnostics,
                 packetSpeed,
+                packetFrequency,
                 coreMeshCount: group.children.filter( ( mesh ) =>
                     mesh.userData.informationCore
                 ).length,
-                activeSegment: activeSegment
-                    ? `${activeSegment.childId} -> ${activeSegment.parentId}`
-                    : informationHead > informationRoute.totalDistance ? 'root fade' : null
+                uniqueEdgeCount: trafficEdges.length,
+                occupiedEdgeCount: trafficState.occupiedEdgeCount,
+                illuminatedSampleRatio: trafficState.illuminatedSampleRatio,
+                emissionSchedule: emitters.map( ( emitter ) => ( {
+                    terminalId: emitter.route.terminalId,
+                    phase: emitter.phase,
+                    nextEmissionAt: emitter.nextEmissionAt
+                } ) )
             };
         },
         setVisible( visible ) {
