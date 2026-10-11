@@ -233,7 +233,7 @@ test( 'distributed packets are deterministic, authored, and frequency controlled
 
     const low = sampleTraffic( 0.05 );
     const repeatedLow = sampleTraffic( 0.05 );
-    const high = sampleTraffic( 0.6 );
+    const high = sampleTraffic( 11 );
     assert.deepEqual( low.samples, repeatedLow.samples );
     assert.ok( low.samples.some( ( sample ) => sample.packetCount === 0 ) );
     assert.ok(
@@ -271,11 +271,11 @@ test( 'distributed packets are deterministic, authored, and frequency controlled
     }
 } );
 
-test( 'traffic at a fixed time is independent of update cadence', () => {
+test( 'maximum-frequency traffic at a fixed time is independent of update cadence', () => {
     function sampleAtSixty( step )
     {
         const { form, hierarchy, positions } = createFixture();
-        const parameters = { ...form, packetFrequency: 0.6 };
+        const parameters = { ...form, packetFrequency: 11 };
         const layer = createEngineeredTreeLayer( hierarchy, positions, parameters );
         const mature = new Map( hierarchy.nodes
             .filter( ( node ) => node.latent && node.growthEligible !== false )
@@ -311,11 +311,97 @@ test( 'traffic at a fixed time is independent of update cadence', () => {
     }
 } );
 
+test( 'the full frequency range keeps maximum-rate packets independent and staggered', () => {
+    function createMatureTraffic( packetFrequency )
+    {
+        const { form, hierarchy, positions } = createFixture();
+        const parameters = { ...form, packetFrequency };
+        const layer = createEngineeredTreeLayer( hierarchy, positions, parameters );
+        const mature = new Map( hierarchy.nodes
+            .filter( ( node ) => node.latent && node.growthEligible !== false )
+            .map( ( node ) => [ node.id, 1 ] ) );
+        layer.setGrowthProgress( mature );
+        layer.update( 0, parameters );
+        return { hierarchy, layer, parameters };
+    }
+
+    const expectedAtTwenty = new Map( [
+        [ 0.05, 2 ],
+        [ 0.2, 5 ],
+        [ 11, 221 ]
+    ] );
+    for ( const [ packetFrequency, expectedCount ] of expectedAtTwenty )
+    {
+        const { layer, parameters } = createMatureTraffic( packetFrequency );
+        layer.update( 20, parameters );
+        assert.equal(
+            layer.group.userData.routedLight.emittedPacketCount,
+            expectedCount,
+            `${packetFrequency}/s should neither drop nor invent due emissions`
+        );
+    }
+
+    const first = createMatureTraffic( 11 );
+    first.layer.update( 2, first.parameters );
+    const firstTwoSeconds = first.layer.group.userData.routedLight;
+    assert.equal( firstTwoSeconds.emittedPacketCount, 23 );
+    assert.equal( firstTwoSeconds.packetCount, 23 );
+    assert.equal(
+        new Set( firstTwoSeconds.activePackets.map( ( packet ) => packet.id ) ).size,
+        firstTwoSeconds.packetCount
+    );
+    assert.equal(
+        new Set( firstTwoSeconds.activePackets.map( ( packet ) => packet.emittedAt ) ).size,
+        firstTwoSeconds.packetCount,
+        'the 11/s control must not collapse independent emissions onto one instant'
+    );
+    const emissionTimes = firstTwoSeconds.activePackets
+        .map( ( packet ) => packet.emittedAt )
+        .sort( ( left, right ) => left - right );
+    for ( let index = 1; index < emissionTimes.length; index += 1 )
+    {
+        assert.ok(
+            Math.abs( emissionTimes[index] - emissionTimes[index - 1] - 1 / 11 ) < 1e-9,
+            'maximum-frequency emissions should retain their distributed phase spacing'
+        );
+    }
+
+    const repeated = createMatureTraffic( 11 );
+    repeated.layer.update( 2, repeated.parameters );
+    assert.deepEqual(
+        repeated.layer.group.userData.routedLight.activePackets,
+        firstTwoSeconds.activePackets
+    );
+
+    first.layer.update( 10, first.parameters );
+    const congested = first.layer.group.userData.routedLight;
+    const packetsBySegment = new Map();
+    for ( const packet of congested.activePackets )
+    {
+        if ( packet.activeSegment === null ) continue;
+        const packets = packetsBySegment.get( packet.activeSegment ) ?? [];
+        packets.push( packet );
+        packetsBySegment.set( packet.activeSegment, packets );
+    }
+    const sharedPackets = [ ...packetsBySegment.values() ].find(
+        ( packets ) => new Set( packets.map( ( packet ) => packet.terminalId ) ).size > 1
+    );
+    assert.ok( sharedPackets, 'high-rate traffic should exercise one shared authored route' );
+    assert.equal(
+        new Set( sharedPackets.map( ( packet ) => packet.id ) ).size,
+        sharedPackets.length,
+        'congestion must not merge independent packet identities'
+    );
+    assert.equal( congested.coreMeshCount, 1 );
+    assert.ok( congested.occupiedEdgeCount <= congested.uniqueEdgeCount );
+    assert.ok( congested.illuminatedSampleRatio < 1 );
+} );
+
 test( 'newly manifested routes never receive backdated packets', () => {
     const { form, hierarchy, positions } = createFixture();
     const parameters = {
         ...form,
-        packetFrequency: 0.6,
+        packetFrequency: 11,
         packetSpeed: 0.5
     };
     const layer = createEngineeredTreeLayer( hierarchy, positions, parameters );
@@ -353,10 +439,10 @@ test( 'speed changes advance existing packets and frequency changes preserve the
         .map( ( node ) => [ node.id, 1 ] ) );
     layer.setGrowthProgress( mature );
 
-    layer.update( 0, { ...form, packetSpeed: 0.5, packetFrequency: 0.6 } );
+    layer.update( 0, { ...form, packetSpeed: 0.5, packetFrequency: 11 } );
     const initial = layer.group.userData.routedLight.activePackets[0];
     assert.ok( initial );
-    layer.update( 1, { ...form, packetSpeed: 0.5, packetFrequency: 0.6 } );
+    layer.update( 1, { ...form, packetSpeed: 0.5, packetFrequency: 11 } );
     const slow = layer.group.userData.routedLight.activePackets.find(
         ( packet ) => packet.id === initial.id
     );
@@ -370,6 +456,96 @@ test( 'speed changes advance existing packets and frequency changes preserve the
     assert.ok( Math.abs( accelerated.headDistance - slow.headDistance - 3 ) < 1e-9 );
     assert.equal( layer.group.userData.routedLight.packetSpeed, 3 );
     assert.equal( layer.group.userData.routedLight.packetFrequency, 0.05 );
+} );
+
+test( 'a live default-to-maximum frequency upshift preserves packets without a burst', () => {
+    function sampleUpshift()
+    {
+        const { form, hierarchy, positions } = createFixture();
+        const defaultParameters = {
+            ...form,
+            packetFrequency: 0.2,
+            packetSpeed: 0.5
+        };
+        const maximumParameters = { ...defaultParameters, packetFrequency: 11 };
+        const layer = createEngineeredTreeLayer(
+            hierarchy,
+            positions,
+            defaultParameters
+        );
+        const mature = new Map( hierarchy.nodes
+            .filter( ( node ) => node.latent && node.growthEligible !== false )
+            .map( ( node ) => [ node.id, 1 ] ) );
+        layer.setGrowthProgress( mature );
+
+        layer.update( 0, defaultParameters );
+        layer.update( 7.3, defaultParameters );
+        const before = layer.group.userData.routedLight;
+        const survivorIds = before.activePackets.map( ( packet ) => packet.id );
+        assert.ok( survivorIds.length > 0 );
+
+        layer.update( 7.3, maximumParameters );
+        const shifted = layer.group.userData.routedLight;
+        assert.equal( shifted.emittedPacketCount, before.emittedPacketCount );
+        assert.deepEqual(
+            shifted.activePackets.map( ( packet ) => packet.id ),
+            survivorIds
+        );
+        assert.ok( shifted.emissionSchedule.every( ( emitter ) =>
+            emitter.nextEmissionAt > 7.3
+        ) );
+
+        layer.update( 8.3, maximumParameters );
+        const after = layer.group.userData.routedLight;
+        assert.ok( survivorIds.every( ( id ) =>
+            after.activePackets.some( ( packet ) => packet.id === id )
+        ) );
+        const newPackets = after.activePackets
+            .filter( ( packet ) => packet.emittedAt > 7.3 )
+            .sort( ( left, right ) => left.emittedAt - right.emittedAt );
+        assert.ok( newPackets.length > 1 );
+        assert.equal(
+            new Set( newPackets.map( ( packet ) => packet.id ) ).size,
+            newPackets.length
+        );
+        assert.equal(
+            new Set( newPackets.map( ( packet ) => packet.emittedAt ) ).size,
+            newPackets.length,
+            'the upshift must not collapse newly due packets onto one instant'
+        );
+        for ( let index = 1; index < newPackets.length; index += 1 )
+        {
+            assert.ok(
+                Math.abs(
+                    newPackets[index].emittedAt
+                    - newPackets[index - 1].emittedAt
+                    - 1 / 11
+                ) < 1e-9,
+                'post-upshift packets should retain maximum-rate phase spacing'
+            );
+        }
+
+        return {
+            before: before.activePackets.map( ( packet ) => ( {
+                id: packet.id,
+                emittedAt: packet.emittedAt,
+                headDistance: packet.headDistance
+            } ) ),
+            shifted: shifted.activePackets.map( ( packet ) => ( {
+                id: packet.id,
+                emittedAt: packet.emittedAt,
+                headDistance: packet.headDistance
+            } ) ),
+            after: after.activePackets.map( ( packet ) => ( {
+                id: packet.id,
+                emittedAt: packet.emittedAt,
+                headDistance: packet.headDistance
+            } ) ),
+            schedule: after.emissionSchedule
+        };
+    }
+
+    assert.deepEqual( sampleUpshift(), sampleUpshift() );
 } );
 
 test( 'traffic updates preserve the accepted graphite Tree geometry', () => {
@@ -390,7 +566,10 @@ test( 'traffic updates preserve the accepted graphite Tree geometry', () => {
     } ) );
 
     layer.update( 0, { ...form, packetFrequency: 0.05 } );
-    layer.update( 20, { ...form, packetFrequency: 0.6 } );
+    const core = layer.group.getObjectByName( 'routed information core' );
+    const coreGeometry = core.geometry;
+    const meshCount = layer.group.children.length;
+    layer.update( 20, { ...form, packetFrequency: 11 } );
     protectedMeshes.forEach( ( mesh, index ) => {
         assert.equal( mesh.material, snapshots[index].material );
         assert.deepEqual(
@@ -399,6 +578,9 @@ test( 'traffic updates preserve the accepted graphite Tree geometry', () => {
         );
         assert.deepEqual( Array.from( mesh.geometry.index.array ), snapshots[index].indices );
     } );
+    assert.equal( core.geometry, coreGeometry );
+    assert.equal( layer.group.children.length, meshCount );
+    assert.equal( layer.group.userData.routedLight.coreMeshCount, 1 );
 } );
 
 test( 'packet frequency replaces the former Start tier control', () => {
@@ -413,6 +595,13 @@ test( 'packet frequency replaces the former Start tier control', () => {
 
     assert.equal( [ ...markup.matchAll( /id="packet-speed"/g ) ].length, 1 );
     assert.equal( [ ...markup.matchAll( /id="packet-frequency"/g ) ].length, 1 );
+    const frequencyControl = markup.match( /<input id="packet-frequency"[^>]*>/ )?.[0];
+    assert.ok( frequencyControl );
+    assert.match( frequencyControl, /min="0\.05"/ );
+    assert.match( frequencyControl, /max="11(?:\.0+)?"/ );
+    assert.match( frequencyControl, /step="0\.01"/ );
+    assert.match( frequencyControl, /value="0\.20"/ );
+    assert.match( mainSource, /packetFrequency:\s*0\.2/ );
     assert.doesNotMatch( markup, /start-tier|Start tier/ );
     assert.doesNotMatch( mainSource, /informationStartTier|start-tier/ );
 } );

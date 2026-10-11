@@ -391,3 +391,115 @@ independent canopy packets should retain identity until they arrive there, then
 produce one explicitly traceable trunk-bound packet carrying their provenance.
 Do not add glyphs, lava, the gravity well, Cosmos integration, new geometry or a
 fix for the known camera-facing trunk projection in that block.
+
+---
+
+## Packet-frequency range experiment — 11 packets per second
+
+### Scope and implementation
+
+The existing **Packet frequency** control now spans `0.05` to `11.00` packets
+per second in `0.01` increments. Its authored default remains `0.20`; this is an
+experimental ceiling, not a new presentation default.
+
+Only the HTML control ceiling changed in the runtime implementation. The
+emitter scheduler, packet records, terminal-to-root routes, speed control,
+traffic atlas, Tree hierarchy, monumental trunk and all Tree geometry are
+unchanged. No aggregation rule was introduced.
+
+With the accepted 213 eligible emitters, `11.00` packets per second gives each
+terminal a `213 / 11 = 19.3636` second period and preserves the rank phase
+offsets at `1 / 11 = 0.0909` seconds. Increasing the control therefore shortens
+the existing distributed schedule; it does not turn the emitters into a shared
+simultaneous pulse.
+
+### Files changed for this experiment
+
+- `src/category-tree/tree/index.html`
+- `tests/category-tree/routed-light.test.mjs`
+- `docs/projects/category tree/tree/routed-light-investigation.md`
+
+No production JavaScript or Tree geometry file changed.
+
+### Determinism, identity and geometry verification
+
+The focused regression coverage now exercises the full range and a live
+default-to-maximum upshift:
+
+- at 20 seconds, frequencies `0.05`, `0.20` and `11.00` produce exactly 2, 5
+  and 221 scheduled emissions respectively, including the initial event;
+- at 11 packets per second the first two seconds contain 23 distinct packet
+  IDs and 23 distinct emission times, with every adjacent emission separated
+  by `1 / 11` seconds;
+- a repeated run produces the same packets, routes, clocks and schedule;
+- fine-grained updates and one coarse update to the same time produce identical
+  packet identities and active segments;
+- a live upshift from the default `0.20` to `11.00` at a non-boundary time does
+  not emit a change-time burst or delete any active packet. New events remain
+  uniquely identified and retain `1 / 11` second phase spacing;
+- high-density traffic places packets from different terminals on the same
+  authored parent segment without merging their records;
+- a due slot skipped while its route is dormant is still not backdated after
+  maturation, including at the new maximum;
+- changing frequency across the full range preserves the accepted graphite
+  material objects, vertex positions, indices, core-geometry reference and
+  child count. The runtime still reports one core mesh.
+
+The control regression also fixes the intended contract explicitly: minimum
+`0.05`, maximum `11.00`, step `0.01`, markup default `0.20` and runtime default
+`0.2`.
+
+### Traffic and rendering stress findings
+
+The mature Tree was profiled across the range and at all three packet-speed
+landmarks. At `11.00` packets per second:
+
+- default speed (`1.55`) settles at about 140 simultaneous packet records. A
+  20-second, 1,200-update run measured 1.77 ms mean, 3.03 ms at the 95th
+  percentile and 7.90 ms maximum for the routed-light update on this machine;
+- repeated longer profiles placed the default-speed update at roughly 1.8 to
+  3.0 ms per frame. About 116–119 of 388 authored edges were occupied and about
+  23.5% of the fixed traffic-atlas samples were lit;
+- minimum speed (`0.50`) is the worst supported congestion case, with roughly
+  430 simultaneous records, about 47% of atlas samples lit and approximately
+  8.5 ms of routed-light CPU work per update before WebGL rendering;
+- maximum speed (`3.00`) reduces the active set to roughly 75 records and the
+  update cost to about 2.5 ms;
+- the rendering allocation remains one core mesh and one fixed 64 by 388 RGBA8
+  atlas (99,328 bytes). Frequency does not add draw objects or geometry.
+
+These measurements show bounded behaviour rather than a capacity failure. The
+`11.00` / `0.50` combination does, however, consume a substantial part of a
+60 Hz frame budget and should be treated as an intentional stress setting.
+
+Live browser review covered `0.05` and `11.00` frequency, and `0.50`, `1.55`
+and `3.00` speed, in the mature Canopy view. The controls remained responsive,
+successive worst-congestion frames 1.5 seconds apart showed the luminous heads
+continuing to move, and the browser logged no warnings or errors. The controls
+were returned to their `0.20` frequency and `1.55` speed defaults after review.
+
+### Artistic finding
+
+The enlarged range supplies the intended experimental contrast. At `11.00`,
+separate moving regions remain legible across the outer canopy and do not flash
+in synchrony. After many routes converge, especially at speed `0.50`, the
+shared lower trunk becomes nearly continuously luminous. This is optical
+saturation of the existing maximum-composited atlas samples, not packet loss or
+semantic aggregation: the underlying packet IDs, clocks and authored routes
+remain independent.
+
+Consequently the new ceiling is useful for exploring the transition from
+discrete packets to a visually continuous informational fluid, but it is not a
+good setting for reading individual packets after convergence. Resolving that
+perceptual ambiguity would require a later artistic or semantic decision; this
+experiment deliberately does not alter the trunk architecture.
+
+### Verdict
+
+**ACCEPT AS AN EXPERIMENTAL CONTROL**
+
+The full `0.05`–`11.00` range is deterministic, does not lose or synchronise
+packet records, preserves authored routes and live speed control, and leaves
+the accepted Tree geometry untouched. Retain `0.20` as the default. Treat the
+maximum-frequency/minimum-speed corner as a stress and saturation regime rather
+than a proposed presentation setting.
