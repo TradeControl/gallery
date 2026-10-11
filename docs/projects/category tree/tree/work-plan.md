@@ -1,6 +1,6 @@
 # Tree — phased work plan
 
-**Status:** active experimental plan; revised after Phase 2c visual review
+**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; the C4a filigree direction is closed without artistic sign-off, with E1 and the last green E2 retained only as reproducible technical evidence; the separately bounded C4b-O1 exterior optical-fibre spiral is implemented, technically promising and stopped for human artistic review; further refinement, C4 generalisation, C5 aggregation, roots and environment integration remain unauthorised
 **Scope:** the Tree as an independent construction problem, followed by deliberate integration with the signed-off Casting Pit
 
 ## Decision: develop the Tree separately first
@@ -470,6 +470,8 @@ that tier count also controls the duration of the growth event.
 
 ### Experiment C — monumental trunk
 
+#### Accepted exterior baseline
+
 1. Replace the enlarged branch treatment with dedicated trunk geometry.
 2. Establish broad mass, slow taper, asymmetrical load-bearing form and a credible
    rootward transition.
@@ -484,20 +486,891 @@ that tier count also controls the duration of the growth event.
 - Future routes could be etched or contained without overwhelming its mass.
 - The trunk remains dark and structurally convincing with all activity disabled.
 
+This exterior gate has been accepted. The existing authored trunk chain, loft,
+graphite material, taper, growth behaviour, branch attachments and signed-off
+silhouette are the baseline for the next experiments, not provisional work to be
+redesigned along with the interior. The initial Experiment C review found that
+the existing routed core did not constitute an organised or physically contained
+interior. C1 has since established a coherent hidden carrier architecture; the
+existing traffic has not yet been mapped onto it, and its `GreaterDepth`
+treatment remains a camera-space disclosure rather than physical containment.
+
+#### Whole-Tree transduction and the passage/transformation boundary
+
+The Tree as a whole is the transducer. The trunk is not a machine whose internal
+parts must be displayed. In the complete conception, information descends through
+the recursive canopy while genuine aggregation creates higher-order meaning. The
+monumental graphite trunk carries that ordered passage towards Cosmos. One
+exceptional transducer may nevertheless be visible as an artwork within the
+artwork, provided it does not inventory the hidden C1 mechanism or explain away
+the larger Tree.
+
+Future mycelium-like roots will enter the Casting Pit gravity well. Information
+will continue downward into Cosmic circuitry while molten physical material moves
+upward from the Universe to sustain the Tree. Those opposed processes are
+causally distinct but compositionally connected. Roots, the Casting Pit and
+Cosmos transport remain outside the present experiment.
+
+The experimental sequence distinguishes three claims:
+
+- **Information passage (C3a)** preserves the existing packet, route and schedule.
+  A brief rune may be caused by that passage, but it does not consume the packet,
+  create a new identity or prove aggregation. C3a was technically useful and is
+  retained as evidence, but its passive marks were rejected artistically.
+- **Concealed internal transport (possible later C3b)** may map packets onto C1's
+  hidden organisation. C1 remains valid whether or not that mapping is needed.
+- **One-to-one transduction (C4a)** requires auditable arrival, consumption, one
+  new identity and immutable single-source provenance. Its singular visible
+  filigree droplet can make that boundary perceptible, but colour and motion
+  remain evidence only because the event ledger establishes the claim.
+- **Many-to-one transduction (C5)** remains a later, separate proposition. It
+  alone may test whether multiple independent inputs create higher-order unity.
+
+No chamber, glow, colour change, aperture or other generic effect is prescribed
+as the necessary representation of transduction. C2 historically used bounded
+disclosure candidates to test the premise and rejected them artistically because
+they exposed an enumerable internal inventory. Its result was not a prohibition
+on visibility. C1's anatomy remains confined to opt-in engineering diagnostics,
+while C4a may test one visible, causally active artwork within the artwork. The
+form, its relationship with graphite and its response to traffic must be explored
+together rather than adding a decorative object after the event model is fixed.
+
+Each block below is an independent acceptance gate. Implementation must stop after
+every block for technical and artistic human review; approval of one block does
+not authorise the next.
+
+#### C1 — authored internal skeleton, diagnostic only
+
+**Status:** implemented, technically verified and approved by human review on
+2026-10-11. The isolated carriers were accepted as spatially distinct and as
+following a coherent branching structure. This sign-off authorised the now-
+complete C2 comparison; it did not establish an artistic need to display the
+carriers. C3a has since been technically completed and artistically rejected;
+only the bounded visible C4a filigree-droplet experiment is now authorised. C3b,
+further C4 work and C5 remain unauthorised.
+
+**Purpose:** establish structural truth inside the accepted trunk without choosing
+the final visibility or transport language.
+
+Implement only:
+
+1. Derive a deterministic trunk-interior descriptor from active trunk nodes and
+   their real lateral child attachments.
+2. Build cumulative attachment-family carrier sets for each rootward trunk span.
+3. Derive stable cross-sectional placement from entry direction and descendant
+   load, with an explicit wall-clearance margin.
+4. Render one merged, neutral, non-emissive diagnostic skeleton inside the mature
+   loft, inspectable with the exterior deliberately removed.
+5. Keep the skeleton coupled to the existing growth/deformation state so that a
+   carrier appears only when its supporting trunk span exists.
+
+Do not change the outer loft, branch geometry, graphite materials, packet
+scheduler, packet routes, traffic atlas, growth cycle or `GreaterDepth` core. Do
+not add an aperture, transparency, transduction rule or packet remapping in C1.
+
+##### C1 acceptance gate
+
+- Tier-three carrier counts are exactly `2`, `4`, `6` and `9` in successive
+  rootward span groups; tier-zero and tier-eight counts are covered by
+  deterministic tests.
+- Every carrier has one traceable authored attachment owner. No line exists merely
+  to fill space.
+- Carriers remain inside the loft, respect wall clearance, do not cross
+  unintentionally and do not form decorative helices or regular rings.
+- Rebuilding the same hierarchy and controls produces byte-equivalent placement
+  data.
+- The diagnostic skeleton is one merged draw object, with vertex count, triangle
+  count and construction time recorded.
+- During replay and tier changes, carriers do not appear before their supporting
+  trunk spans and do not swim, crack or pop away from the shared deformation.
+- Exterior trunk positions, radii, indices and material references remain
+  unchanged. Crown geometry, silhouette, topology and recursive growth remain
+  unchanged.
+- Packet identity, schedule, route, speed and high-frequency behaviour remain
+  unchanged because C1 does not participate in transport.
+- A neutral close inspection makes the carrier hierarchy legible without claiming
+  that opaque-shell visibility has been solved.
+
+**Human review sign-off (2026-10-11):** C1 is accepted. Its technical evidence
+and isolated diagnostic view demonstrate spatially distinct carriers with a
+coherent branching structure. This sign-off authorised C2 only. C1 now remains
+available as hidden causal architecture and an opt-in engineering diagnostic; its
+acceptance does not require it to become audience-facing imagery.
+
+#### C2 — visibility comparison on fixed content
+
+**Status:** implemented and technically verified, then artistically rejected by
+human review on 2026-10-11. All three disclosure candidates were rejected; no
+visibility direction was selected. C3a is a separate surface-language experiment;
+C3b remains paused, C3a has since been artistically rejected, and only the
+bounded visible C4a filigree-droplet candidate is now authorised. Further C4 work
+and C5 remain unauthorised.
+
+**Purpose:** determine how the unchanged C1 structure might be perceived through
+the accepted opaque trunk while preserving its monumental mass.
+
+Use exactly the same C1 skeleton to compare the bounded visibility candidates from
+the approved review: one short physical aperture with a recessed liner,
+trunk-only front/back attenuation, and a trunk stencil diagnostic. These are test
+conditions, not a commitment to any one visual language. Compare them under orbit,
+close inspection and the signed-off distant presets; record geometry, pass and
+frame costs as well as visual evidence.
+
+##### C2 acceptance gate
+
+- Every candidate reveals the same fixed authored skeleton; content changes cannot
+  be mistaken for a visibility improvement.
+- Orbit demonstrates honest depth behaviour, including parallax and occlusion
+  where the candidate claims physical depth, rather than a camera-facing
+  projection.
+- Unrelated foreground branches cannot falsely disclose trunk contents.
+- The accepted distant silhouette and perception of trunk mass remain intact.
+- Limitations, rendering cost and growth/replay behaviour are recorded, and human
+  review either selects a bounded direction or rejects all candidates.
+- No packet remapping or transduction behaviour is introduced.
+
+##### C2 implementation checkpoint (2026-10-11)
+
+The three candidates use one fixed `exchange → meaning` region of the unchanged
+C1 skeleton so that only the disclosure method varies:
+
+- **Physical aperture:** removes exactly six cells (twelve triangles) from a
+  cloned accepted shell and adds a small open recessed liner. It uses the normal
+  scene pass and ordinary depth behaviour.
+- **Trunk attenuation:** keeps the accepted exterior closed and uses a local
+  closed proxy, packed front/back body-depth targets and an exact trunk-patch
+  ownership stencil to attenuate only carrier fragments belonging to that trunk
+  region. It is a five-pass comparison condition, not a claim of measured wall
+  thickness.
+- **Stencil diagnostic:** uses the same exact ownership patch and carrier overlay
+  without depth-range attenuation. It is a three-pass screen-space reference,
+  not a physical solution.
+
+The default remains the accepted exterior. The isolated C1 diagnostic and all
+three C2 modes reuse the same carrier geometry and authored identities; no
+candidate changes the outer-trunk source geometry, branch geometry, scheduler,
+routes, speed, frequency or traffic state. No chamber, glow, aggregation,
+remapping or transduction behaviour was introduced.
+
+The complete focused Tree regression run passed 26 of 26 tests, including
+byte-stable carrier geometry across modes, the exact aperture cut, trunk-only
+stencil participation, replay/growth gating and identical deterministic routed
+traffic at `11/0.50`. The standalone Vite production build passed, and browser
+inspection at maturity under orbit and the distant presets completed without
+console warnings or errors. Detailed geometry, render-cost and visual evidence
+is recorded in `trunk-development-review.md`.
+
+##### C2 artistic review decision (2026-10-11)
+
+C2 passed its technical gate and failed its artistic gate. The aperture,
+attenuation and stencil approaches all made a finite set of internal components
+available for inspection. That inventory disclosure reduced the Tree's implied
+recursive totality to an enumerable mechanism and weakened both monumentality
+and mystery. The aperture demonstrated the problem most clearly, but improving
+its shape or the other rendering methods would not correct that premise.
+
+The accepted baseline is therefore the intact graphite exterior and a hidden C1
+carrier architecture. Opacity, omission and unseen depth remain positive artistic
+constraints, not missing technical work. C1 is retained as hidden structural
+truth and as a deliberately separate diagnostic; the C2 modes are experimental
+evidence only and remain default-off pending a later cleanup decision. This
+decision rejects an exposed inventory, not visibility itself. It permits a
+singular visible transducer if that form remains an artwork within the artwork,
+does not disclose C1 and strengthens rather than miniaturises the monumental Tree.
+
+#### Experiment C redirection — approved artistic direction
+
+Subsequent work must separate two kinds of evidence:
+
+1. **Truth-layer evidence:** deterministic identities, hidden carrier state,
+   arrival ledgers and provenance prove that transport and transformation really
+   occurred.
+2. **Artwork-layer evidence:** inputs, elapsed time and consequences make the
+   transformation perceptible without displaying the C1 carrier inventory. The
+   local transducer itself may be visible when its singular form is the artwork,
+   rather than an inspection window onto machinery.
+
+Neither layer can substitute for the other. Audit data alone does not make an
+artwork, while a pulse, colour change or broad reaction does not prove causality.
+The finite visible Tree should suggest a greater recursive order through partial
+evidence and consequential behaviour, not through an inventory of components.
+A single intricate object may concentrate that mystery without claiming to reveal
+the Tree's complete mechanism.
+
+The first bounded question asked whether a real packet crossing could briefly
+write a restrained object-space techno-rune on the opaque trunk, then leave no
+permanent mark. C3a answered that question technically but failed artistically:
+the marks registered passage without behaving as functional transformations.
+The first bounded candidate established that one visible three-dimensional
+filigree route at the `meaning` passage could receive one cyan input, make its
+transformation legible within the gold form and create one new Cosmos-gold output
+with auditable single-source provenance. Human review found that its compact,
+predominantly exterior placement read as a brooch attached to the trunk. That
+candidate is retained as C4a-E1 evidence. C4a-E2 now isolates the prior question:
+can a camera-independent axial volume feel integral to the graphite before any
+additional intricacy or many-to-one behaviour is attempted?
+
+#### C3 — information-passage language without anatomical disclosure
+
+##### C3a — packet-driven trunk-rune study
+
+**Status:** implemented and technically verified on 2026-10-11, then rejected at
+human artistic review. Retain the implementation and evidence as a diagnostic
+baseline; do not refine the three passive marks as the artwork language.
+
+**Purpose:** test whether actual packet passage can cause brief, restrained
+techno-rune manifestations at meaningful authored positions on the existing
+opaque graphite trunk.
+
+Implement only one bounded technique:
+
+1. Derive a small number of object-space rune sites from real lower-trunk spans,
+   not evenly spaced bands or random surface scatter.
+2. Cause a rune only when an existing packet genuinely crosses its site's exact
+   route distance. The packet remains independently owned and unmodified.
+3. Write the mark in the rootward direction, hold it briefly and remove it fully.
+   Dense traffic may be deterministically sampled at the visual layer to preserve
+   restraint, provided every displayed rune retains one auditable packet cause
+   and sampling cannot alter transport.
+4. Keep the geometry conformal to the accepted shell and under the same
+   deformation field. It must be depth-tested, fixed in object space and
+   naturally self-occluded under orbit.
+5. Use a narrow, local material response without broad illumination, bloom or a
+   residual idle engraving.
+
+Do not expose C1, remap traffic onto its carriers, consume or merge packets,
+create an output event, introduce aggregation state, add mycelial roots or begin
+Casting Pit/Cosmos integration. Do not change the canopy, packet scheduler,
+authored routes, speed/frequency controls, growth or accepted exterior geometry.
+
+###### C3a acceptance gate
+
+- Every displayed rune identifies one genuine packet and one real authored trunk
+  crossing; no clock-only or idle mark can appear.
+- The lifecycle is deterministic, brief and finite. A rune writes rootward,
+  erodes completely and never becomes a permanent decorative marking.
+- Sites are sparse, spatially distinct and tied to meaningful trunk spans. They
+  do not form rings, repeated bands, a glyph field or a circuit-board display.
+- Orbit demonstrates attachment and honest self-occlusion rather than a
+  camera-facing projection. Silhouette, Structure and Canopy views preserve the
+  accepted graphite mass and crown.
+- Packet identity, count, schedule, routes, speed and the `11/0.50` stress state
+  remain unchanged with runes enabled or disabled. Visual sampling is recorded
+  separately and cannot be mistaken for packet loss or aggregation.
+- Exterior geometry/material references, branch geometry, growth and the C1
+  descriptor/diagnostic remain unchanged.
+- Geometry, draw count, per-frame work and high-frequency behaviour are recorded.
+- Human review judges whether the marks are restrained and whether they suggest
+  passage or translation without reading as exposed machinery, decoration or
+  already-completed aggregation.
+
+**Human review stop:** record the technical and three-view visual evidence, then
+stop. Do not begin C3b, C4, C5, roots or environment integration. This stop was
+observed; the later C3a review separately authorised C4a.
+
+###### C3a implementation checkpoint (2026-10-11)
+
+One causal surface-language candidate is now available behind the default-on
+`Packet-driven trunk runes` control. Three sparse sites belong to the real
+`meaning → exchange`, `exchange → uptake` and `uptake → planting-root` route
+crossings. Each site is a short, broken, rootward mark sampled directly from the
+accepted loft. All three are merged into one object-space mesh with `126`
+vertices, `108` triangles and at most one active draw. The mesh shares the
+graphite trunk's relief and sway deformation, uses ordinary depth testing and
+normal alpha blending, and has no bloom, idle engraving or broad illumination.
+
+Crossing detection is derived from the existing packet's authored route distance.
+Every manifestation records its packet and site identity and lasts `0.84`
+seconds while writing and eroding rootward. At rates through `1` packet per
+second every packet is admitted visually. Above that rate, a stable hash of the
+packet event identity admits a `1 / frequency` subset; an admitted packet remains
+the same packet as it passes all three sites. This sampling neither delays nor
+removes transport packets. Cumulative crossing and admission counts remain exact,
+while the recent audit ledger is bounded to `4,096` records for long-running
+maximum-rate use.
+
+The focused rune suite passed `5/5` tests and the complete Tree regression suite
+passed `31/31`. The tests independently reconstruct route crossings, verify the
+finite lifecycle and growth gating, prove enabled/disabled transport equivalence
+at `11/0.50`, preserve graphite, branch, routed-core and C1 geometry/material
+references, and exercise audit-ledger overflow. The scoped Vite production build
+also passed.
+
+Browser inspection reached full maturity in Silhouette, Structure and Canopy
+views, including orbit and the `11` packets-per-second stress state. The marks
+stayed attached to the shell, self-occluded on the far side and left the accepted
+contour and crown unchanged. The renderer remained one pass with a local settled
+CPU-submission EMA of roughly `3–6 ms`, and the console reported no warnings or
+errors. This is not a GPU benchmark.
+
+The principal artistic uncertainty during implementation was visibility rather
+than causality. In the close Structure view the small marks can be read and
+followed under orbit. In the
+distant Silhouette and Canopy views, especially at the default `0.20` rate, they
+are easy to miss; their muted cyan also sits close to the established routed-core
+colour. At `11`, rune sampling stays restrained, although the independently
+existing route illumination can itself approach continuity. Human review must
+decide whether this reserve suggests translation or merely makes the new event
+too inconspicuous or too easily confused with packet light.
+
+###### C3a artistic review decision (2026-10-11)
+
+C3a is a technically useful and artistically rejected result. The event-to-mark
+causality, object-space attachment, finite lifecycle and audit trail remain valid,
+but a packet merely caused a passive broken mark and then continued unchanged.
+The mark therefore read as a restrained notification, not as a functional rune.
+The next experiment must test a rune whose connected labyrinth is the actual
+one-to-one transformation interval rather than a symbol displayed beside it.
+
+##### C3b — possible concealed carrier transport
+
+**Status:** deferred and unauthorised. C3a does not require or imply it.
+
+If later evidence shows that exact concealed carrier timing is artistically or
+semantically necessary, a separate block may map the trunk portion of each route
+onto C1 without exposing it. That hypothesis requires a new brief and approval;
+it is not part of the rune experiment.
+
+#### C4 — visible, auditable one-to-one transduction
+
+##### C4a — visible transducer studies at the meaning passage
+
+**Status:** closed without artistic sign-off. C4a-E1 is technically verified and
+retained as immutable exterior-filigree evidence, but human review rejected it as
+the active artistic solution because it read as a brooch attached to the trunk.
+The last green C4a-E2 implementation is retained as longitudinal-placement
+evidence, not as a finished or accepted transducer. No filigree refinement,
+optical-fibre alternative, second transducer, C4 generalisation or C5 work is
+authorised.
+
+**Purpose:** establish one real one-to-one transformation boundary while exploring
+its form, its relationship with the graphite trunk and its causal response to
+information as one inseparable artistic problem.
+
+The Tree as a whole remains the transducer. C4a does not redefine the trunk as a
+machine or claim that one visible object explains the Tree's complete operation.
+It tests whether a single exceptional transducer can become an artwork within the
+artwork: intricate, three-dimensional and gold, while the greater causal order
+and the C1 carrier inventory remain unseen.
+
+The point of departure is the artist's memory of intricate African gold filigree
+droplet earrings worn in the 1980s. This is a personal material and formal memory,
+not a request to claim a generic “African style” or copy an unidentified cultural
+motif. The new form must be authored for this Tree. Its gold volume should reward
+orbit and close inspection, while its relationship with the graphite—whether
+held, framed, partially enclosed or otherwise structurally received—must make it
+feel integral rather than painted on, bolted on or revealed by a mechanical
+cutaway.
+
+The bounded causal sequence remains exact:
+
+1. one existing cyan packet reaches the droplet's authored inlet from the centre
+   conduit at the `meaning` passage;
+2. its luminous front travels through the droplet's actual three-dimensional
+   filigree route, so the visible form and the transport interval are the same
+   object rather than adjacent effects;
+3. the incoming source is consumed exactly once at an authored transformation
+   boundary within that route; and
+4. one distinct rootward output is created there in the Cosmos-gold vocabulary
+   and leaves towards the centre conduit with immutable provenance naming that
+   single source.
+
+This remains one-to-one translation with `aggregation: false`. It neither
+combines independent packets nor proves higher-order meaning. Gold borrows only
+the accepted Cosmos layer's colour vocabulary. C4a does not import Cosmic
+topology, signal state or routes, and it is not Tree/Cosmos integration.
+
+The hidden arrival/consumption/output ledger is authoritative. The droplet may
+remain materially present when idle, but event luminosity or traversal cannot
+occur without a real source. The cyan-to-gold change, connected traversal and
+elapsed interval make the transformation perceptible; appearance alone cannot
+establish the semantic claim. C1 remains hidden and diagnostic. The accepted
+trunk, canopy, growth, scheduler and authored route ownership remain the baseline.
+
+###### Superseded C4a prototypes
+
+Two prototype directions remain valuable negative or technical evidence:
+
+- The surface maze and its hidden radial joins failed artistically because the
+  viewer saw a path on the graphite while the true transport remained central.
+  Coordinate continuity did not repair that perceptual discontinuity.
+- The subsequent wholly internal three-dimensional labyrinth established a
+  technically coherent centre-to-centre route and explored depth-aware
+  subsurface disclosure. It is retained as a technical prototype, not the
+  current artistic candidate. Burial and optical transmission alone do not
+  answer what the visible transducer should be.
+
+Neither prototype authorises a return to a painted glyph, an X-ray inventory or
+a permanent aperture. Their reusable event accounting and route-continuity work
+may support the visible droplet, but their geometry and renderer are not accepted
+as the C4a outcome.
+
+###### C4a-E1 acceptance gate
+
+- One singular object-space droplet has a legible, genuinely three-dimensional
+  filigree form under orbit. It is not a camera-facing graphic, repeating band,
+  arbitrary glyph field, flat circuit-board mark or miniature C1 inventory.
+- The droplet and graphite form one convincing composition. Their contact,
+  enclosure and negative space make the transducer feel integral to the Tree
+  without turning the trunk into a window, exposing carriers or weakening the
+  accepted monumental silhouette and crown.
+- The transducer has one coordinate- and perceptually continuous authored path
+  from the centre conduit, through the visible filigree and towards the centre
+  conduit. Every illuminated segment belongs to that traversable path; a cyan
+  source must not disappear centrally while an unrelated gold ornament lights.
+- A traversal begins only when an eligible real packet reaches the exact inlet.
+  The material form may remain visible at rest, but idle time produces no false
+  packet, processing pulse or output event.
+- Every admitted source has one arrival record, is consumed exactly once and
+  creates exactly one distinct output. No source continues rootward under its old
+  identity, is duplicated or is silently lost.
+- Every output has an immutable new identity, `sourcePacketCount: 1`, the source
+  packet and incoming-edge identity, transducer identity and exact entry,
+  consumption/output and route-resume times. Runtime semantics report
+  `semanticClaim: transduction` and `aggregation: false`.
+- Replaying the same hierarchy, seed and controls produces equivalent event
+  records. Independent packet timing survives the default rate and the `11/0.50`
+  stress corner without artificial synchronisation, aggregation or traffic loss.
+- The gold output continues rootward on existing authored transport without
+  importing or steering the Casting Pit Cosmos system. Gold is a legible state
+  vocabulary, not proof of aggregation, Cosmos arrival or higher-order meaning.
+- Growth, reset and control changes cannot backdate arrivals, strand ownership or
+  create orphaned luminosity. Queues and audit history remain finite and
+  inspectable.
+- Silhouette, Structure and Canopy review under orbit records form, trunk
+  relationship, causal readability, occlusion and render cost. The accepted Tree
+  geometry, growth and C1 descriptor remain unchanged.
+- Only this `meaning` transducer is manifested. The two lower C3a passage sites
+  are not promoted into serial transducers.
+
+###### C4a-E1 implementation and verification record
+
+The first bounded candidate uses one fixed object-space route at `meaning`. Its
+buried centreline inlet and outlet join an exterior nested-loop filigree body that
+weaves through the graphite rather than sitting on it as a painted mark. The
+graphite naturally hides buried portions; the exterior loops show true
+self-occlusion and collapse edge-on under orbit. C1 remains hidden.
+
+The complete path length is `9.8414`, with its authored transformation at phase
+`0.70558`. Mature centre sampling classifies `62` points as buried, `37` as
+shell-crossing and `142` as exterior. An independent clearance audit reports a
+positive minimum separation of `+0.03032` from the C1 carriers. The candidate
+contains `2,334` vertices and `4,092` triangles across two meshes and two draws.
+It uses the normal one-pass scene renderer; no projection or extra disclosure
+pass is involved. Local CPU-submission observations were approximately
+`1.2–3.3 ms`, not GPU timing or a performance budget.
+
+The event boundary remains exact. A real cyan source enters the same route shown
+by the droplet, is consumed once at the authored phase and creates one new
+Cosmos-gold identity with immutable single-source provenance. Runtime semantics
+remain `aggregation: false`. The material gold form persists when idle, but all
+idle emissive attributes are zero. During traffic, activity is localised cyan
+before the boundary and gold after it.
+
+- `node --test tests/category-tree/trunk-runes.test.mjs` passes **8/8** focused
+  tests.
+- `node --test tests/category-tree/*.test.mjs` passes **34/34** complete Tree
+  tests.
+- The scoped Vite production build passes and `git diff --check` is clean. Only
+  the existing Node module-type notices and Vite large-chunk advisory remain.
+- Browser inspection covered Structure, Silhouette and Canopy views plus orbit.
+  The form demonstrated genuine three-dimensional edge-on collapse,
+  self-occlusion and graphite occlusion of buried segments, without a
+  camera-facing projection.
+- At `11/0.50`, dense overlapping activity remained visibly busy while packet
+  identities, one-to-one conservation and independent timing remained exact.
+
+These results establish the candidate's technical fitness for review, not its
+artistic acceptance. Do not carry forward the superseded surface or subsurface
+prototype's geometry counts, screenshots or performance figures as evidence for
+this filigree droplet.
+
+**Human review stop:** inspect both the provenance audit and the complete visible
+transition, then stop. Review should ask whether blue information visibly enters
+the same three-dimensional gold artwork that performs the transformation, whether
+gold information leaves as a convincing consequence, and whether the graphite
+trunk holds that artwork without becoming either a decorated pipe or a mechanical
+cutaway. Also inspect whether the droplet remains beautiful at rest while event
+light remains strictly causal. Approval of this candidate would establish
+one-to-one transduction only; it would not authorise another transducer, C5
+aggregation, mycelial roots, Casting Pit integration or Cosmos transport.
+
+###### C4a-E1 — exterior filigree evidence
+
+**Human artistic review decision (2026-10-11):** preserve the implementation and
+technical evidence, but reject E1 as the finished artistic solution. Its causal
+path, three-dimensional construction and provenance accounting are successful;
+its spatial presentation is not. The compact nested-loop body sits predominantly
+outside one face of the trunk and consequently resembles a brooch attached to the
+graphite rather than a transducer occupying the trunk's volume.
+
+This result realises the risk already recorded for C4a: visibility was not the
+problem, but the graphite did not convincingly receive the form. E1 therefore
+remains reproducible experimental evidence. Its implementation record, mature
+geometry measurements, test results and browser findings above must not be
+silently rewritten as E2 evidence or treated as the accepted form.
+
+###### C4a-E2 — longitudinal placement/presentation study
+
+**Status:** experiment closed without artistic sign-off. The last green
+`c4a-longitudinal-placement-v1` remains the source default only so that the
+evidence is reproducible; it is not the accepted Tree language. The immutable E1
+evidence profile remains `c4a-exterior-brooch-v1`.
+
+**Purpose:** investigate spatial placement and presentation before adding
+complexity. E2 tests whether the same bounded transduction interval can read as a
+longitudinal, DNA-like, genuinely volumetric presence within the trunk rather than
+as an ornament on it.
+
+The retained presentation is one camera-independent axial shell-straddling rail
+under ordinary depth. It uses a transported authored-shell frame rather than the
+camera, but its C1-clearance search chooses among object-space phases and the
+three visible crests occupy substantially one Structure-facing flank. The default
+initial and mature fixtures both select phase `0.5833333333`; form-control rebuilds
+need not. The graphite occludes genuinely buried portions and reveals only the
+parts that naturally reach or cross the shell. E2 does not cut an aperture,
+invoke the C2 attenuation or stencil renderers, expose the C1 inventory, use a
+camera-facing projection or alter the accepted graphite silhouette to manufacture
+visibility. Added filigree density, ornament and formal intricacy are deliberately
+deferred until this placement question has been reviewed.
+
+The intended eventual spatial sentence is **multiple cyan ingress directions →
+one longitudinal transducer volume → one gold rootward channel**. In E2 this is a
+placement hypothesis, not a many-to-one semantic claim. A shared gold channel may
+carry multiple independent outputs, but it does not make them one output identity.
+Every admitted cyan packet is still consumed separately and creates exactly one
+distinct provenance-linked gold packet. Runtime and documentation must report
+`spatialConvergenceClaim: false` and `aggregation: false`. Genuine consumption of
+multiple independent inputs into one new output remains C5 work and is not
+authorised by the visual arrangement.
+
+E2 retains the existing canopy, graphite trunk, growth system, packet scheduler,
+authored routes, speed and frequency controls, hidden C1 architecture and E1
+evidence profile. It changes only the active transducer's bounded spatial
+presentation at `meaning` and the metadata needed to distinguish the two studies.
+
+###### C4a-E2 acceptance gate
+
+- The active form's principal extent is longitudinal and follows the trunk rather
+  than spreading across one preferred face.
+- Orbit demonstrates volume around the trunk axis, honest graphite occlusion and
+  no camera-dependent presentation. The result must read as held within or woven
+  through the graphite, not pinned onto it.
+- Cyan activity enters the same continuous object-space volume that carries the
+  transformation, and gold activity leaves through a continuous rootward channel.
+  No hidden radial jump or unrelated surface illumination may substitute for the
+  route.
+- Any visually distinct cyan approaches and shared rootward channel retain
+  independent packet identities, exact one-to-one conservation and immutable
+  single-source provenance. Diagnostics explicitly retain
+  `spatialConvergenceClaim: false` and `aggregation: false`.
+- Idle material presence creates no processing event or false output. Event light
+  remains caused only by real packet traversal.
+- The ordinary-depth main-scene presentation uses no aperture, C2 inventory,
+  subsurface projection or bloom-dependent disclosure; C1 remains hidden.
+- The accepted Tree geometry, crown, growth, transport and C1 descriptor remain
+  unchanged. E1 remains reproducible evidence rather than being overwritten by
+  the active profile.
+- Focused regression, the complete Tree suite, production build and browser
+  inspection in Silhouette, Structure and Canopy views are recorded below. A
+  clean-load console inspection after network idle and a further four-second
+  settle records zero warning or error entries.
+
+###### C4a-E2 implementation and verification record
+
+`c4a-longitudinal-placement-v1` is retained as the source default; the exact E1
+candidate is retained independently as immutable `c4a-exterior-brooch-v1`. E2
+constructs one continuous rail in a transported authored-shell frame. The default
+initial and mature fixtures both select object-space phase `0.5833333333`, while
+other form states can select another C1-safe phase. No placement reads the live
+camera, although the chosen default favours the authored Structure corridor.
+Ordinary depth lets graphite occlude the interior path and reveals only its narrow
+shell crossings. Runtime
+semantics remain one-to-one with `spatialConvergenceClaim: false` and
+`aggregation: false`; multiple-input convergence has not been implemented.
+
+The initial E2 build records:
+
+- path length `4.0021695331` and internal transformation phase `0.4667713550`;
+- `139` buried, `22` shell-crossing and `0` exterior centre samples, with maximum
+  shell protrusion `0.01516394`;
+- longitudinal extent `1.8218625`, transverse extent `0.9499562` and ratio
+  `1.91784`;
+- three longitudinal bands spanning `54.50%` of the available axial range; and
+- positive minimum C1 clearance `+0.054153`.
+
+The mature rebuilt E2 records:
+
+- path length `6.0671552723` and internal transformation phase `0.4648329312`;
+- `151` buried, `10` shell-crossing and `0` exterior centre samples, with maximum
+  shell protrusion `0.00356537`;
+- longitudinal extent `1.8218625`, transverse extent `1.6018282` and ratio
+  `1.13736`;
+- three longitudinal bands spanning `56.92%` of the available axial range;
+- positive minimum C1 clearance `+0.055337`; and
+- `1,127` vertices and `1,920` triangles in the active rail geometry.
+
+Technical checks:
+
+- `node --test tests/category-tree/trunk-runes.test.mjs` passes **9/9** focused
+  tests.
+- `node --test tests/category-tree/*.test.mjs` passes **35/35** complete Tree
+  tests.
+- The scoped Vite production build and `git diff --check` pass.
+- A clean browser load reached network idle, settled for a further four seconds
+  and recorded zero warning or error console entries.
+
+Browser inspection found three narrow, vertically separated gold shell crossings
+and the rootward output in the front Structure view. Orbit changes which crests
+are visible and which the graphite occludes, confirming a real object-space
+internal volume rather than a camera-facing graphic. Silhouette and Canopy views
+retain the accepted Tree. At `11` packets per second, approximately `41–44`
+traversals were simultaneously active while counts remained conserved—for example
+`178/199` and later `301/320` completed outputs. The normal renderer remained one
+pass with an observed local CPU-submission range of approximately `2.1–3.6 ms`;
+this is not GPU timing or a performance budget.
+
+The technical question is answered, but the artistic question is not. E2 is
+deliberately sparse and may be too discreet: the three shell crossings establish
+longitudinal placement and internal volume, but do not yet constitute a finished,
+intricate DNA-like artwork. That restraint is intentional for this block; it must
+be judged before complexity is added.
+
+##### C4a-E2 closure decision (2026-10-11)
+
+The filigree experiment is closed without artistic approval. Subsequent audit
+showed that the last green E2 candidate is not a neutral volumetric placement:
+all three visible crests occupy substantially one flank, and its C1-safe phase is
+reselected when form controls rebuild the Tree. It therefore remains a useful
+axial-placement study, but cannot honestly be called a stable, circumferential or
+finished DNA-like transducer.
+
+A bounded fixed-orientation follow-up established the opposing constraint. Across
+all `192` initial/mature states formed from the supported control extremes and
+tiers `0`, `3` and `8`, the fixed candidate retained its authored phase and three
+reveal bands, but no tested fixed phase remained clear of C1 throughout the
+envelope. The best global phase still failed C1 clearance in `112/192` states;
+`110` of those failures occurred in the buried axial ingress/egress/core legs.
+The worst measured clearance was `-0.0261945`. Low-rise, high-conduit-weight
+states also ceased to be longitudinal because the trunk became wider than the
+bounded authored span. Work on adaptive buried connectors had begun but was
+incomplete when the direction was closed, so those partial source changes were
+reverted to the last fully tested E2 implementation.
+
+This is a deliberate stopping point, not a new acceptance gate. Preserve E1, E2,
+the failed fixed-placement measurements and their tests as evidence. Do not refine
+the filigree, infer multiple-input convergence, begin C5 or start the optical-fibre
+alternative until a separate reviewed experiment is authorised.
+
+#### C4b — exterior transport study
+
+##### C4b-O1 — one continuous optical-fibre spiral
+
+**Status:** one bounded candidate implemented and technically checked; stopped
+for human artistic review. This is not a refinement of C4a-E1 or E2, and it does
+not reopen the filigree direction. Do not begin an iterative refinement sequence
+before review.
+
+**Purpose:** test whether actual information passage can reveal a restrained,
+three-dimensional route down the outside of the monumental graphite trunk without
+turning the trunk into an exposed machine, decorative cable or redesigned object.
+
+The candidate is one narrow, continuous, multi-span spiral. It begins at the
+canopy-side `meaning` region, follows the exterior shell down the successive
+monumental trunk spans, and reaches the existing rootward resume near the base.
+Its object-space placement must follow the trunk's taper, transported section
+frame and accepted movement. Ordinary scene depth must make rearward turns
+disappear behind the graphite under orbit; no camera-facing projection,
+depth-disclosure pass, aperture or shell transparency may substitute for that
+occlusion.
+
+The fibre should be mostly invisible while idle. A genuine admitted packet is
+the only cause of local disclosure: its luminous front enters blue from the
+canopy, travels the authored spiral and changes gradually towards the accepted
+Cosmos-gold colour as it approaches the rootward resume. The gradient is a visual
+language for progress through this passage, not a claim that multiple inputs have
+been semantically aggregated. Preserve the existing independent packet
+identities, timings, scheduler, speed and frequency controls, and retain the
+valid one-to-one arrival/consumption/output ledger with immutable single-source
+provenance, `spatialConvergenceClaim: false` and `aggregation: false`.
+
+###### C4b-O1 acceptance gate
+
+- One coordinate-continuous exterior rail spans the intended descent from the
+  canopy-side `meaning` region to the rootward resume. It is not a stack of
+  disconnected rings, repeating bands or unrelated illuminated marks.
+- The spiral remains narrowly registered to the changing graphite shell across
+  every traversed span and after supported growth or form rebuilds. It follows
+  trunk taper and movement without modifying the accepted trunk mesh, silhouette
+  or canopy.
+- Orbit demonstrates genuine three-dimensional placement: front turns can be
+  seen, rear turns are hidden by ordinary depth, and no part of the presentation
+  is camera-facing or projected onto the trunk.
+- With no packet in the bounded interval, the fibre is materially almost absent
+  and emits no false traversal. Real packets alone reveal local sections of the
+  route.
+- Every admitted packet enters blue, follows the same authored spiral and changes
+  progressively towards Cosmos gold as it nears the rootward resume. The visual
+  transition remains spatially continuous and does not collapse independent
+  packet timing.
+- The existing one-to-one causal ledger stays exact: every admitted source has
+  one consumption and one distinct provenance-linked output; no packet is
+  duplicated, silently lost, synchronised with another or aggregated.
+  Diagnostics continue to report `spatialConvergenceClaim: false` and
+  `aggregation: false`.
+- The existing Tree geometry, canopy, authored routes, growth behaviour, packet
+  scheduler, packet identities, speed control, frequency range and hidden C1
+  architecture remain unchanged. The C4a-E1 and E2 profiles remain reproducible
+  evidence rather than being overwritten.
+- Focused regression, the complete Tree suite, production build and clean-load
+  browser console are recorded. Visual inspection covers Silhouette, Structure
+  and Canopy views, orbit, default traffic and bounded high-frequency traffic.
+- Record honestly whether the candidate reads as transient information transport
+  within the Tree's composition or merely as an ornamental cable. A visually
+  unsuccessful result closes this candidate; it does not authorise further
+  geometry or rendering refinement.
+
+###### C4b-O1 implementation and review record
+
+The bounded implementation is active as profile
+`c4b-exterior-optical-fibre-v1`. One object-space TubeGeometry follows the three
+lower trunk spans from `meaning` through `exchange` and `uptake` to the
+`planting-root` resume. It contains `2,023` vertices and `3,456` triangles in one
+mesh and one draw. There is no filigree granule or additional disclosure pass.
+
+The initial route length is `14.877285403869855`; its `289` sampled centres are
+classified as `27` buried connector samples, `18` shell-crossing samples and
+`244` exterior samples. After mature rebuild the route length is
+`24.087819466554603`, with `29` buried, `61` shell-crossing and `199` exterior
+samples. Independent checks classify approximately `90%` of the rail as attached
+to the shell, measure shell-radius/taper correlation above `0.9992`, and recover
+approximately `3.08` monotone circumferential turns. These results support the
+authored continuous exterior-spiral claim across both states rather than a stack
+of unrelated rings.
+
+The packet front alone raises the optical signal. Its warmth is continuous along
+the route rather than a binary post-boundary colour, while the existing hidden
+ledger still consumes each admitted source once and creates one distinct
+single-source output. The O1 runtime retains
+`spatialConvergenceClaim: false` and `aggregation: false`; no many-to-one rule was
+introduced.
+
+Technical verification records:
+
+- `node --test tests/category-tree/trunk-runes.test.mjs` passes **13/13** focused
+  tests.
+- `node --test tests/category-tree/*.test.mjs` passes **39/39** complete Tree
+  tests.
+- Node syntax checks for both changed source modules pass.
+- The scoped Vite production build passes.
+- `git diff --check` passes apart from existing line-ending warnings.
+- A deterministic `1,500`-second `11/0.50` stress run records `16,248` entries,
+  `15,911` outputs and `15,710` route resumes. The remaining events are in flight:
+  `538` active traversals stay below the calculated `743` bound, alongside `213`
+  emitters and `303` transport packets for `841` active events. Arrival,
+  consumption, output and resume balance checks are all zero, identities remain
+  distinct, and bounded ledger histories remain capped at `4,096` records.
+
+Browser inspection after maturity covered Structure, Silhouette and Canopy views.
+At default traffic the same narrow route shows blue ingress, pale intermediate
+turns and gold near the root; the unlit rail visually recedes. Orbit makes
+rearward turns disappear behind the graphite and reappear on the other side,
+confirming ordinary three-dimensional occlusion rather than a camera projection.
+The route remains coherently registered to trunk taper and motion. At `11/0.50`
+traffic it becomes almost continuously illuminated, as expected, but remains
+narrow and responsive. The live renderer continued to report one pass and an
+observed local CPU-submission range of approximately `1.4–2.3 ms`; this is not GPU
+timing or a performance budget. A fresh localhost tab loaded after the final
+build and recorded no console warnings or errors after settling.
+
+This candidate is technically promising, not artistically approved. Human review
+must decide whether its pale, near-white midpoint helps express transition or
+weakens the blue-to-gold sentence, and whether the continuous spiral belongs to
+the Tree or reads as a barber-pole cable around it. Stop here. Do not refine the
+colour, turns, placement or material, infer C5 readiness, add aggregation or begin
+Cosmos integration before that review.
+
+#### C5 — provenance-preserving behavioural convergence
+
+**Status:** artistic objective retained but paused and unauthorised after the
+C4b-O1 review stop; any continuation requires a separate explicit brief.
+
+**Purpose:** determine whether multiple independent authored inputs can produce
+one genuinely new rootward output and a perceptible higher-order consequence
+while preserving the complete hidden history of what formed it.
+
+Test one bounded, inspectable rule at `meaning`. The authored-inlet barrier with a
+full flush is now only a provisional technical hypothesis; C4a-E2 review must
+first establish the transducer's accepted spatial presentation before C5 may
+accept, reject or refine the combining rule. Freeze or explicitly version the
+required inlet set, define behaviour for dormant or changing tiers, consume every
+selected input exactly once and attach the complete immutable provenance set to
+the new output. Do not expose queue mechanics as the artistic metaphor and do not
+generalise the mechanism to other trunk nodes within this block.
+
+##### Proposed C5 evidence gate
+
+- One new output is created only from the complete input set required by the
+  reviewed rule, and its provenance identifies every contributing event and
+  incoming authored edge.
+- Consumed inputs cannot continue rootward independently or participate in a
+  second output.
+- The rule is deterministic under replay, remains auditable at `11` packets per
+  second and maintains finite queues despite unequal inlet rates.
+- Dormant inlets, tier changes, reset and maturation cannot deadlock the system or
+  silently discard queued ownership.
+- Rootward event count is demonstrably lower than arrival count because of the
+  explicit rule, not because signals overlap visually.
+- Independent inputs remain asynchronous; implementation does not align or delay
+  them merely to make convergence easy to see.
+- Human review can perceive multiplicity upstream and a new unity downstream, or
+  through a larger-Tree consequence, without seeing inlet counts, queues,
+  carriers or a chamber. The expression does not rely solely on greater
+  brightness, size or colour.
+- Distant-view review confirms that the opaque trunk retains mystery, mass and
+  the suggestion of more than the finite mechanism under test.
+
+**Human review stop:** record whether the hypothesis succeeds technically and
+artistically, then stop. The output need not be represented as a literal merged
+object. Scaling transduction to other nodes, resolving a final behavioural
+language and planting the Tree in the Casting Pit remain later decisions.
+
 ## Phase 3 — truthful activity and aggregation
 
 ### Purpose
 
 Make motion demonstrate what the structure does.
 
+Experiment C is the controlled bridge into this phase. C1 establishes hidden
+structural truth; C2 rejects exposure of that architecture as an inventory; the
+C3a rune study technically established a visible language for passage but was
+artistically rejected; C3b remains an optional concealed-transport hypothesis;
+C4a-E1 preserves a technically successful but brooch-like exterior presentation;
+the last green C4a-E2 profile preserves a technically successful but artistically
+unresolved axial presentation with one-to-one semantics; and C5 would later test
+behavioural convergence. The filigree direction is closed and no replacement
+implementation is authorised. Any later C5 success would validate a candidate
+mechanism at `meaning`, not complete or automatically generalise Phase 3.
+
+That final sentence records the C4a closure state. The later reviewed brief
+authorises only C4b-O1 as the single bounded exterior transport study described
+above. It does not reopen C4a, generalise C4 or authorise C5.
+
+The work list below is a provisional Phase 3 direction, not an authorised
+implementation sequence. Its confluence rule, behavioural language and proposed
+semantic distinction must be reconsidered under a separate future brief.
+
 ### Work
 
 1. Generate small activity events at actual terminal nodes.
 2. Route each event through the explicit edge sequence towards its parent confluences.
 3. At a confluence, wait for or accumulate child contributions using a simple, inspectable rule.
-4. Emit a transformed parent event that is visibly fewer, slower, larger, brighter or more persistent than its inputs.
+4. Emit a transformed parent state or event whose causally driven consequence can
+   be perceived without prescribing brightness, scale, colour or a literal merged
+   object as the representation.
 5. Keep propagation distance-based so speed is stable across differently curved or long conduits.
-6. Add inspection views or counters that can prove which node and edge own each event.
+6. Add separate engineering diagnostics that can prove which node and edge own
+   each event; do not make those counters or internal views part of the artwork.
 7. Test one stable distinction—most likely polarity—only after aggregation is readable in a single neutral activity family.
 
 The initial behaviour should favour terminal-to-root aggregation because that most directly expresses many classified activities becoming fewer higher-order meanings. Information packets therefore move inward through the canopy and down the trunk into Cosmos. The opposed upward movement belongs to molten physical uptake from the buried root; it must not be confused with information traffic.
@@ -505,7 +1378,8 @@ The initial behaviour should favour terminal-to-root aggregation because that mo
 ### Acceptance gate
 
 - Activity travels only along real conduits and changes only at real nodes.
-- A viewer can perceive many events resolving into fewer higher-order events without reading labels.
+- A viewer can perceive multiplicity becoming a higher-order consequence through
+  timing and behaviour, without reading labels or seeing the internal inventory.
 - Changing layout does not change topology or lose event ownership.
 - Event speed remains spatially consistent.
 - Pausing the animation leaves the underlying hierarchy understandable.

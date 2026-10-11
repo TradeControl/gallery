@@ -1,6 +1,16 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createBranchCurve, createTaperedTubeGeometry, getConduitRadii } from './tree-layer.js';
+import {
+    createTrunkRuneGranuleGeometry,
+    createTrunkRuneGeometry,
+    createTrunkRuneMaterial,
+    defaultTrunkRuneCandidateId,
+    getTrunkRuneRouteDistances,
+    setTrunkRuneGeometryTraversals,
+    trunkRuneSites,
+    trunkRuneTransducerSite
+} from './trunk-rune-layer.js';
 
 const routedTerminalId = 'process-readiness-state';
 const defaultInformationSpeed = 1.55;
@@ -8,6 +18,31 @@ const defaultInformationFrequency = 0.2;
 const informationTrailLength = 2.2;
 const informationCoreRadius = 0.032;
 const informationTrafficSamples = 64;
+const trunkRuneAuditCapacity = 4096;
+
+function canonicalEventNumber( value )
+{
+    // Audit timestamps retain 10 ns precision. Motion anchors below make the
+    // underlying boundary calculation independent of render cadence; this
+    // canonical form only removes insignificant arithmetic residue.
+    return Number( Number( value ).toFixed( 8 ) );
+}
+
+export const trunkVisibilityModes = Object.freeze( [
+    'off',
+    'isolated',
+    'aperture',
+    'attenuation',
+    'stencil'
+] );
+
+const trunkVisibilityRegion = Object.freeze( {
+    parentId: 'exchange',
+    childId: 'meaning',
+    longitudinalCellOffset: 3,
+    longitudinalCellCount: 3,
+    angularCellCount: 2
+} );
 
 function createMaterial( colour, roughness, metalness )
 {
@@ -59,13 +94,19 @@ function createInformationCoreMaterial()
     const uniforms = {
         time: { value: 0 },
         response: { value: 0.22 },
-        trafficTexture: { value: null }
+        trafficTexture: { value: null },
+        sourceColour: { value: new THREE.Vector3( 0.02, 0.48, 1.45 ) },
+        outputColour: {
+            value: new THREE.Color( 0xfff2bf ).multiplyScalar( 1.35 )
+        }
     };
     const material = new THREE.ShaderMaterial( {
         uniforms: {
             treeTime: uniforms.time,
             treeResponse: uniforms.response,
-            trafficTexture: uniforms.trafficTexture
+            trafficTexture: uniforms.trafficTexture,
+            sourceColour: uniforms.sourceColour,
+            outputColour: uniforms.outputColour
         },
         vertexShader: `
             uniform float treeTime;
@@ -90,13 +131,21 @@ function createInformationCoreMaterial()
         `,
         fragmentShader: `
             uniform sampler2D trafficTexture;
+            uniform vec3 sourceColour;
+            uniform vec3 outputColour;
             varying vec2 routedTrafficUv;
 
             void main()
             {
-                float routedSignal = texture2D( trafficTexture, routedTrafficUv ).r;
+                vec2 routedSignals = texture2D(
+                    trafficTexture,
+                    routedTrafficUv
+                ).rg;
+                float routedSignal = max( routedSignals.r, routedSignals.g );
                 if ( routedSignal < 0.004 ) discard;
-                gl_FragColor = vec4( 0.02, 0.48, 1.45, routedSignal * 0.95 );
+                vec3 colour = sourceColour * routedSignals.r
+                    + outputColour * routedSignals.g;
+                gl_FragColor = vec4( colour, routedSignal * 0.95 );
             }
         `,
         transparent: true,
@@ -107,6 +156,53 @@ function createInformationCoreMaterial()
         side: THREE.DoubleSide,
         toneMapped: false
     } );
+    return { material, uniforms };
+}
+
+function createInteriorSkeletonMaterial()
+{
+    const uniforms = {
+        time: { value: 0 },
+        relief: { value: 0 },
+        response: { value: 0.22 }
+    };
+    const material = new THREE.MeshPhysicalMaterial( {
+        color: 0xc6cbc8,
+        roughness: 0.78,
+        metalness: 0.08,
+        clearcoat: 0,
+        emissive: 0x000000
+    } );
+    material.onBeforeCompile = ( shader ) => {
+        shader.uniforms.treeTime = uniforms.time;
+        shader.uniforms.treeResponse = uniforms.response;
+        shader.vertexShader = `
+            uniform float treeTime;
+            uniform float treeResponse;
+            attribute float carrierVisibility;
+            varying float trunkCarrierVisibility;
+        ` + shader.vertexShader.replace(
+            '#include <begin_vertex>',
+            `#include <begin_vertex>
+            trunkCarrierVisibility = carrierVisibility;
+            float motionReach = smoothstep( 0.25, 5.6, max( position.y, 0.0 ) );
+            float swayX = sin( treeTime * 0.72 + position.y * 0.38 + position.z * 0.12 );
+            float swayZ = sin( treeTime * 0.56 + position.y * 0.31 + position.x * 0.10 + 1.7 );
+            float flutter = sin( treeTime * 1.17 + position.y * 0.81 + position.z * 0.19 );
+            transformed.x += ( swayX * 0.25 + flutter * 0.035 )
+                * treeResponse * motionReach;
+            transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
+                * treeResponse * motionReach;`
+        );
+        shader.fragmentShader = `
+            varying float trunkCarrierVisibility;
+        ` + shader.fragmentShader.replace(
+            '#include <clipping_planes_fragment>',
+            `#include <clipping_planes_fragment>
+            if ( trunkCarrierVisibility < 0.5 ) discard;`
+        );
+    };
+    material.customProgramCacheKey = () => 'engineered-tree-interior-skeleton-c1';
     return { material, uniforms };
 }
 
@@ -467,6 +563,605 @@ function getMonumentalRadii( trunkNodes, conduitWeight )
     } );
 }
 
+const interiorCarrierSamplesPerSpan = 10;
+const interiorCarrierRadialSegments = 6;
+const interiorCarrierWallScale = 0.58;
+
+function countAuthoredTerminalDescendants( node )
+{
+    if ( node.children.length === 0 ) return node.kind === 'terminal' ? 1 : 0;
+    return node.children.reduce(
+        ( total, child ) => total + countAuthoredTerminalDescendants( child ),
+        0
+    );
+}
+
+function getSignedStep( index )
+{
+    if ( index === 0 ) return 0;
+    const magnitude = Math.ceil( index / 2 );
+    return index % 2 === 1 ? magnitude : -magnitude;
+}
+
+function chooseInteriorCarrierPlacement( attachment, placed )
+{
+    const loadScale = THREE.MathUtils.clamp(
+        Math.sqrt( attachment.descendantLoad ) / 10,
+        0,
+        1
+    );
+    const loadDepth = THREE.MathUtils.lerp( 0.34, 0.10, loadScale );
+    // Entry direction remains the principal placement constraint. Its continuous
+    // asymmetry also prevents equal-load owners from collapsing onto an ornamental
+    // radial band before collision relief is considered.
+    const targetRadius = THREE.MathUtils.clamp(
+        loadDepth + Math.sin( attachment.entryAngle * 2 ) * 0.018,
+        0.08,
+        0.36
+    );
+    const candidates = [];
+    for ( let angularIndex = 0; angularIndex < 33; angularIndex += 1 )
+    {
+        const angularStep = getSignedStep( angularIndex );
+        for ( let radialIndex = 0; radialIndex < 17; radialIndex += 1 )
+        {
+            const radialStep = getSignedStep( radialIndex );
+            const radius = THREE.MathUtils.clamp(
+                targetRadius + radialStep * 0.027,
+                0.065,
+                0.38
+            );
+            const angle = attachment.entryAngle + angularStep * 0.105;
+            candidates.push( {
+                angle,
+                radius,
+                x: Math.cos( angle ) * radius,
+                y: Math.sin( angle ) * radius,
+                score: Math.abs( angularStep ) * 0.105
+                    + Math.abs( radius - targetRadius ) * 2.4,
+                candidateIndex: angularIndex * 17 + radialIndex
+            } );
+        }
+    }
+    candidates.sort( ( left, right ) => left.score - right.score
+        || left.candidateIndex - right.candidateIndex );
+    const minimumSeparation = 0.10;
+    const selected = candidates.find( ( candidate ) => placed.every( ( previous ) =>
+        Math.hypot( candidate.x - previous.x, candidate.y - previous.y )
+            >= minimumSeparation
+    ) );
+    if ( !selected )
+    {
+        throw new Error(
+            `No collision-free C1 carrier placement remains for '${attachment.ownerId}'.`
+        );
+    }
+    return {
+        angle: selected.angle,
+        radius: selected.radius,
+        x: selected.x,
+        y: selected.y,
+        angularRelief: selected.angle - attachment.entryAngle,
+        radialRelief: selected.radius - targetRadius,
+        targetRadius
+    };
+}
+
+function createInteriorTrunkStations(
+    trunkNodes,
+    positions,
+    asymmetry,
+    conduitWeight,
+    samplesPerSpan
+)
+{
+    const points = [];
+    const stationDescriptors = [];
+    for ( let span = 0; span < trunkNodes.length - 1; span += 1 )
+    {
+        const parent = trunkNodes[span];
+        const child = trunkNodes[span + 1];
+        const startData = positions.get( parent.id );
+        const endData = positions.get( child.id );
+        const curve = createBranchCurve(
+            new THREE.Vector3( startData.x, startData.y, startData.z ),
+            new THREE.Vector3( endData.x, endData.y, endData.z ),
+            { parent, child },
+            asymmetry
+        );
+        for ( let step = span === 0 ? 0 : 1; step <= samplesPerSpan; step += 1 )
+        {
+            const localProgress = step / samplesPerSpan;
+            points.push( curve.getPoint( localProgress ) );
+            stationDescriptors.push( { span, localProgress } );
+        }
+    }
+
+    const radii = getMonumentalRadii( trunkNodes, conduitWeight );
+    // Carrier placement uses a fixed object-space reference rather than the
+    // active crown centroid. Adding a later growth tier can therefore append
+    // owners without rotating or reassigning the accepted carriers below it.
+    const placementAxis = new THREE.Vector3( 1, 0, 0.25 ).normalize();
+    const previousMajor = new THREE.Vector3();
+    const stations = points.map( ( centre, index ) => {
+        const previous = points[Math.max( 0, index - 1 )];
+        const next = points[Math.min( points.length - 1, index + 1 )];
+        const stationDescriptor = stationDescriptors[index];
+        // At a completed authored node retain the incoming rootward-span frame.
+        // Appending another tier must not rotate an existing owner's slot.
+        const tangent = ( stationDescriptor.localProgress >= 1 - 1e-9
+            ? centre.clone().sub( previous )
+            : next.clone().sub( previous ) ).normalize();
+        const major = placementAxis.clone().addScaledVector(
+            tangent,
+            -placementAxis.dot( tangent )
+        );
+        if ( major.lengthSq() < 0.0001 ) major.set( 1, 0, 0 );
+        major.normalize();
+        const minor = new THREE.Vector3().crossVectors( tangent, major ).normalize();
+        if ( index > 0 && major.dot( previousMajor ) < 0 )
+        {
+            major.negate();
+            minor.negate();
+        }
+        previousMajor.copy( major );
+
+        const descriptor = stationDescriptor;
+        const blend = descriptor.localProgress * descriptor.localProgress
+            * ( 3 - 2 * descriptor.localProgress );
+        return {
+            ...descriptor,
+            centre,
+            tangent,
+            major,
+            minor,
+            radius: THREE.MathUtils.lerp(
+                radii[descriptor.span],
+                radii[descriptor.span + 1],
+                blend
+            )
+        };
+    } );
+    return { stations, radii };
+}
+
+export function createTrunkInteriorDescriptor(
+    hierarchy,
+    positions,
+    {
+        asymmetry = 0.55,
+        conduitWeight = 1,
+        loadDirection = getCrownLoadDirection( hierarchy, positions ),
+        samplesPerSpan = interiorCarrierSamplesPerSpan
+    } = {}
+)
+{
+    const trunkNodes = getActiveTrunkNodes( hierarchy );
+    const { stations } = createInteriorTrunkStations(
+        trunkNodes,
+        positions,
+        asymmetry,
+        conduitWeight,
+        samplesPerSpan
+    );
+    const ellipseMajor = 1.06 + asymmetry * 0.035;
+    const ellipseMinor = 0.92;
+    const loadReinforcement = 0.035 + asymmetry * 0.035;
+    const attachments = [];
+
+    for ( let trunkIndex = 0; trunkIndex < trunkNodes.length; trunkIndex += 1 )
+    {
+        const trunkNode = trunkNodes[trunkIndex];
+        const entryStation = stations[trunkIndex * samplesPerSpan];
+        for ( const child of trunkNode.children )
+        {
+            if ( child.kind === 'trunk' || child.growthEligible === false ) continue;
+            const childPosition = positions.get( child.id );
+            const direction = new THREE.Vector3(
+                childPosition.x - entryStation.centre.x,
+                childPosition.y - entryStation.centre.y,
+                childPosition.z - entryStation.centre.z
+            );
+            const projectedMajor = direction.dot( entryStation.major );
+            const projectedMinor = direction.dot( entryStation.minor );
+            const entryAngle = Math.abs( projectedMajor ) + Math.abs( projectedMinor ) > 1e-8
+                ? Math.atan2( projectedMinor, projectedMajor )
+                : stableInformationHash( child.id ) / 0xffffffff * Math.PI * 2;
+            const descendantLoad = countAuthoredTerminalDescendants( child );
+            attachments.push( {
+                ownerId: child.id,
+                entryTrunkNodeId: trunkNode.id,
+                entryTrunkIndex: trunkIndex,
+                entryAngle,
+                descendantLoad
+            } );
+        }
+    }
+
+    const placementOrder = attachments.slice().sort( ( left, right ) =>
+        left.entryTrunkIndex - right.entryTrunkIndex
+        || right.descendantLoad - left.descendantLoad
+        || left.ownerId.localeCompare( right.ownerId )
+    );
+    const placed = [];
+    for ( const attachment of placementOrder )
+    {
+        const loadScale = THREE.MathUtils.clamp(
+            Math.sqrt( attachment.descendantLoad ) / 10,
+            0,
+            1
+        );
+        attachment.slot = chooseInteriorCarrierPlacement( attachment, placed );
+        attachment.radius = ( 0.017 + loadScale * 0.011 )
+            * conduitWeight / 1.34;
+        placed.push( attachment.slot );
+    }
+
+    const carriers = attachments
+        .sort( ( left, right ) => left.entryTrunkIndex - right.entryTrunkIndex
+            || left.ownerId.localeCompare( right.ownerId ) )
+        .map( ( attachment, carrierIndex ) => {
+            const entryStationIndex = attachment.entryTrunkIndex * samplesPerSpan;
+            const carrierStations = stations.slice( 0, entryStationIndex + 1 );
+            const centreline = [];
+            const trunkCentreline = [];
+            const conservativeShellRadii = [];
+            let minimumWallClearance = Number.POSITIVE_INFINITY;
+            let minimumGrowthWallClearance = Number.POSITIVE_INFINITY;
+            for ( const station of carrierStations )
+            {
+                const reinforcement = 1 + Math.cos( attachment.slot.angle )
+                    * loadReinforcement;
+                const point = station.centre.clone()
+                    .addScaledVector(
+                        station.major,
+                        attachment.slot.x * station.radius * ellipseMajor * reinforcement
+                    )
+                    .addScaledVector(
+                        station.minor,
+                        attachment.slot.y * station.radius * ellipseMinor * reinforcement
+                    );
+                centreline.push( point.x, point.y, point.z );
+                trunkCentreline.push(
+                    station.centre.x,
+                    station.centre.y,
+                    station.centre.z
+                );
+                const conservativeShellRadius = station.radius * ellipseMinor
+                    * ( 1 - loadReinforcement );
+                conservativeShellRadii.push( conservativeShellRadius );
+                const centreOffset = point.distanceTo( station.centre );
+                minimumWallClearance = Math.min(
+                    minimumWallClearance,
+                    conservativeShellRadius - centreOffset - attachment.radius
+                );
+                minimumGrowthWallClearance = Math.min(
+                    minimumGrowthWallClearance,
+                    conservativeShellRadius * interiorCarrierWallScale
+                        - centreOffset - attachment.radius
+                );
+            }
+            return {
+                carrierIndex,
+                ownerId: attachment.ownerId,
+                attachmentNodeId: attachment.ownerId,
+                entryTrunkNodeId: attachment.entryTrunkNodeId,
+                entryTrunkIndex: attachment.entryTrunkIndex,
+                supportingTrunkNodeIds: trunkNodes
+                    .slice( 0, attachment.entryTrunkIndex + 1 )
+                    .map( ( node ) => node.id ),
+                descendantLoad: attachment.descendantLoad,
+                authoredDescendantLoad: attachment.descendantLoad,
+                entryAngle: attachment.entryAngle,
+                placementAngle: attachment.slot.angle,
+                slotX: attachment.slot.x,
+                slotY: attachment.slot.y,
+                slotRadius: attachment.slot.radius,
+                targetRadius: attachment.slot.targetRadius,
+                angularRelief: attachment.slot.angularRelief,
+                radialRelief: attachment.slot.radialRelief,
+                radius: attachment.radius,
+                minimumWallClearance,
+                minimumGrowthWallClearance,
+                centreline: new Float32Array( centreline ),
+                trunkCentreline: new Float32Array( trunkCentreline ),
+                conservativeShellRadii: new Float32Array( conservativeShellRadii )
+            };
+        } );
+
+    const spans = [];
+    for ( let spanIndex = 0; spanIndex < trunkNodes.length - 1; spanIndex += 1 )
+    {
+        const carrierOwnerIds = carriers
+            .filter( ( carrier ) => carrier.entryTrunkIndex >= spanIndex + 1 )
+            .map( ( carrier ) => carrier.ownerId );
+        spans.push( {
+            spanIndex,
+            parentId: trunkNodes[spanIndex].id,
+            childId: trunkNodes[spanIndex + 1].id,
+            carrierCount: carrierOwnerIds.length,
+            carrierOwnerIds
+        } );
+    }
+    const rootwardGroups = [];
+    for ( const span of spans.slice().reverse() )
+    {
+        const previous = rootwardGroups.at( -1 );
+        if ( previous && previous.carrierCount === span.carrierCount )
+        {
+            previous.spanIds.push( `${span.childId} -> ${span.parentId}` );
+            continue;
+        }
+        rootwardGroups.push( {
+            carrierCount: span.carrierCount,
+            carrierOwnerIds: span.carrierOwnerIds.slice(),
+            spanIds: [ `${span.childId} -> ${span.parentId}` ]
+        } );
+    }
+
+    const placementData = new Float32Array( carriers.flatMap( ( carrier ) => [
+        carrier.entryTrunkIndex,
+        carrier.descendantLoad,
+        carrier.entryAngle,
+        carrier.placementAngle,
+        carrier.slotX,
+        carrier.slotY,
+        carrier.targetRadius,
+        carrier.angularRelief,
+        carrier.radialRelief,
+        carrier.radius,
+        carrier.minimumWallClearance,
+        carrier.minimumGrowthWallClearance,
+        ...carrier.centreline,
+        ...carrier.trunkCentreline,
+        ...carrier.conservativeShellRadii
+    ] ) );
+    let minimumCarrierClearance = Number.POSITIVE_INFINITY;
+    let closestCarrierPair = null;
+    let closestCarrierStation = null;
+    const maximumStationCount = Math.max(
+        ...carriers.map( ( carrier ) => carrier.centreline.length / 3 )
+    );
+    for ( let stationIndex = 0;
+        stationIndex < maximumStationCount;
+        stationIndex += 1 )
+    {
+        const present = carriers.filter( ( carrier ) =>
+            carrier.centreline.length / 3 > stationIndex
+        );
+        const coordinate = stationIndex * 3;
+        for ( let leftIndex = 0; leftIndex < present.length; leftIndex += 1 )
+        {
+            for ( let rightIndex = leftIndex + 1;
+                rightIndex < present.length;
+                rightIndex += 1 )
+            {
+                const left = present[leftIndex];
+                const right = present[rightIndex];
+                const clearance = Math.hypot(
+                    left.centreline[coordinate] - right.centreline[coordinate],
+                    left.centreline[coordinate + 1] - right.centreline[coordinate + 1],
+                    left.centreline[coordinate + 2] - right.centreline[coordinate + 2]
+                ) - left.radius - right.radius;
+                if ( clearance >= minimumCarrierClearance ) continue;
+                minimumCarrierClearance = clearance;
+                closestCarrierPair = [ left.ownerId, right.ownerId ];
+                closestCarrierStation = stationIndex;
+            }
+        }
+    }
+    return {
+        trunkNodeIds: trunkNodes.map( ( node ) => node.id ),
+        samplesPerSpan,
+        wallClearanceScale: interiorCarrierWallScale,
+        loadDirection: new Float32Array( [
+            loadDirection.x,
+            loadDirection.y,
+            loadDirection.z
+        ] ),
+        carriers,
+        spans,
+        rootwardGroups,
+        placementData,
+        separation: {
+            minimumCarrierClearance,
+            closestCarrierPair,
+            closestCarrierStation
+        }
+    };
+}
+
+export function createTrunkInteriorSkeletonGeometry( descriptor )
+{
+    const sources = [];
+    const carrierRanges = [];
+    let vertexOffset = 0;
+    let indexOffset = 0;
+    let minimumVertexWallClearance = Number.POSITIVE_INFINITY;
+    let minimumGrowthVertexWallClearance = Number.POSITIVE_INFINITY;
+    for ( const carrier of descriptor.carriers )
+    {
+        const points = [];
+        const trunkCentres = [];
+        for ( let index = 0; index < carrier.centreline.length; index += 3 )
+        {
+            points.push( new THREE.Vector3(
+                carrier.centreline[index],
+                carrier.centreline[index + 1],
+                carrier.centreline[index + 2]
+            ) );
+            trunkCentres.push( new THREE.Vector3(
+                carrier.trunkCentreline[index],
+                carrier.trunkCentreline[index + 1],
+                carrier.trunkCentreline[index + 2]
+            ) );
+        }
+        if ( points.length < 2 ) continue;
+        const vertices = [];
+        const indices = [];
+        const previousNormal = new THREE.Vector3();
+        let carrierMinimumClearance = Number.POSITIVE_INFINITY;
+        let carrierMinimumGrowthClearance = Number.POSITIVE_INFINITY;
+        for ( let ring = 0; ring < points.length; ring += 1 )
+        {
+            const previous = points[Math.max( 0, ring - 1 )];
+            const next = points[Math.min( points.length - 1, ring + 1 )];
+            const tangent = next.clone().sub( previous ).normalize();
+            const reference = Math.abs( tangent.y ) < 0.9
+                ? new THREE.Vector3( 0, 1, 0 )
+                : new THREE.Vector3( 1, 0, 0 );
+            const normal = new THREE.Vector3()
+                .crossVectors( tangent, reference )
+                .normalize();
+            const binormal = new THREE.Vector3()
+                .crossVectors( tangent, normal )
+                .normalize();
+            if ( ring > 0 && normal.dot( previousNormal ) < 0 )
+            {
+                normal.negate();
+                binormal.negate();
+            }
+            previousNormal.copy( normal );
+            for ( let side = 0; side < interiorCarrierRadialSegments; side += 1 )
+            {
+                const angle = side / interiorCarrierRadialSegments * Math.PI * 2;
+                const vertex = points[ring].clone()
+                    .addScaledVector( normal, Math.cos( angle ) * carrier.radius )
+                    .addScaledVector( binormal, Math.sin( angle ) * carrier.radius );
+                vertices.push( vertex.x, vertex.y, vertex.z );
+                const actualRadialDistance = vertex.distanceTo( trunkCentres[ring] );
+                const shellRadius = carrier.conservativeShellRadii[ring];
+                carrierMinimumClearance = Math.min(
+                    carrierMinimumClearance,
+                    shellRadius - actualRadialDistance
+                );
+                carrierMinimumGrowthClearance = Math.min(
+                    carrierMinimumGrowthClearance,
+                    shellRadius * descriptor.wallClearanceScale
+                        - actualRadialDistance
+                );
+            }
+        }
+        for ( let ring = 0; ring < points.length - 1; ring += 1 )
+        {
+            for ( let side = 0; side < interiorCarrierRadialSegments; side += 1 )
+            {
+                const nextSide = ( side + 1 ) % interiorCarrierRadialSegments;
+                const a = ring * interiorCarrierRadialSegments + side;
+                const b = ( ring + 1 ) * interiorCarrierRadialSegments + side;
+                const c = ( ring + 1 ) * interiorCarrierRadialSegments + nextSide;
+                const d = ring * interiorCarrierRadialSegments + nextSide;
+                indices.push( a, d, b, b, d, c );
+            }
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute( vertices, 3 )
+        );
+        geometry.setIndex( indices );
+        geometry.computeVertexNormals();
+        const vertexCount = geometry.getAttribute( 'position' ).count;
+        const indexCount = geometry.index.count;
+        geometry.setAttribute(
+            'carrierVisibility',
+            new THREE.Float32BufferAttribute( new Float32Array( vertexCount ), 1 )
+        );
+        geometry.setAttribute(
+            'carrierIndex',
+            new THREE.Float32BufferAttribute(
+                new Float32Array( vertexCount ).fill( carrier.carrierIndex ),
+                1
+            )
+        );
+        const spanRanges = [];
+        const indicesPerSpan = descriptor.samplesPerSpan
+            * interiorCarrierRadialSegments * 6;
+        for ( let spanIndex = 0;
+            spanIndex < carrier.entryTrunkIndex;
+            spanIndex += 1 )
+        {
+            spanRanges.push( {
+                spanIndex,
+                indexStart: indexOffset + spanIndex * indicesPerSpan,
+                indexCount: indicesPerSpan
+            } );
+        }
+        carrierRanges.push( {
+            carrierIndex: carrier.carrierIndex,
+            ownerId: carrier.ownerId,
+            entryTrunkNodeId: carrier.entryTrunkNodeId,
+            vertexStart: vertexOffset,
+            vertexCount,
+            indexStart: indexOffset,
+            indexCount,
+            minimumVertexWallClearance: carrierMinimumClearance,
+            minimumGrowthVertexWallClearance: carrierMinimumGrowthClearance,
+            spanRanges
+        } );
+        minimumVertexWallClearance = Math.min(
+            minimumVertexWallClearance,
+            carrierMinimumClearance
+        );
+        minimumGrowthVertexWallClearance = Math.min(
+            minimumGrowthVertexWallClearance,
+            carrierMinimumGrowthClearance
+        );
+        vertexOffset += vertexCount;
+        indexOffset += indexCount;
+        sources.push( geometry );
+    }
+    if ( sources.length === 0 )
+    {
+        throw new Error( 'The C1 trunk-interior skeleton requires at least one authored attachment.' );
+    }
+    const geometry = mergeGeometries( sources, false );
+    sources.forEach( ( source ) => source.dispose() );
+    if ( !geometry )
+    {
+        throw new Error( 'The C1 trunk-interior carrier geometries could not be merged.' );
+    }
+    geometry.getAttribute( 'carrierVisibility' ).setUsage( THREE.DynamicDrawUsage );
+    geometry.computeBoundingSphere();
+    const spanDrawRanges = descriptor.spans.map( ( span ) => {
+        const ranges = carrierRanges.flatMap( ( carrier ) =>
+            carrier.spanRanges.filter( ( range ) => range.spanIndex === span.spanIndex )
+                .map( ( range ) => ( {
+                    ownerId: carrier.ownerId,
+                    indexStart: range.indexStart,
+                    indexCount: range.indexCount
+                } ) )
+        );
+        return {
+            spanIndex: span.spanIndex,
+            parentId: span.parentId,
+            childId: span.childId,
+            carrierCount: ranges.length,
+            totalIndexCount: ranges.reduce( ( total, range ) =>
+                total + range.indexCount, 0 ),
+            ranges
+        };
+    } );
+    geometry.userData.trunkInterior = {
+        descriptor,
+        carrierRanges,
+        spanDrawRanges,
+        carrierCount: descriptor.carriers.length,
+        vertexCount: geometry.getAttribute( 'position' ).count,
+        triangleCount: geometry.index.count / 3,
+        radialSegments: interiorCarrierRadialSegments,
+        minimumWallClearance: Math.min(
+            ...descriptor.carriers.map( ( carrier ) => carrier.minimumWallClearance )
+        ),
+        minimumGrowthWallClearance: Math.min(
+            ...descriptor.carriers.map( ( carrier ) => carrier.minimumGrowthWallClearance )
+        ),
+        minimumVertexWallClearance,
+        minimumGrowthVertexWallClearance
+    };
+    return geometry;
+}
+
 export function createMonumentalTrunkGeometry(
     trunkNodes,
     positions,
@@ -664,16 +1359,416 @@ export function createMonumentalTrunkGeometry(
     return geometry;
 }
 
+function getRingCentre( position, ring, radialSegments )
+{
+    const centre = new THREE.Vector3();
+    for ( let side = 0; side < radialSegments; side += 1 )
+    {
+        centre.x += position.getX( ring * radialSegments + side );
+        centre.y += position.getY( ring * radialSegments + side );
+        centre.z += position.getZ( ring * radialSegments + side );
+    }
+    return centre.multiplyScalar( 1 / radialSegments );
+}
+
+function getTrunkVisibilityRegion( sourceGeometry, trunkNodes )
+{
+    const metadata = sourceGeometry.userData.monumentalTrunk;
+    if ( !metadata )
+    {
+        throw new Error( 'C2 visibility candidates require monumental trunk metadata.' );
+    }
+    const authoredSpanIndex = trunkNodes.findIndex( ( node, index ) =>
+        node.id === trunkVisibilityRegion.parentId
+        && trunkNodes[index + 1]?.id === trunkVisibilityRegion.childId
+    );
+    // Small synthetic test hierarchies do not carry the named production
+    // stations. They receive the same bounded construction on their middle
+    // span; the authored Tree always resolves exchange -> meaning exactly.
+    const spanIndex = authoredSpanIndex >= 0
+        ? authoredSpanIndex
+        : Math.max( 0, Math.floor( ( trunkNodes.length - 2 ) / 2 ) );
+
+    const { radialSegments, samplesPerSpan, sideVertexCount } = metadata;
+    const sideRingCount = sideVertexCount / radialSegments;
+    // Ring zero is the planted extension. Authored trunk node n is therefore
+    // ring 1 + n * samplesPerSpan.
+    const spanStartRing = 1 + spanIndex * samplesPerSpan;
+    const longitudinalStartRing = spanStartRing
+        + trunkVisibilityRegion.longitudinalCellOffset;
+    const longitudinalEndRing = longitudinalStartRing
+        + trunkVisibilityRegion.longitudinalCellCount;
+    if ( longitudinalEndRing >= sideRingCount )
+    {
+        throw new Error( 'C2 visibility region exceeds the current trunk shell.' );
+    }
+
+    // This direction is an authored object-space choice, not a camera query.
+    // It makes every method expose exactly the same patch while the viewer orbits.
+    const authoredDirection = new THREE.Vector3( 0.72, 0, 0.69 ).normalize();
+    const position = sourceGeometry.getAttribute( 'position' );
+    const middleRing = Math.floor(
+        ( longitudinalStartRing + longitudinalEndRing ) / 2
+    );
+    const middleCentre = getRingCentre( position, middleRing, radialSegments );
+    let angularStartSide = 0;
+    let bestFacing = Number.NEGATIVE_INFINITY;
+    // Avoid crossing the index seam so the two-cell window remains auditable.
+    for ( let side = 0;
+        side < radialSegments - trunkVisibilityRegion.angularCellCount;
+        side += 1 )
+    {
+        const a = new THREE.Vector3().fromBufferAttribute(
+            position,
+            middleRing * radialSegments + side
+        );
+        const b = new THREE.Vector3().fromBufferAttribute(
+            position,
+            middleRing * radialSegments
+                + side + trunkVisibilityRegion.angularCellCount
+        );
+        const facing = a.add( b ).multiplyScalar( 0.5 )
+            .sub( middleCentre ).normalize().dot( authoredDirection );
+        if ( facing <= bestFacing ) continue;
+        bestFacing = facing;
+        angularStartSide = side;
+    }
+
+    return {
+        parentId: trunkNodes[spanIndex].id,
+        childId: trunkNodes[spanIndex + 1].id,
+        preferredRegionAvailable: authoredSpanIndex >= 0,
+        spanIndex,
+        spanStartRing,
+        longitudinalStartRing,
+        longitudinalEndRing,
+        longitudinalCellCount: trunkVisibilityRegion.longitudinalCellCount,
+        angularStartSide,
+        angularEndSide: angularStartSide + trunkVisibilityRegion.angularCellCount,
+        angularCellCount: trunkVisibilityRegion.angularCellCount,
+        radialSegments,
+        sideRingCount,
+        baseIndexCount: metadata.baseIndexCount
+    };
+}
+
+export function createTrunkApertureCandidateGeometry( sourceGeometry, trunkNodes )
+{
+    const region = getTrunkVisibilityRegion( sourceGeometry, trunkNodes );
+    const omittedIndexOffsets = [];
+    for ( let ring = region.longitudinalStartRing;
+        ring < region.longitudinalEndRing;
+        ring += 1 )
+    {
+        for ( let side = region.angularStartSide;
+            side < region.angularEndSide;
+            side += 1 )
+        {
+            omittedIndexOffsets.push(
+                region.baseIndexCount
+                    + ( ring * region.radialSegments + side ) * 6
+            );
+        }
+    }
+    const omitted = new Set( omittedIndexOffsets );
+    const sourceIndices = sourceGeometry.index.array;
+    const candidateIndices = [];
+    for ( let offset = 0; offset < sourceIndices.length; offset += 6 )
+    {
+        if ( omitted.has( offset ) ) continue;
+        for ( let index = 0; index < 6 && offset + index < sourceIndices.length; index += 1 )
+        {
+            candidateIndices.push( sourceIndices[offset + index] );
+        }
+    }
+
+    // BufferGeometry.clone preserves the source attribute values. Only the
+    // index is replaced, so the C2 candidate cannot silently reshape C1.
+    const candidate = sourceGeometry.clone();
+    candidate.setIndex( candidateIndices );
+    candidate.computeBoundingSphere();
+    candidate.userData.monumentalTrunk = {
+        ...sourceGeometry.userData.monumentalTrunk
+    };
+    candidate.userData.trunkVisibilityAperture = {
+        ...region,
+        omittedCellCount: omittedIndexOffsets.length,
+        omittedTriangleCount: omittedIndexOffsets.length * 2,
+        omittedIndexOffsets,
+        sourceIndexCount: sourceIndices.length,
+        candidateIndexCount: candidate.index.count,
+        sourcePositionByteLength: sourceGeometry.getAttribute( 'position' ).array.byteLength,
+        candidatePositionByteLength: candidate.getAttribute( 'position' ).array.byteLength
+    };
+    return candidate;
+}
+
+export function createTrunkVisibilityOwnershipPatchGeometry(
+    sourceGeometry,
+    trunkNodes
+)
+{
+    const region = getTrunkVisibilityRegion( sourceGeometry, trunkNodes );
+    const sourceIndices = sourceGeometry.index.array;
+    const patchIndices = [];
+    for ( let ring = region.longitudinalStartRing;
+        ring < region.longitudinalEndRing;
+        ring += 1 )
+    {
+        for ( let side = region.angularStartSide;
+            side < region.angularEndSide;
+            side += 1 )
+        {
+            const sourceOffset = region.baseIndexCount
+                + ( ring * region.radialSegments + side ) * 6;
+            for ( let index = 0; index < 6; index += 1 )
+            {
+                patchIndices.push( sourceIndices[sourceOffset + index] );
+            }
+        }
+    }
+    // Retain all source attributes byte-for-byte. This is the exact positive
+    // counterpart of the aperture's omitted index cells and therefore passes
+    // EqualDepth only where that same fixed shell patch owns the visible pixel.
+    const patch = sourceGeometry.clone();
+    patch.setIndex( patchIndices );
+    patch.computeBoundingSphere();
+    const position = sourceGeometry.getAttribute( 'position' );
+    const startCentre = getRingCentre(
+        position,
+        region.longitudinalStartRing,
+        region.radialSegments
+    );
+    const endCentre = getRingCentre(
+        position,
+        region.longitudinalEndRing,
+        region.radialSegments
+    );
+    const axis = endCentre.clone().sub( startCentre );
+    patch.userData.trunkVisibilityOwnershipPatch = {
+        ...region,
+        cellCount: region.longitudinalCellCount * region.angularCellCount,
+        triangleCount: patchIndices.length / 3,
+        sourcePositionByteLength: position.array.byteLength,
+        patchPositionByteLength: patch.getAttribute( 'position' ).array.byteLength,
+        startCentre: startCentre.toArray(),
+        endCentre: endCentre.toArray(),
+        axis: axis.clone().normalize().toArray(),
+        axisLength: axis.length()
+    };
+    return patch;
+}
+
+export function mapApertureCandidateDrawCount( candidateGeometry, sourceDrawCount )
+{
+    const aperture = candidateGeometry.userData.trunkVisibilityAperture;
+    if ( !aperture ) return sourceDrawCount;
+    const removedBeforeDrawEnd = aperture.omittedIndexOffsets.reduce(
+        ( total, offset ) => total + ( offset < sourceDrawCount ? 6 : 0 ),
+        0
+    );
+    return Math.min(
+        candidateGeometry.index.count,
+        Math.max( 0, sourceDrawCount - removedBeforeDrawEnd )
+    );
+}
+
+export function createTrunkApertureLinerGeometry( sourceGeometry, trunkNodes )
+{
+    const region = getTrunkVisibilityRegion( sourceGeometry, trunkNodes );
+    const sourcePosition = sourceGeometry.getAttribute( 'position' );
+    const boundary = [];
+    for ( let side = region.angularStartSide;
+        side <= region.angularEndSide;
+        side += 1 )
+    {
+        boundary.push( [ region.longitudinalStartRing, side ] );
+    }
+    for ( let ring = region.longitudinalStartRing + 1;
+        ring <= region.longitudinalEndRing;
+        ring += 1 )
+    {
+        boundary.push( [ ring, region.angularEndSide ] );
+    }
+    for ( let side = region.angularEndSide - 1;
+        side >= region.angularStartSide;
+        side -= 1 )
+    {
+        boundary.push( [ region.longitudinalEndRing, side ] );
+    }
+    for ( let ring = region.longitudinalEndRing - 1;
+        ring > region.longitudinalStartRing;
+        ring -= 1 )
+    {
+        boundary.push( [ ring, region.angularStartSide ] );
+    }
+
+    const vertices = [];
+    const indices = [];
+    const recessFraction = 0.19;
+    for ( let edge = 0; edge < boundary.length; edge += 1 )
+    {
+        const [ ringA, sideA ] = boundary[edge];
+        const [ ringB, sideB ] = boundary[( edge + 1 ) % boundary.length];
+        const outerA = new THREE.Vector3().fromBufferAttribute(
+            sourcePosition,
+            ringA * region.radialSegments + sideA
+        );
+        const outerB = new THREE.Vector3().fromBufferAttribute(
+            sourcePosition,
+            ringB * region.radialSegments + sideB
+        );
+        const innerA = outerA.clone().lerp(
+            getRingCentre( sourcePosition, ringA, region.radialSegments ),
+            recessFraction
+        );
+        const innerB = outerB.clone().lerp(
+            getRingCentre( sourcePosition, ringB, region.radialSegments ),
+            recessFraction
+        );
+        const offset = vertices.length / 3;
+        for ( const vertex of [ outerA, outerB, innerA, innerB ] )
+        {
+            vertices.push( vertex.x, vertex.y, vertex.z );
+        }
+        indices.push( offset, offset + 2, offset + 1 );
+        indices.push( offset + 1, offset + 2, offset + 3 );
+    }
+    const liner = new THREE.BufferGeometry();
+    liner.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+    liner.setIndex( indices );
+    liner.computeVertexNormals();
+    liner.computeBoundingSphere();
+    liner.userData.trunkVisibilityLiner = {
+        ...region,
+        boundarySegmentCount: boundary.length,
+        triangleCount: indices.length / 3,
+        recessFraction,
+        openBack: true
+    };
+    return liner;
+}
+
+export function createLocalTrunkVisibilityProxyGeometry( sourceGeometry, trunkNodes )
+{
+    const region = getTrunkVisibilityRegion( sourceGeometry, trunkNodes );
+    const sourcePosition = sourceGeometry.getAttribute( 'position' );
+    const sourceNormal = sourceGeometry.getAttribute( 'normal' );
+    const startRing = Math.max( 1, region.longitudinalStartRing - 2 );
+    const endRing = Math.min(
+        region.sideRingCount - 1,
+        region.longitudinalEndRing + 2
+    );
+    const vertices = [];
+    const normals = [];
+    const indices = [];
+    for ( let ring = startRing; ring <= endRing; ring += 1 )
+    {
+        for ( let side = 0; side < region.radialSegments; side += 1 )
+        {
+            const sourceIndex = ring * region.radialSegments + side;
+            vertices.push(
+                sourcePosition.getX( sourceIndex ),
+                sourcePosition.getY( sourceIndex ),
+                sourcePosition.getZ( sourceIndex )
+            );
+            normals.push(
+                sourceNormal.getX( sourceIndex ),
+                sourceNormal.getY( sourceIndex ),
+                sourceNormal.getZ( sourceIndex )
+            );
+        }
+    }
+    const localRingCount = endRing - startRing + 1;
+    for ( let ring = 0; ring < localRingCount - 1; ring += 1 )
+    {
+        for ( let side = 0; side < region.radialSegments; side += 1 )
+        {
+            const nextSide = ( side + 1 ) % region.radialSegments;
+            const a = ring * region.radialSegments + side;
+            const b = ( ring + 1 ) * region.radialSegments + side;
+            const c = ( ring + 1 ) * region.radialSegments + nextSide;
+            const d = ring * region.radialSegments + nextSide;
+            indices.push( a, d, b, b, d, c );
+        }
+    }
+    const startCentre = getRingCentre( sourcePosition, startRing, region.radialSegments );
+    const endCentre = getRingCentre( sourcePosition, endRing, region.radialSegments );
+    const startCentreIndex = vertices.length / 3;
+    vertices.push( startCentre.x, startCentre.y, startCentre.z );
+    const endCentreIndex = vertices.length / 3;
+    vertices.push( endCentre.x, endCentre.y, endCentre.z );
+    const capAxis = endCentre.clone().sub( startCentre ).normalize();
+    normals.push( -capAxis.x, -capAxis.y, -capAxis.z );
+    normals.push( capAxis.x, capAxis.y, capAxis.z );
+    const lastRingStart = ( localRingCount - 1 ) * region.radialSegments;
+    for ( let side = 0; side < region.radialSegments; side += 1 )
+    {
+        const nextSide = ( side + 1 ) % region.radialSegments;
+        indices.push( startCentreIndex, nextSide, side );
+        indices.push(
+            endCentreIndex,
+            lastRingStart + side,
+            lastRingStart + nextSide
+        );
+    }
+    const proxy = new THREE.BufferGeometry();
+    proxy.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+    proxy.setAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ) );
+    proxy.setIndex( indices );
+    proxy.computeBoundingSphere();
+    const axis = endCentre.clone().sub( startCentre );
+    proxy.userData.trunkVisibilityProxy = {
+        ...region,
+        sourceRingStart: startRing,
+        sourceRingEnd: endRing,
+        longitudinalCellCount: endRing - startRing,
+        closed: true,
+        triangleCount: indices.length / 3,
+        startCentre: startCentre.toArray(),
+        endCentre: endCentre.toArray(),
+        axis: axis.clone().normalize().toArray(),
+        axisLength: axis.length()
+    };
+    return proxy;
+}
+
 export function createEngineeredTreeLayer( hierarchy, initialPositions, initialParameters = {} )
 {
     const group = new THREE.Group();
     group.name = 'engineered-tree-body';
+    const trunkRuneCandidateId = initialParameters.trunkRuneCandidateId
+        ?? defaultTrunkRuneCandidateId;
     const trunk = createMaterial( 0x160f0c, 0.38, 0.62 );
     const limb = createMaterial( 0x121517, 0.34, 0.68 );
     const terminal = createMaterial( 0x1b1e1e, 0.3, 0.61 );
     const informationCore = createInformationCoreMaterial();
-    const materialEntries = [ trunk, limb, terminal ];
+    const interiorSkeleton = createInteriorSkeletonMaterial();
+    const trunkRuneMaterial = createTrunkRuneMaterial(
+        trunk.uniforms,
+        trunkRuneCandidateId
+    );
+    const apertureLiner = createMaterial( 0x080a0a, 0.82, 0.18 );
+    apertureLiner.material.side = THREE.DoubleSide;
+    apertureLiner.material.name = 'C2 recessed aperture liner';
+    const materialEntries = [
+        trunk,
+        limb,
+        terminal,
+        interiorSkeleton,
+        apertureLiner
+    ];
     let growthProgress = new Map();
+    let surfaceVisible = true;
+    let interiorDiagnosticVisible = false;
+    let trunkVisibilityMode = 'off';
+    let trunkMesh = null;
+    let apertureTrunkMesh = null;
+    let apertureLinerMesh = null;
+    let trunkVisibilityProxyGeometry = null;
+    let trunkVisibilityOwnershipGeometry = null;
+    let trunkVisibilityResourceRevision = 0;
+    let interiorSkeletonMesh = null;
     let informationRoute = null;
     let informationRoutes = [];
     let informationTraffic = null;
@@ -685,6 +1780,779 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     let informationLastElapsed = null;
     let informationLastFrequency = null;
     let emittedPacketCount = 0;
+    let trunkRunesVisible = initialParameters.trunkRunesVisible ?? true;
+    let trunkRuneMesh = null;
+    let trunkRuneGranuleMesh = null;
+    let trunkRuneResourceRevision = 0;
+    let trunkRunePathLength = 0;
+    let trunkRunePathProfile = null;
+    let trunkRuneDepartureRecords = [];
+    let trunkRuneTransductionRecords = [];
+    let trunkRuneResumeRecords = [];
+    let trunkRuneDepartureCount = 0;
+    let trunkRuneConsumptionCount = 0;
+    let trunkRuneOutputCount = 0;
+    let trunkRuneResumeCount = 0;
+    let inRunePackets = [];
+
+    function updateTrunkRuneMetadata()
+    {
+        const geometry = trunkRuneMesh?.geometry.userData.trunkRunes;
+        const activeTraversals = inRunePackets.map( ( traversal ) =>
+            Object.freeze( {
+                id: traversal.id,
+                sourcePacketId: traversal.sourcePacketId,
+                outputPacketId: traversal.outputPacketId ?? null,
+                terminalId: traversal.terminalId,
+                kind: traversal.transformed
+                    ? 'transduced-output'
+                    : 'source',
+                phase: traversal.transformed
+                    ? 'internal-output'
+                    : 'internal-source',
+                enteredAt: traversal.enteredAt,
+                transformedAt: traversal.transformedAt ?? null,
+                entryRouteDistance: traversal.entryRouteDistance,
+                exitRouteDistance: traversal.exitRouteDistance,
+                distance: traversal.distance,
+                pathLength: traversal.pathLength,
+                internalTransformationDistance:
+                    traversal.internalTransformationDistance,
+                progress: THREE.MathUtils.clamp(
+                    traversal.distance / traversal.pathLength,
+                    0,
+                    1
+                )
+            } )
+        );
+        group.userData.trunkRunes = {
+            candidateId: geometry?.candidateId ?? trunkRuneCandidateId,
+            reviewStatus: geometry?.reviewStatus ?? null,
+            placementModel: geometry?.placementModel ?? null,
+            spatialConvergenceClaim: false,
+            semanticClaim: 'transduction',
+            mode: 'one-to-one',
+            aggregation: false,
+            enabled: trunkRunesVisible,
+            visualEnabled: trunkRunesVisible,
+            transductionAlwaysActive: true,
+            visible: trunkRuneMesh?.visible ?? false,
+            rendererEligible: false,
+            exteriorVisible: surfaceVisible,
+            visibilityMode: trunkVisibilityMode,
+            siteCount: trunkRuneSites.length,
+            sites: trunkRuneSites,
+            transducerId: trunkRuneTransducerSite.transducerId,
+            activeSiteCount: activeTraversals.length > 0 ? 1 : 0,
+            activeTraversalCount: activeTraversals.length,
+            activeEventIds: activeTraversals.map( ( record ) => record.id ),
+            activeCausalPacketIds: activeTraversals.map(
+                ( record ) => record.sourcePacketId
+            ),
+            activeTraversals,
+            entryCount: trunkRuneDepartureCount,
+            consumptionCount: trunkRuneConsumptionCount,
+            outputCount: trunkRuneOutputCount,
+            centreResumeCount: trunkRuneResumeCount,
+            entryRecords: trunkRuneDepartureRecords,
+            transductionRecords: trunkRuneTransductionRecords,
+            centreResumeRecords: trunkRuneResumeRecords,
+            retainedEntryRecordCount: trunkRuneDepartureRecords.length,
+            retainedTransductionRecordCount: trunkRuneTransductionRecords.length,
+            retainedCentreResumeRecordCount: trunkRuneResumeRecords.length,
+            auditCapacity: trunkRuneAuditCapacity,
+            auditTruncated:
+                trunkRuneDepartureCount > trunkRuneDepartureRecords.length
+                || trunkRuneOutputCount > trunkRuneTransductionRecords.length
+                || trunkRuneResumeCount > trunkRuneResumeRecords.length,
+            provenanceCardinality: 1,
+            conservation: {
+                entered: trunkRuneDepartureCount,
+                inTraversal: inRunePackets.length,
+                consumed: trunkRuneConsumptionCount,
+                produced: trunkRuneOutputCount,
+                resumed: trunkRuneResumeCount,
+                internalSource: inRunePackets.filter( ( traversal ) =>
+                    !traversal.transformed
+                ).length,
+                internalOutput: inRunePackets.filter( ( traversal ) =>
+                    traversal.transformed === true
+                ).length,
+                sourceBalance: trunkRuneDepartureCount
+                    - inRunePackets.filter( ( traversal ) =>
+                        !traversal.transformed
+                    ).length
+                    - trunkRuneConsumptionCount,
+                outputBalance: trunkRuneOutputCount
+                    - inRunePackets.filter( ( traversal ) =>
+                        traversal.transformed === true
+                    ).length
+                    - trunkRuneResumeCount,
+                retainedSourceIdsUnique: new Set(
+                    trunkRuneTransductionRecords.map(
+                        ( record ) => record.sourcePacketId
+                    )
+                ).size === trunkRuneTransductionRecords.length,
+                retainedOutputIdsUnique: new Set(
+                    trunkRuneTransductionRecords.map(
+                        ( record ) => record.outputPacketId
+                    )
+                ).size === trunkRuneTransductionRecords.length
+            },
+            visualSampling: {
+                strategy: 'none',
+                everyEntryTraverses: true,
+                affectsTransport: false,
+                packetLoss: false,
+                aggregation: false
+            },
+            pathLength: trunkRunePathLength,
+            centreEntryDistance: geometry?.centreEntryDistance ?? 0,
+            internalTransformationDistance:
+                geometry?.internalTransformationDistance ?? 0,
+            centreResumeDistance:
+                geometry?.centreResumeDistance ?? 0,
+            internalTransformationPhase:
+                geometry?.internalTransformationPhase ?? 1,
+            internal3d: geometry?.internal3d ?? false,
+            surfaceExcursion: geometry?.surfaceExcursion ?? false,
+            artisticForm: geometry?.artisticForm ?? null,
+            visibleArtifact: geometry?.visibleArtifact ?? false,
+            persistentStructure: geometry?.persistentStructure ?? false,
+            idleLuminosity: geometry?.idleLuminosity ?? 0,
+            shellRelationship: geometry?.shellRelationship ?? null,
+            packetOnlyDisclosure: geometry?.packetOnlyDisclosure ?? false,
+            colourTransition: geometry?.colourTransition ?? null,
+            colourTransitionContinuous:
+                geometry?.colourTransitionContinuous ?? false,
+            colourTransitionDirection:
+                geometry?.colourTransitionDirection ?? null,
+            routeEntryParentId: geometry?.routeEntryParentId ?? null,
+            routeEntryChildId: geometry?.routeEntryChildId ?? null,
+            routeExitParentId: geometry?.routeExitParentId ?? null,
+            routeExitChildId: geometry?.routeExitChildId ?? null,
+            coveredTrunkSpans: geometry?.coveredTrunkSpans ?? [],
+            coveredTrunkSpanCount: geometry?.coveredTrunkSpanCount ?? 0,
+            spiralTurns: geometry?.spiralTurns ?? 0,
+            taperFollowing: geometry?.taperFollowing ?? false,
+            transformationArtifact:
+                geometry?.transformationArtifact ?? false,
+            motionModel: geometry?.motionModel ?? null,
+            straddlesShell: geometry?.straddlesShell ?? false,
+            buriedSampleCount: geometry?.buriedSampleCount ?? 0,
+            shellCrossingSampleCount: geometry?.shellCrossingSampleCount ?? 0,
+            exteriorSampleCount: geometry?.exteriorSampleCount ?? 0,
+            insideOpaqueShell: geometry?.insideOpaqueShell ?? false,
+            carrierCollisionFree: geometry?.carrierCollisionFree ?? false,
+            minimumPathToShellClearance:
+                geometry?.minimumPathToShellClearance ?? null,
+            minimumPathToCarrierClearance:
+                geometry?.minimumPathToCarrierClearance ?? null,
+            rendering: geometry?.rendering ?? 'inactive',
+            resourceRevision: trunkRuneResourceRevision,
+            meshCount: geometry?.meshCount ?? 0,
+            vertexCount: geometry?.vertexCount ?? 0,
+            triangleCount: geometry?.triangleCount ?? 0,
+            maximumDrawCalls: geometry?.maximumDrawCalls ?? 0,
+            activeDrawCalls: trunkRuneMesh?.visible
+                ? ( geometry?.maximumDrawCalls ?? 0 )
+                : 0,
+            objectSpace: geometry?.objectSpace ?? true,
+            cameraFacing: geometry?.cameraFacing ?? false,
+            sourceGeometryUuid: geometry?.sourceGeometryUuid ?? null,
+            packetStateMutated: true
+        };
+    }
+
+    function applyTrunkRuneVisibility()
+    {
+        if ( !trunkRuneMesh ) return;
+        // The same physical, object-space filigree is visible at rest and
+        // carries the packet signal. Ordinary depth lets graphite occlude the
+        // buried folds while the exterior folds remain tangible under orbit.
+        trunkRuneMesh.visible = trunkRunesVisible
+            && surfaceVisible
+            && trunkVisibilityMode === 'off';
+        updateTrunkRuneMetadata();
+    }
+
+    function replaceTrunkRuneGeometry( sourceGeometry, trunkNodes )
+    {
+        const authoredSitesAvailable = trunkNodes.some( ( node, index ) =>
+            node.id === trunkRuneTransducerSite.parentId
+            && trunkNodes[index + 1]?.id === trunkRuneTransducerSite.childId
+        );
+        if ( !authoredSitesAvailable )
+        {
+            if ( trunkRuneMesh )
+            {
+                if ( trunkRuneMesh.parent === group ) group.remove( trunkRuneMesh );
+                trunkRuneGranuleMesh?.geometry.dispose();
+                trunkRuneMesh.geometry.dispose();
+                trunkRuneMesh = null;
+                trunkRuneGranuleMesh = null;
+            }
+            trunkRunePathLength = 0;
+            trunkRunePathProfile = null;
+            updateTrunkRuneMetadata();
+            return;
+        }
+        const geometry = createTrunkRuneGeometry(
+            sourceGeometry,
+            trunkNodes,
+            informationRoute,
+            interiorSkeletonMesh?.geometry.userData.trunkInterior.descriptor,
+            trunkRuneCandidateId
+        );
+        const granuleGeometry = createTrunkRuneGranuleGeometry( geometry );
+        const runeGeometry = geometry.userData.trunkRunes;
+        trunkRunePathLength = runeGeometry.pathLength;
+        trunkRunePathProfile = Object.freeze( {
+            pathLength: runeGeometry.pathLength,
+            internalTransformationDistance:
+                runeGeometry.internalTransformationDistance,
+            centreEntryPoint: Object.freeze(
+                runeGeometry.centreEntryPoint.slice()
+            ),
+            internalTransformationPoint: Object.freeze(
+                runeGeometry.internalTransformationPoint.slice()
+            ),
+            centreResumePoint: Object.freeze(
+                runeGeometry.centreResumePoint.slice()
+            )
+        } );
+        if ( trunkRuneMesh )
+        {
+            trunkRuneGranuleMesh?.geometry.dispose();
+            trunkRuneMesh.geometry.dispose();
+            trunkRuneMesh.geometry = geometry;
+            trunkRuneGranuleMesh = granuleGeometry
+                ? new THREE.Mesh( granuleGeometry, trunkRuneMaterial )
+                : null;
+            if ( trunkRuneGranuleMesh )
+            {
+                trunkRuneGranuleMesh.name =
+                    'gold filigree transformation granule';
+                trunkRuneGranuleMesh.userData.trunkRuneGranule = true;
+            }
+            trunkRuneMesh.clear();
+            if ( trunkRuneGranuleMesh )
+            {
+                trunkRuneMesh.add( trunkRuneGranuleMesh );
+            }
+        }
+        else
+        {
+            trunkRuneMesh = new THREE.Mesh( geometry, trunkRuneMaterial );
+            if ( geometry.userData.trunkRunes.candidateId
+                === 'c4a-exterior-brooch-v1' )
+            {
+                trunkRuneMesh.name =
+                    'visible functional gold filigree droplet';
+            }
+            else if ( geometry.userData.trunkRunes.candidateId
+                === 'c4a-longitudinal-placement-v1' )
+            {
+                trunkRuneMesh.name =
+                    'longitudinal gold transducer placement study';
+            }
+            else
+            {
+                trunkRuneMesh.name =
+                    'packet-lit exterior optical fibre spiral';
+            }
+            trunkRuneMesh.userData.trunkRunes = true;
+            trunkRuneGranuleMesh = granuleGeometry
+                ? new THREE.Mesh( granuleGeometry, trunkRuneMaterial )
+                : null;
+            if ( trunkRuneGranuleMesh )
+            {
+                trunkRuneGranuleMesh.name =
+                    'gold filigree transformation granule';
+                trunkRuneGranuleMesh.userData.trunkRuneGranule = true;
+                trunkRuneMesh.add( trunkRuneGranuleMesh );
+            }
+            trunkRuneMesh.visible = true;
+            group.add( trunkRuneMesh );
+        }
+        trunkRuneResourceRevision += 1;
+        updateTrunkRuneTraversals();
+    }
+
+    function appendBoundedRuneRecord( records, record )
+    {
+        records.push( record );
+        if ( records.length > trunkRuneAuditCapacity )
+        {
+            records.splice( 0, Math.min( 512, records.length ) );
+        }
+    }
+
+    function beginTrunkRuneTraversal(
+        packet,
+        enteredAt,
+        entryRouteDistance,
+        exitRouteDistance,
+        packetSpeed
+    )
+    {
+        if ( !trunkRunePathProfile )
+        {
+            throw new Error( 'Functional rune path profile is unavailable.' );
+        }
+        const routeNodeIds = Object.freeze( packet.route.nodeIds.slice() );
+        const entry = Object.freeze( {
+            id: `${packet.id}::${trunkRuneTransducerSite.id}::internal-entry`,
+            recordType: 'internal-entry',
+            transducerId: trunkRuneTransducerSite.transducerId,
+            siteId: trunkRuneTransducerSite.id,
+            sourcePacketId: packet.id,
+            terminalId: packet.terminalId,
+            sourceEmittedAt: packet.emittedAt,
+            routeNodeIds,
+            boundaryDistance: entryRouteDistance,
+            entryRouteDistance,
+            exitRouteDistance,
+            enteredAt,
+            centreEntryPoint: trunkRunePathProfile.centreEntryPoint,
+            semanticClaim: 'transduction',
+            mode: 'one-to-one',
+            aggregation: false,
+            sourcePacketCount: 1
+        } );
+        trunkRuneDepartureCount += 1;
+        appendBoundedRuneRecord( trunkRuneDepartureRecords, entry );
+        return {
+            id: `${packet.id}::${trunkRuneTransducerSite.id}::traversal`,
+            sourcePacketId: packet.id,
+            terminalId: packet.terminalId,
+            sourceEmittedAt: packet.emittedAt,
+            route: packet.route,
+            routeNodeIds,
+            enteredAt,
+            entryRouteDistance,
+            exitRouteDistance,
+            distance: 0,
+            pathLength: trunkRunePathProfile.pathLength,
+            internalTransformationDistance:
+                trunkRunePathProfile.internalTransformationDistance,
+            centreEntryPoint: trunkRunePathProfile.centreEntryPoint,
+            internalTransformationPoint:
+                trunkRunePathProfile.internalTransformationPoint,
+            centreResumePoint: trunkRunePathProfile.centreResumePoint,
+            motionAnchorTime: enteredAt,
+            motionAnchorDistance: 0,
+            motionSpeed: packetSpeed,
+            entry,
+            transformed: false,
+            resumed: false
+        };
+    }
+
+    function transformTrunkRuneSource( traversal, transformedAt )
+    {
+        if ( traversal.transformed === true ) return traversal.transduction;
+        const outputPacketId = `${traversal.sourcePacketId}`
+            + `::${trunkRuneTransducerSite.transducerId}::output`;
+        const provenanceEntry = Object.freeze( {
+            sourcePacketId: traversal.sourcePacketId,
+            sourceTerminalId: traversal.terminalId,
+            sourceEmittedAt: traversal.sourceEmittedAt,
+            routeNodeIds: traversal.routeNodeIds,
+            transducerId: trunkRuneTransducerSite.transducerId,
+            siteId: trunkRuneTransducerSite.id,
+            enteredAt: traversal.enteredAt,
+            consumedAt: transformedAt,
+            entryRouteDistance: traversal.entryRouteDistance,
+            exitRouteDistance: traversal.exitRouteDistance,
+            internalTransformationPoint:
+                traversal.internalTransformationPoint
+        } );
+        const provenance = Object.freeze( [ provenanceEntry ] );
+        const record = Object.freeze( {
+            id: `${traversal.sourcePacketId}`
+                + `::${trunkRuneTransducerSite.transducerId}::transduction`,
+            recordType: 'transduction',
+            transducerId: trunkRuneTransducerSite.transducerId,
+            siteId: trunkRuneTransducerSite.id,
+            sourcePacketId: traversal.sourcePacketId,
+            outputPacketId,
+            terminalId: traversal.terminalId,
+            enteredAt: traversal.enteredAt,
+            consumedAt: transformedAt,
+            outputAt: transformedAt,
+            boundaryDistance: traversal.internalTransformationDistance,
+            pathBoundaryDistance: traversal.internalTransformationDistance,
+            entryRouteDistance: traversal.entryRouteDistance,
+            exitRouteDistance: traversal.exitRouteDistance,
+            internalTransformationDistance:
+                traversal.internalTransformationDistance,
+            pathLength: traversal.pathLength,
+            centreEntryPoint: traversal.centreEntryPoint,
+            internalTransformationPoint:
+                traversal.internalTransformationPoint,
+            provenance,
+            provenanceCardinality: provenance.length,
+            sourcePacketCount: 1,
+            outputPacketCount: 1,
+            semanticClaim: 'transduction',
+            mode: 'one-to-one',
+            aggregation: false
+        } );
+        traversal.transformed = true;
+        traversal.transformedAt = transformedAt;
+        traversal.outputPacketId = outputPacketId;
+        traversal.provenance = provenance;
+        traversal.transduction = record;
+        trunkRuneConsumptionCount += 1;
+        trunkRuneOutputCount += 1;
+        appendBoundedRuneRecord( trunkRuneTransductionRecords, record );
+        return record;
+    }
+
+    function resumeTrunkRuneOutput(
+        traversal,
+        resumedAt,
+        overshootDistance,
+        packetSpeed
+    )
+    {
+        if ( !traversal.transformed )
+        {
+            throw new Error(
+                `Source packet '${traversal.sourcePacketId}' cannot resume before transformation.`
+            );
+        }
+        if ( traversal.resumed === true )
+        {
+            throw new Error(
+                `Output packet '${traversal.outputPacketId}' resumed twice.`
+            );
+        }
+        const resume = Object.freeze( {
+            id: `${traversal.outputPacketId}::centre-resume`,
+            recordType: 'centre-resume',
+            transducerId: trunkRuneTransducerSite.transducerId,
+            siteId: trunkRuneTransducerSite.id,
+            sourcePacketId: traversal.sourcePacketId,
+            outputPacketId: traversal.outputPacketId,
+            terminalId: traversal.terminalId,
+            transformedAt: traversal.transformedAt,
+            resumedAt,
+            exitRouteDistance: traversal.exitRouteDistance,
+            internalTransformationPoint:
+                traversal.internalTransformationPoint,
+            centreResumePoint: traversal.centreResumePoint,
+            semanticClaim: 'transduction',
+            mode: 'one-to-one',
+            aggregation: false
+        } );
+        traversal.resumed = true;
+        trunkRuneResumeCount += 1;
+        appendBoundedRuneRecord( trunkRuneResumeRecords, resume );
+        return {
+            id: traversal.outputPacketId,
+            kind: 'transduced-output',
+            signalClass: 'output',
+            route: traversal.route,
+            terminalId: traversal.terminalId,
+            emittedAt: traversal.transformedAt,
+            sourceEmittedAt: traversal.sourceEmittedAt,
+            transformedAt: traversal.transformedAt,
+            resumedAt,
+            sourcePacketId: traversal.sourcePacketId,
+            provenance: traversal.provenance,
+            headDistance: traversal.exitRouteDistance + overshootDistance,
+            routeStartDistance: traversal.exitRouteDistance,
+            motionAnchorTime: resumedAt,
+            motionAnchorDistance: traversal.exitRouteDistance,
+            motionSpeed: packetSpeed
+        };
+    }
+
+    function traversalEventTime( traversal, distance, packetSpeed )
+    {
+        return canonicalEventNumber(
+            traversal.motionAnchorTime
+                + ( distance - traversal.motionAnchorDistance ) / packetSpeed
+        );
+    }
+
+    function advanceTrunkRuneTraversal(
+        traversal,
+        nextDistance,
+        intervalEnd,
+        packetSpeed
+    )
+    {
+        if ( !traversal.transformed
+            && nextDistance + 1e-9
+                >= traversal.internalTransformationDistance )
+        {
+            transformTrunkRuneSource(
+                traversal,
+                traversalEventTime(
+                    traversal,
+                    traversal.internalTransformationDistance,
+                    packetSpeed
+                )
+            );
+        }
+        if ( nextDistance + 1e-9 < traversal.pathLength )
+        {
+            traversal.distance = nextDistance;
+            return { traversal, output: null };
+        }
+        const resumedAt = traversalEventTime(
+            traversal,
+            traversal.pathLength,
+            packetSpeed
+        );
+        const output = resumeTrunkRuneOutput(
+            traversal,
+            resumedAt,
+            Math.max( 0, intervalEnd - resumedAt ) * packetSpeed,
+            packetSpeed
+        );
+        return { traversal: null, output };
+    }
+
+    function transferSourcePacket(
+        packet,
+        fromDistance,
+        toDistance,
+        intervalStart,
+        intervalEnd,
+        packetSpeed
+    )
+    {
+        const routeDistances = getTrunkRuneRouteDistances(
+            packet.route,
+            trunkRuneTransducerSite,
+            trunkRuneCandidateId
+        );
+        if ( routeDistances === null
+            || toDistance + 1e-9 < routeDistances.entryDistance )
+        {
+            packet.headDistance = toDistance;
+            return { packet, traversal: null, output: null };
+        }
+        const { entryDistance, exitDistance } = routeDistances;
+        if ( fromDistance > entryDistance + 1e-9 )
+        {
+            throw new Error(
+                `Untransduced source '${packet.id}' advanced beyond the rune boundary.`
+            );
+        }
+        const distanceSpan = Math.max( toDistance - fromDistance, 0 );
+        const intervalProgress = distanceSpan > 1e-9
+            ? THREE.MathUtils.clamp(
+                ( entryDistance - fromDistance ) / distanceSpan,
+                0,
+                1
+            )
+            : 1;
+        const hasAnalyticMotionAnchor = packet.motionSpeed === packetSpeed
+            && Number.isFinite( packet.motionAnchorTime )
+            && Number.isFinite( packet.motionAnchorDistance );
+        const enteredAt = canonicalEventNumber( hasAnalyticMotionAnchor
+            ? packet.motionAnchorTime
+                + ( entryDistance - packet.motionAnchorDistance ) / packetSpeed
+            : THREE.MathUtils.lerp(
+                intervalStart,
+                intervalEnd,
+                intervalProgress
+            ) );
+        const runeDistance = Math.max( 0, toDistance - entryDistance );
+        const traversal = beginTrunkRuneTraversal(
+            packet,
+            enteredAt,
+            entryDistance,
+            exitDistance,
+            packetSpeed
+        );
+        const advanced = advanceTrunkRuneTraversal(
+            traversal,
+            runeDistance,
+            intervalEnd,
+            packetSpeed
+        );
+        return { packet: null, ...advanced };
+    }
+
+    function updateTrunkRuneTraversals()
+    {
+        if ( trunkRuneMesh )
+        {
+            const traversals = inRunePackets.map( ( traversal ) => ( {
+                    progress: traversal.distance / traversal.pathLength,
+                    transformed: traversal.transformed,
+                    transformationPhase:
+                        traversal.internalTransformationDistance
+                            / traversal.pathLength
+                } ) );
+            setTrunkRuneGeometryTraversals( trunkRuneMesh.geometry, traversals );
+            if ( trunkRuneGranuleMesh )
+            {
+                setTrunkRuneGeometryTraversals(
+                    trunkRuneGranuleMesh.geometry,
+                    traversals
+                );
+            }
+        }
+        applyTrunkRuneVisibility();
+    }
+
+    function replaceTrunkVisibilityGeometry( sourceGeometry, trunkNodes )
+    {
+        const apertureGeometry = createTrunkApertureCandidateGeometry(
+            sourceGeometry,
+            trunkNodes
+        );
+        const linerGeometry = createTrunkApertureLinerGeometry(
+            sourceGeometry,
+            trunkNodes
+        );
+        const proxyGeometry = createLocalTrunkVisibilityProxyGeometry(
+            sourceGeometry,
+            trunkNodes
+        );
+        const ownershipGeometry = createTrunkVisibilityOwnershipPatchGeometry(
+            sourceGeometry,
+            trunkNodes
+        );
+        if ( apertureTrunkMesh )
+        {
+            apertureTrunkMesh.geometry.dispose();
+            apertureTrunkMesh.geometry = apertureGeometry;
+        }
+        else
+        {
+            apertureTrunkMesh = new THREE.Mesh( apertureGeometry, trunk.material );
+            apertureTrunkMesh.name = 'C2 physical-aperture trunk candidate';
+            apertureTrunkMesh.userData.trunkVisibilityAperture = true;
+            apertureTrunkMesh.visible = false;
+        }
+        if ( apertureLinerMesh )
+        {
+            apertureLinerMesh.geometry.dispose();
+            apertureLinerMesh.geometry = linerGeometry;
+        }
+        else
+        {
+            apertureLinerMesh = new THREE.Mesh(
+                linerGeometry,
+                apertureLiner.material
+            );
+            apertureLinerMesh.name = 'C2 recessed open aperture liner';
+            apertureLinerMesh.userData.trunkVisibilityLiner = true;
+            apertureLinerMesh.visible = false;
+        }
+        trunkVisibilityProxyGeometry?.dispose();
+        trunkVisibilityProxyGeometry = proxyGeometry;
+        trunkVisibilityOwnershipGeometry?.dispose();
+        trunkVisibilityOwnershipGeometry = ownershipGeometry;
+        trunkVisibilityResourceRevision += 1;
+        replaceTrunkRuneGeometry( sourceGeometry, trunkNodes );
+    }
+
+    function attachApertureCandidates( attached )
+    {
+        for ( const mesh of [ apertureTrunkMesh, apertureLinerMesh ] )
+        {
+            if ( !mesh ) continue;
+            if ( attached && mesh.parent !== group ) group.add( mesh );
+            else if ( !attached && mesh.parent === group ) group.remove( mesh );
+        }
+    }
+
+    function updateTrunkVisibilityMetadata()
+    {
+        if ( !trunkMesh || !interiorSkeletonMesh ) return;
+        const aperture = apertureTrunkMesh?.geometry.userData
+            .trunkVisibilityAperture;
+        const liner = apertureLinerMesh?.geometry.userData
+            .trunkVisibilityLiner;
+        const proxy = trunkVisibilityProxyGeometry?.userData
+            .trunkVisibilityProxy;
+        const ownership = trunkVisibilityOwnershipGeometry?.userData
+            .trunkVisibilityOwnershipPatch;
+        group.userData.trunkVisibility = {
+            mode: trunkVisibilityMode,
+            modes: trunkVisibilityModes.slice(),
+            candidateRegion: {
+                parentId: trunkVisibilityRegion.parentId,
+                childId: trunkVisibilityRegion.childId,
+                longitudinalCellCount: trunkVisibilityRegion.longitudinalCellCount,
+                angularCellCount: trunkVisibilityRegion.angularCellCount
+            },
+            sourceGeometryUuid: trunkMesh.geometry.uuid,
+            skeletonGeometryUuid: interiorSkeletonMesh.geometry.uuid,
+            apertureGeometryUuid: apertureTrunkMesh?.geometry.uuid ?? null,
+            sourcePositionByteLength: trunkMesh.geometry.getAttribute( 'position' )
+                .array.byteLength,
+            aperturePositionByteLength: aperture?.candidatePositionByteLength ?? 0,
+            omittedCellCount: aperture?.omittedCellCount ?? 0,
+            linerTriangleCount: liner?.triangleCount ?? 0,
+            proxyTriangleCount: proxy?.triangleCount ?? 0,
+            proxyClosed: proxy?.closed ?? false,
+            ownershipPatchTriangleCount: ownership?.triangleCount ?? 0,
+            ownershipPatchCellCount: ownership?.cellCount ?? 0,
+            resourceRevision: trunkVisibilityResourceRevision,
+            transportSimulationActive: true,
+            exteriorMaterialSharedByAperture: apertureTrunkMesh?.material
+                === trunkMesh.material
+        };
+    }
+
+    function carrierIsManifested( carrier )
+    {
+        const owner = hierarchy.byId.get( carrier.ownerId );
+        const nodeIsManifested = ( node ) => node.growthEligible !== false
+            && ( !node.latent || ( growthProgress.get( node.id ) ?? 0 ) >= 0.999 );
+        return nodeIsManifested( owner )
+            && carrier.supportingTrunkNodeIds.every( ( nodeId ) =>
+                nodeIsManifested( hierarchy.byId.get( nodeId ) )
+            );
+    }
+
+    function updateInteriorCarrierVisibility()
+    {
+        if ( !interiorSkeletonMesh ) return 0;
+        const metadata = interiorSkeletonMesh.geometry.userData.trunkInterior;
+        const visibility = interiorSkeletonMesh.geometry.getAttribute( 'carrierVisibility' );
+        let changed = false;
+        let visibleCarrierCount = 0;
+        for ( const range of metadata.carrierRanges )
+        {
+            const carrier = metadata.descriptor.carriers[range.carrierIndex];
+            const value = carrierIsManifested( carrier ) ? 1 : 0;
+            visibleCarrierCount += value;
+            for ( let index = range.vertexStart;
+                index < range.vertexStart + range.vertexCount;
+                index += 1 )
+            {
+                if ( visibility.getX( index ) === value ) continue;
+                visibility.setX( index, value );
+                changed = true;
+            }
+        }
+        if ( changed ) visibility.needsUpdate = true;
+        metadata.visibleCarrierCount = visibleCarrierCount;
+        interiorSkeletonMesh.visible = (
+            trunkVisibilityMode === 'isolated'
+            || trunkVisibilityMode === 'aperture'
+        ) && visibleCarrierCount > 0;
+        group.userData.trunkInterior = {
+            ...metadata,
+            diagnosticVisible: interiorDiagnosticVisible,
+            exteriorVisible: surfaceVisible,
+            meshCount: 1,
+            visibilityMode: trunkVisibilityMode
+        };
+        updateTrunkVisibilityMetadata();
+        return visibleCarrierCount;
+    }
 
     function routeIsManifested( route )
     {
@@ -744,7 +2612,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         informationLastFrequency = packetFrequency;
     }
 
-    function emitDuePackets( elapsed, packetSpeed )
+    function emitDuePackets( elapsed, packetSpeed, packetFrequency )
     {
         for ( const emitter of emitters )
         {
@@ -761,17 +2629,41 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 }
                 const headDistance = Math.max( 0, elapsed - emittedAt ) * packetSpeed;
                 emittedPacketCount += 1;
-                if ( headDistance > emitter.route.totalDistance + informationTrailLength )
-                {
-                    continue;
-                }
-                activePackets.push( {
+                const packet = {
                     id: `${emitter.route.terminalId}@${emittedAt.toFixed( 6 )}`,
+                    kind: 'source',
+                    signalClass: 'source',
                     route: emitter.route,
                     terminalId: emitter.route.terminalId,
                     emittedAt,
-                    headDistance
-                } );
+                    headDistance: 0,
+                    routeStartDistance: 0,
+                    motionAnchorTime: emittedAt,
+                    motionAnchorDistance: 0,
+                    motionSpeed: packetSpeed
+                };
+                const transferred = transferSourcePacket(
+                    packet,
+                    0,
+                    headDistance,
+                    emittedAt,
+                    elapsed,
+                    packetSpeed
+                );
+                if ( transferred.traversal )
+                {
+                    inRunePackets.push( transferred.traversal );
+                }
+                for ( const candidate of [ transferred.packet, transferred.output ] )
+                {
+                    if ( !candidate
+                        || candidate.headDistance
+                            > candidate.route.totalDistance + informationTrailLength )
+                    {
+                        continue;
+                    }
+                    activePackets.push( candidate );
+                }
             }
         }
     }
@@ -782,9 +2674,12 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         const { data, width, height, texture } = informationTraffic;
         data.fill( 0 );
         const occupiedRows = new Set();
+        const sourceOccupiedRows = new Set();
+        const outputOccupiedRows = new Set();
 
-        for ( const packet of activePackets )
+        function stampPacket( packet, strength = 1, maximumDistance = null )
         {
+            const channel = packet.signalClass === 'output' ? 1 : 0;
             for ( const segment of packet.route.segments )
             {
                 const edge = trafficEdgeByChildId.get( segment.childId );
@@ -795,34 +2690,64 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                     const edgeProgress = sample / ( width - 1 );
                     const routeDistance = segment.childDistance
                         + edgeProgress * segment.length;
+                    if ( routeDistance + 1e-9
+                        < ( packet.routeStartDistance ?? 0 ) )
+                    {
+                        continue;
+                    }
+                    if ( maximumDistance !== null
+                        && routeDistance > maximumDistance + 1e-9 )
+                    {
+                        continue;
+                    }
                     const signal = getInformationSignal(
                         routeDistance,
                         packet.headDistance
-                    );
+                    ) * strength;
                     const byte = Math.round( signal * 255 );
                     if ( byte < 2 ) continue;
                     const index = ( edge.row * width + sample ) * 4;
-                    if ( byte > data[index] )
+                    if ( byte > data[index + channel] )
                     {
-                        data[index] = byte;
-                        data[index + 1] = byte;
-                        data[index + 2] = byte;
+                        data[index + channel] = byte;
                         data[index + 3] = 255;
                     }
                     segmentOccupied = true;
                 }
-                if ( segmentOccupied ) occupiedRows.add( edge.row );
+                if ( !segmentOccupied ) continue;
+                occupiedRows.add( edge.row );
+                if ( channel === 0 ) sourceOccupiedRows.add( edge.row );
+                else outputOccupiedRows.add( edge.row );
             }
+        }
+
+        for ( const packet of activePackets ) stampPacket( packet );
+        for ( const traversal of inRunePackets )
+        {
+            if ( traversal.transformed ) continue;
+            const progress = THREE.MathUtils.clamp(
+                traversal.distance / traversal.pathLength,
+                0,
+                1
+            );
+            stampPacket( {
+                signalClass: 'source',
+                route: traversal.route,
+                routeStartDistance: 0,
+                headDistance: traversal.entryRouteDistance
+            }, Math.max( 0.12, 1 - progress ), traversal.entryRouteDistance );
         }
 
         let illuminatedSamples = 0;
         for ( let index = 0; index < data.length; index += 4 )
         {
-            if ( data[index] >= 2 ) illuminatedSamples += 1;
+            if ( data[index] >= 2 || data[index + 1] >= 2 ) illuminatedSamples += 1;
         }
         texture.needsUpdate = true;
         return {
             occupiedEdgeCount: occupiedRows.size,
+            sourceOccupiedEdgeCount: sourceOccupiedRows.size,
+            outputOccupiedEdgeCount: outputOccupiedRows.size,
             illuminatedSampleRatio: illuminatedSamples / ( width * height )
         };
     }
@@ -832,12 +2757,35 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         if ( informationTraffic ) informationTraffic.texture.dispose();
         informationTraffic = null;
         informationCore.uniforms.trafficTexture.value = null;
+        trunkVisibilityProxyGeometry?.dispose();
+        trunkVisibilityProxyGeometry = null;
+        trunkVisibilityOwnershipGeometry?.dispose();
+        trunkVisibilityOwnershipGeometry = null;
+        trunkRuneGranuleMesh?.geometry.dispose();
+        for ( const candidate of [ apertureTrunkMesh, apertureLinerMesh ] )
+        {
+            if ( !candidate ) continue;
+            if ( candidate.parent === group ) group.remove( candidate );
+            candidate.geometry.dispose();
+        }
         while ( group.children.length > 0 )
         {
             const child = group.children.at( -1 );
             group.remove( child );
             child.geometry.dispose();
         }
+        trunkRuneMesh = null;
+        trunkRuneGranuleMesh = null;
+        trunkRunePathLength = 0;
+        trunkRunePathProfile = null;
+        trunkRuneDepartureRecords = [];
+        trunkRuneTransductionRecords = [];
+        trunkRuneResumeRecords = [];
+        trunkRuneDepartureCount = 0;
+        trunkRuneConsumptionCount = 0;
+        trunkRuneOutputCount = 0;
+        trunkRuneResumeCount = 0;
+        inRunePackets = [];
 
         const asymmetry = parameters.asymmetry ?? 0.55;
         const selectedTerminalId = parameters.informationTerminalId
@@ -871,6 +2819,10 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         informationLastElapsed = null;
         informationLastFrequency = null;
         emittedPacketCount = 0;
+        trunkMesh = null;
+        apertureTrunkMesh = null;
+        apertureLinerMesh = null;
+        interiorSkeletonMesh = null;
         const trunkNodes = getActiveTrunkNodes( hierarchy );
         const loadDirection = getCrownLoadDirection( hierarchy, positions );
         const trunkGeometry = createMonumentalTrunkGeometry( trunkNodes, positions, {
@@ -879,7 +2831,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             loadDirection,
             informationRoute
         } );
-        const trunkMesh = new THREE.Mesh( trunkGeometry, trunk.material );
+        trunkMesh = new THREE.Mesh( trunkGeometry, trunk.material );
         trunkMesh.name = 'monumental trunk';
         trunkMesh.userData.monumentalTrunk = {
             nodes: trunkNodes,
@@ -891,6 +2843,32 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             growthSignature: null
         };
         group.add( trunkMesh );
+
+        const carrierConstructionStarted = performance.now();
+        const interiorDescriptor = createTrunkInteriorDescriptor(
+            hierarchy,
+            positions,
+            {
+                asymmetry,
+                conduitWeight: parameters.conduitWeight ?? 1,
+                loadDirection
+            }
+        );
+        const interiorGeometry = createTrunkInteriorSkeletonGeometry(
+            interiorDescriptor
+        );
+        interiorGeometry.userData.trunkInterior.constructionTimeMs =
+            performance.now() - carrierConstructionStarted;
+        interiorSkeletonMesh = new THREE.Mesh(
+            interiorGeometry,
+            interiorSkeleton.material
+        );
+        interiorSkeletonMesh.name = 'trunk interior carrier skeleton';
+        interiorSkeletonMesh.userData.trunkInteriorSkeleton = true;
+        interiorSkeletonMesh.visible = false;
+        group.add( interiorSkeletonMesh );
+        replaceTrunkVisibilityGeometry( trunkGeometry, trunkNodes );
+        attachApertureCandidates( trunkVisibilityMode === 'aperture' );
 
         for ( const edge of hierarchy.edges )
         {
@@ -951,11 +2929,30 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         const crownProgress = eligibleLatent.length > 0
             ? eligibleLatent.reduce( ( sum, node ) => sum + ( growthProgress.get( node.id ) ?? 0 ), 0 ) / eligibleLatent.length
             : 1;
+        const isolated = trunkVisibilityMode === 'isolated';
+        const apertureActive = trunkVisibilityMode === 'aperture';
         for ( const mesh of group.children )
         {
+            if ( mesh.userData.trunkInteriorSkeleton )
+            {
+                updateInteriorCarrierVisibility();
+                continue;
+            }
+            if ( mesh.userData.trunkVisibilityAperture
+                || mesh.userData.trunkVisibilityLiner )
+            {
+                // Draw ranges and visibility are synchronised by the source
+                // trunk immediately before these candidates are visited.
+                continue;
+            }
+            if ( mesh.userData.trunkRunes )
+            {
+                applyTrunkRuneVisibility();
+                continue;
+            }
             if ( mesh.userData.informationCore )
             {
-                mesh.visible = true;
+                mesh.visible = surfaceVisible && !isolated;
                 continue;
             }
             const monumentalTrunk = mesh.userData.monumentalTrunk;
@@ -984,6 +2981,10 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                             nodeScales
                         }
                     );
+                    replaceTrunkVisibilityGeometry(
+                        mesh.geometry,
+                        monumentalTrunk.nodes
+                    );
                 }
 
                 const metadata = mesh.geometry.userData.monumentalTrunk;
@@ -1010,8 +3011,35 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 const indexCount = metadata.baseIndexCount
                     + visibleSegments * metadata.radialSegments * 6
                     + ( complete ? metadata.topIndexCount : 0 );
-                mesh.geometry.setDrawRange( 0, Math.min( mesh.geometry.index.count, indexCount ) );
-                mesh.visible = true;
+                const sourceDrawCount = Math.min(
+                    mesh.geometry.index.count,
+                    indexCount
+                );
+                mesh.geometry.setDrawRange( 0, sourceDrawCount );
+                mesh.visible = surfaceVisible && !isolated && !apertureActive;
+                if ( apertureTrunkMesh )
+                {
+                    apertureTrunkMesh.geometry.setDrawRange(
+                        0,
+                        mapApertureCandidateDrawCount(
+                            apertureTrunkMesh.geometry,
+                            sourceDrawCount
+                        )
+                    );
+                    apertureTrunkMesh.visible = surfaceVisible && apertureActive;
+                }
+                if ( apertureLinerMesh )
+                {
+                    const aperture = apertureTrunkMesh.geometry.userData
+                        .trunkVisibilityAperture;
+                    const apertureSupported = aperture.omittedIndexOffsets.every(
+                        ( offset ) => sourceDrawCount >= offset + 6
+                    );
+                    apertureLinerMesh.visible = surfaceVisible
+                        && apertureActive
+                        && apertureSupported;
+                }
+                updateTrunkVisibilityMetadata();
                 continue;
             }
 
@@ -1023,9 +3051,9 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             const segmentSize = 14 * 6;
             const visibleCount = Math.floor( indexCount * progress / segmentSize ) * segmentSize;
             mesh.geometry.setDrawRange( 0, Math.min( indexCount, visibleCount ) );
-            mesh.visible = progress > 0;
+            mesh.visible = surfaceVisible && !isolated && progress > 0;
         }
-
+        group.visible = surfaceVisible || trunkVisibilityMode !== 'off';
     }
 
     rebuild( initialPositions, initialParameters );
@@ -1046,14 +3074,85 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 : Math.max( 0, elapsed - informationLastElapsed );
             informationLastElapsed = elapsed;
 
+            const intervalStart = elapsed - delta;
+            const nextActivePackets = [];
+            const retainActivePacket = ( packet ) => {
+                if ( packet
+                    && ( packet.kind === 'transduced-output'
+                        || routeIsManifested( packet.route ) )
+                    && packet.headDistance
+                        <= packet.route.totalDistance + informationTrailLength )
+                {
+                    nextActivePackets.push( packet );
+                }
+            };
+
+            const nextInRunePackets = [];
+            for ( const traversal of inRunePackets )
+            {
+                const previousDistance = traversal.distance;
+                if ( traversal.motionSpeed !== packetSpeed )
+                {
+                    traversal.motionAnchorTime = intervalStart;
+                    traversal.motionAnchorDistance = previousDistance;
+                    traversal.motionSpeed = packetSpeed;
+                }
+                const nextDistance = traversal.motionAnchorDistance
+                    + Math.max( 0, elapsed - traversal.motionAnchorTime )
+                        * packetSpeed;
+                const advanced = advanceTrunkRuneTraversal(
+                    traversal,
+                    nextDistance,
+                    elapsed,
+                    packetSpeed
+                );
+                if ( advanced.traversal )
+                {
+                    nextInRunePackets.push( advanced.traversal );
+                }
+                retainActivePacket( advanced.output );
+            }
+            inRunePackets = nextInRunePackets;
+
             for ( const packet of activePackets )
             {
-                packet.headDistance += delta * packetSpeed;
+                if ( packet.kind === 'source'
+                    && !routeIsManifested( packet.route ) )
+                {
+                    continue;
+                }
+                const previousHeadDistance = packet.headDistance;
+                if ( packet.motionSpeed !== packetSpeed )
+                {
+                    packet.motionAnchorTime = intervalStart;
+                    packet.motionAnchorDistance = previousHeadDistance;
+                    packet.motionSpeed = packetSpeed;
+                }
+                const nextHeadDistance = packet.motionAnchorDistance
+                    + Math.max( 0, elapsed - packet.motionAnchorTime )
+                        * packetSpeed;
+                if ( packet.kind === 'source' )
+                {
+                    const transferred = transferSourcePacket(
+                        packet,
+                        previousHeadDistance,
+                        nextHeadDistance,
+                        intervalStart,
+                        elapsed,
+                        packetSpeed
+                    );
+                    if ( transferred.traversal )
+                    {
+                        inRunePackets.push( transferred.traversal );
+                    }
+                    retainActivePacket( transferred.packet );
+                    retainActivePacket( transferred.output );
+                    continue;
+                }
+                packet.headDistance = nextHeadDistance;
+                retainActivePacket( packet );
             }
-            activePackets = activePackets.filter( ( packet ) =>
-                routeIsManifested( packet.route )
-                && packet.headDistance <= packet.route.totalDistance + informationTrailLength
-            );
+            activePackets = nextActivePackets;
             refreshRouteManifestationTimes( elapsed );
 
             if ( emitters.length === 0 ) initialiseEmitters( elapsed, packetFrequency );
@@ -1062,10 +3161,14 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 // Settle the old distributed schedule before compressing or
                 // expanding its remaining waits. This avoids collapsing any
                 // overdue emitters into one slider-change flash.
-                emitDuePackets( elapsed, packetSpeed );
+                emitDuePackets(
+                    elapsed,
+                    packetSpeed,
+                    informationLastFrequency ?? packetFrequency
+                );
                 rephaseEmitters( elapsed, packetFrequency );
             }
-            emitDuePackets( elapsed, packetSpeed );
+            emitDuePackets( elapsed, packetSpeed, packetFrequency );
 
             for ( const entry of materialEntries )
             {
@@ -1078,6 +3181,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 ? 0
                 : ( parameters.structuralResponse ?? 0.22 );
             const trafficState = stampInformationTraffic();
+            updateTrunkRuneTraversals();
             const manifestedRoutes = informationRoutes.filter( routeIsManifested );
             const packetDiagnostics = activePackets.map( ( packet ) => {
                 const activeSegment = packet.route.segments.find( ( segment ) =>
@@ -1086,9 +3190,17 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 );
                 return {
                     id: packet.id,
+                    kind: packet.kind,
+                    signalClass: packet.signalClass,
                     terminalId: packet.terminalId,
                     emittedAt: packet.emittedAt,
+                    sourceEmittedAt: packet.sourceEmittedAt ?? packet.emittedAt,
+                    transformedAt: packet.transformedAt ?? null,
+                    resumedAt: packet.resumedAt ?? null,
+                    sourcePacketId: packet.sourcePacketId ?? null,
+                    provenance: packet.provenance ?? null,
                     headDistance: packet.headDistance,
+                    routeStartDistance: packet.routeStartDistance ?? 0,
                     totalDistance: packet.route.totalDistance,
                     routeNodeIds: packet.route.nodeIds,
                     activeSegment: activeSegment
@@ -1101,7 +3213,16 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 eligibleEmitterCount: informationRoutes.length,
                 manifestedEmitterCount: manifestedRoutes.length,
                 packetCount: activePackets.length,
+                activeTransportPacketCount: activePackets.length,
+                inRunePacketCount: inRunePackets.length,
+                activeEventCount: activePackets.length + inRunePackets.length,
                 emittedPacketCount,
+                sourcePacketCount: activePackets.filter( ( packet ) =>
+                    packet.kind === 'source'
+                ).length,
+                transducedOutputPacketCount: activePackets.filter( ( packet ) =>
+                    packet.kind === 'transduced-output'
+                ).length,
                 activePackets: packetDiagnostics,
                 packetSpeed,
                 packetFrequency,
@@ -1110,6 +3231,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 ).length,
                 uniqueEdgeCount: trafficEdges.length,
                 occupiedEdgeCount: trafficState.occupiedEdgeCount,
+                sourceOccupiedEdgeCount: trafficState.sourceOccupiedEdgeCount,
+                outputOccupiedEdgeCount: trafficState.outputOccupiedEdgeCount,
                 illuminatedSampleRatio: trafficState.illuminatedSampleRatio,
                 emissionSchedule: emitters.map( ( emitter ) => ( {
                     terminalId: emitter.route.terminalId,
@@ -1119,7 +3242,71 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             };
         },
         setVisible( visible ) {
-            group.visible = visible;
+            surfaceVisible = visible;
+            applyGrowthProgress();
+        },
+        setInteriorDiagnosticVisible( visible ) {
+            interiorDiagnosticVisible = visible;
+            trunkVisibilityMode = visible ? 'isolated' : 'off';
+            attachApertureCandidates( false );
+            applyGrowthProgress();
+        },
+        setTrunkVisibilityMode( mode ) {
+            if ( !trunkVisibilityModes.includes( mode ) )
+            {
+                throw new Error( `Unknown trunk visibility mode '${mode}'.` );
+            }
+            trunkVisibilityMode = mode;
+            interiorDiagnosticVisible = mode === 'isolated';
+            attachApertureCandidates( mode === 'aperture' );
+            applyGrowthProgress();
+        },
+        getTrunkVisibilityMode() {
+            return trunkVisibilityMode;
+        },
+        getTrunkVisibilityResources() {
+            return {
+                mode: trunkVisibilityMode,
+                revision: trunkVisibilityResourceRevision,
+                trunkMesh,
+                apertureTrunkMesh,
+                apertureLinerMesh,
+                skeletonMesh: interiorSkeletonMesh,
+                proxyGeometry: trunkVisibilityProxyGeometry,
+                ownershipGeometry: trunkVisibilityOwnershipGeometry,
+                deformationUniforms: trunk.uniforms,
+                diagnostics: group.userData.trunkVisibility
+            };
+        },
+        setTrunkRunesVisible( visible ) {
+            trunkRunesVisible = Boolean( visible );
+            applyTrunkRuneVisibility();
+        },
+        getTrunkRuneResources() {
+            return {
+                enabled: trunkRunesVisible,
+                candidateId: trunkRuneCandidateId,
+                revision: trunkRuneResourceRevision,
+                mesh: trunkRuneMesh,
+                geometry: trunkRuneMesh?.geometry ?? null,
+                material: trunkRuneMaterial,
+                materials: trunkRuneMesh ? [ trunkRuneMesh.material ] : [
+                    trunkRuneMaterial
+                ],
+                granuleMesh: trunkRuneGranuleMesh,
+                granuleGeometry: trunkRuneGranuleMesh?.geometry ?? null,
+                ownershipGeometry: null,
+                proxyGeometry: trunkVisibilityProxyGeometry,
+                trunkMesh,
+                deformationUniforms: trunk.uniforms,
+                sites: trunkRuneSites,
+                transducerSite: trunkRuneTransducerSite,
+                activeTraversals: inRunePackets,
+                entryRecords: trunkRuneDepartureRecords,
+                transductionRecords: trunkRuneTransductionRecords,
+                centreResumeRecords: trunkRuneResumeRecords,
+                diagnostics: group.userData.trunkRunes
+            };
         },
         setGrowthProgress( progress ) {
             growthProgress = progress;

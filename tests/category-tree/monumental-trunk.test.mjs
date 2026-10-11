@@ -133,7 +133,7 @@ test( 'engineered layer replaces only trunk edges and grows one contiguous prefi
 
     assert.ok( trunk );
     assert.ok( informationCore );
-    assert.equal( layer.group.children.length, 4 );
+    assert.equal( layer.group.children.length, 5 );
     assert.equal( layer.group.getObjectByName( 'planting-root -> uptake' ), undefined );
     assert.ok( layer.group.getObjectByName( 'meaning -> operations' ) );
 

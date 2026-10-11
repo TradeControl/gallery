@@ -5,6 +5,7 @@ import { createUnfoldingLayout } from './layout.js';
 import { createTreeLayer } from './tree-layer.js';
 import { createEngineeredTreeLayer } from './engineered-tree-layer.js';
 import { createGrowthCycle } from './growth-cycle.js';
+import { createTrunkVisibilityRenderer } from './trunk-visibility-renderer.js';
 
 const sceneElement = document.querySelector( '#scene' );
 const scene = new THREE.Scene();
@@ -13,7 +14,7 @@ const neutralBackground = new THREE.Color( 0x777a76 );
 scene.background = darkBackground;
 
 const camera = new THREE.PerspectiveCamera( 48, 1, 0.1, 80 );
-const renderer = new THREE.WebGLRenderer( { antialias: true } );
+const renderer = new THREE.WebGLRenderer( { antialias: true, stencil: true } );
 renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -80,6 +81,12 @@ scene.add( diagnostics.group );
 
 const engineeredTree = createEngineeredTreeLayer( hierarchy, positions, form );
 scene.add( engineeredTree.group );
+const trunkVisibilityRenderer = createTrunkVisibilityRenderer(
+    renderer,
+    scene,
+    camera,
+    engineeredTree
+);
 const growthCycle = createGrowthCycle( hierarchy, 2 );
 let unfoldingElapsed = 0;
 let unfoldingActive = true;
@@ -192,11 +199,55 @@ function bindSwitch( id, apply )
     apply( control.checked );
 }
 
-bindSwitch( 'show-surface', engineeredTree.setVisible );
+const surfaceControl = document.querySelector( '#show-surface' );
+const interiorInspectionControl = document.querySelector( '#inspect-trunk-interior' );
+const trunkVisibilityControl = document.querySelector( '#trunk-visibility-mode' );
+let surfaceVisibleBeforeInspection = surfaceControl.checked;
+function applyEngineeredVisibility()
+{
+    const mode = trunkVisibilityControl.value;
+    const inspectingInterior = mode === 'isolated';
+    interiorInspectionControl.checked = inspectingInterior;
+    surfaceControl.disabled = inspectingInterior;
+    engineeredTree.setVisible( surfaceControl.checked && !inspectingInterior );
+    engineeredTree.setTrunkVisibilityMode( mode );
+}
+surfaceControl.addEventListener( 'change', () => {
+    surfaceVisibleBeforeInspection = surfaceControl.checked;
+    applyEngineeredVisibility();
+} );
+interiorInspectionControl.addEventListener( 'change', () => {
+    if ( interiorInspectionControl.checked )
+    {
+        surfaceVisibleBeforeInspection = surfaceControl.checked;
+        surfaceControl.checked = false;
+        trunkVisibilityControl.value = 'isolated';
+    }
+    else
+    {
+        surfaceControl.checked = surfaceVisibleBeforeInspection;
+        trunkVisibilityControl.value = 'off';
+    }
+    applyEngineeredVisibility();
+} );
+trunkVisibilityControl.addEventListener( 'change', () => {
+    if ( trunkVisibilityControl.value === 'isolated' )
+    {
+        surfaceVisibleBeforeInspection = surfaceControl.checked;
+        surfaceControl.checked = false;
+    }
+    else if ( !surfaceControl.checked )
+    {
+        surfaceControl.checked = surfaceVisibleBeforeInspection;
+    }
+    applyEngineeredVisibility();
+} );
+applyEngineeredVisibility();
 bindSwitch( 'show-nodes', diagnostics.setNodesVisible );
 bindSwitch( 'show-edges', diagnostics.setEdgesVisible );
 bindSwitch( 'show-axes', diagnostics.setAxesVisible );
 bindSwitch( 'role-colours', diagnostics.setRoleColoursVisible );
+bindSwitch( 'show-trunk-runes', engineeredTree.setTrunkRunesVisible );
 bindSwitch( 'freeze-motion', ( frozen ) => { form.motionFrozen = frozen; } );
 bindSwitch( 'neutral-background', ( neutral ) => {
     scene.background = neutral ? neutralBackground : darkBackground;
@@ -219,6 +270,7 @@ function resize()
     camera.updateProjectionMatrix();
     renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
     renderer.setSize( width, height, false );
+    trunkVisibilityRenderer.resize();
 }
 
 const animationStart = performance.now();
@@ -240,7 +292,35 @@ function animate( now )
     }
     engineeredTree.update( elapsed, form );
     orbitControls.update();
-    renderer.render( scene, camera );
+    trunkVisibilityRenderer.render();
+    const runeActivity = document.querySelector( '#trunk-rune-activity' );
+    if ( runeActivity )
+    {
+        const runes = engineeredTree.group.userData.trunkRunes;
+        if ( !runes?.enabled ) runeActivity.value = 'off';
+        else if ( runes.visibilityMode !== 'off' ) runeActivity.value = 'hidden for diagnostic';
+        else if ( runes.activeTraversalCount > 0 )
+        {
+            runeActivity.value = `${runes.activeTraversalCount} transducing`
+                + ` · ${runes.outputCount}/${runes.entryCount} outputs`;
+        }
+        else if ( runes.entryCount > 0 )
+        {
+            runeActivity.value = `quiet · ${runes.outputCount}`
+                + `/${runes.entryCount} outputs`;
+        }
+        else runeActivity.value = 'waiting for input';
+    }
+    const visibilityCost = document.querySelector( '#trunk-visibility-cost' );
+    if ( visibilityCost )
+    {
+        const cost = trunkVisibilityRenderer.getDiagnostics();
+        const target = cost.renderTargetWidth > 0
+            ? ` · ${cost.renderTargetWidth}×${cost.renderTargetHeight}`
+            : '';
+        visibilityCost.value = `${cost.passCount} pass${cost.passCount === 1 ? '' : 'es'}`
+            + ` · ${cost.cpuSubmissionEmaMs.toFixed( 1 )} ms${target}`;
+    }
 }
 
 window.addEventListener( 'resize', resize );

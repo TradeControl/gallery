@@ -34,9 +34,9 @@ The structure may resemble an engineered arbor, refinery, nervous system or comp
 
 ### Their unification
 
-The throat is the hinge between landscape and structure. Flows arrive separately across the deformed field, descend into the casting centre, and reappear within the Tree as ordered recursive activity. The Tree does not simply stand beside or on top of the pit: it is the structured consequence of convergence.
+The Tree as a whole is the transducer between the physical Universe and ordered Cosmos. Information descends through its recursive canopy, monumental trunk and eventual mycelium-like roots into Cosmic circuitry. Molten material follows the opposite causal path: it is drawn from the physical Universe through the Casting Pit gravity well and rises through the roots to sustain the Tree. These processes meet compositionally but are not interchangeable flows or three decorative animations.
 
-This relationship should remain somewhat mysterious. The viewer need not read individual business terms to sense that raw, distributed events are being gathered, classified and transformed. Future connections to real Trade Control data may make the behaviour more specific, but the artwork must first succeed as an autonomous visual experience.
+The gravity well and buried root system form the hinge between landscape and structure. Their relationship should remain partly unseen and therefore larger than its finite representation. The viewer need not inspect internal machinery or read individual business terms to sense classification, passage and eventual transformation. Future connections to real Trade Control data may make the behaviour more specific, but the artwork must first succeed as an autonomous visual experience.
 
 ## Behaviour and meaning
 
