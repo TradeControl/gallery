@@ -18,7 +18,10 @@ export function createCastingPitWorld( sceneElement, options = {} )
     scene.background = new THREE.Color( options.background ?? 0x030405 );
 
     const camera = new THREE.PerspectiveCamera( 48, 1, 0.1, 80 );
-    const renderer = new THREE.WebGLRenderer( { antialias: true } );
+    const renderer = new THREE.WebGLRenderer( {
+        antialias: true,
+        stencil: options.stencil ?? false
+    } );
     renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -56,11 +59,13 @@ export function createCastingPitWorld( sceneElement, options = {} )
         return () => frameCallbacks.splice( frameCallbacks.indexOf( callback ), 1 );
     }
 
+    let renderFrame = null;
     function animate( time )
     {
         frameCallbacks.forEach( ( callback ) => callback( time ) );
         orbitControls.update();
-        renderer.render( scene, camera );
+        if ( renderFrame ) renderFrame( time );
+        else renderer.render( scene, camera );
     }
 
     window.addEventListener( 'resize', resize );
@@ -73,7 +78,12 @@ export function createCastingPitWorld( sceneElement, options = {} )
         orbitControls,
         setCameraView,
         addFrameCallback,
-        start() {
+        start( render = null ) {
+            if ( render !== null && typeof render !== 'function' )
+            {
+                throw new TypeError( 'Casting Pit render delegate must be a function.' );
+            }
+            renderFrame = render;
             resize();
             renderer.setAnimationLoop( animate );
         }

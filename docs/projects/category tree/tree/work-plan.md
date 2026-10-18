@@ -1,6 +1,6 @@
 # Tree — phased work plan
 
-**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1, C4d-D2 and C4d-D3 are approved; D4's technically valid v1 point-locus presentation is retained as artistically insufficient evidence; human review accepts the bounded v2 route-local head-and-wake presentation as the strongest artistic result so far and authorises that checkpoint; the separately authorised exact-seed junction-knot experiment is implemented, technically verified and awaiting human artistic review; aggregation, physical roots and environment integration remain gated
+**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1, C4d-D2 and C4d-D3 are approved; D4's technically valid v1 point-locus presentation is retained as artistically insufficient evidence; human review accepts the bounded v2 route-local head-and-wake presentation as the strongest artistic result so far; the exact-seed junction-knot experiment and consolidated standalone Tree are approved, with the baseline recorded at commit `7c88dc3`; Phase 5's first bounded planting block is implemented in a separate composition endpoint and awaits human visual review; aggregation, physical roots and causal cross-system transport remain gated
 **Scope:** the Tree as an independent construction problem, followed by deliberate integration with the signed-off Casting Pit
 
 ## Decision: develop the Tree separately first
@@ -2014,6 +2014,16 @@ Solve the composition problem without redesigning the signed-off Tree or Casting
 8. Judge whether Cosmos remains a surrounding substrate, enters the Tree, or becomes visually redundant near it. Do not assume all three systems need equal prominence.
 9. Only after spatial composition succeeds, investigate the hinge between arriving molten flow and ordered Tree activity.
 10. Treat the buried root and trunk as the eventual transducer between layers: physical channels may draw released molten material upward while separate phloem-like channels carry aggregated information packets down through the trunk into the ordered Cosmos. These opposed transport laws must remain distinguishable and must be driven by their source systems rather than by decorative trunk pulses.
+
+### P1 — baseline planting and inspection
+
+**Status:** implemented and technically verified; awaiting human visual review.
+
+The separate `src/category-tree/composition/` study mounts the signed-off Tree at the canonical Gaussian-well centre without changing the standalone Tree endpoint. One shared world, camera and frame loop host the Tree, Universe and Cosmos layers. The common Casting Pit world retains its existing default render path and adds an optional final-render delegate so the Tree's accepted multi-pass internal packet presentation is not overwritten by a later plain scene render.
+
+P1 provides the five planned visibility modes and bounded controls for Tree scale, root embed depth and orientation. It also retains the complete slider contracts of both foundational baselines: every Tree slider and every Universe/Cosmos Casting Pit slider keeps its accepted range, step and default, grouped into collapsible sections. No coupling, aggregation or new transport behaviour has been introduced.
+
+Focused regression tests pass, the composition builds, and browser inspection confirms that the local Tree root is anchored at `(0, -5.5, 0)` and that cyan canopy traffic plus the gold rootward presentation survive in the shared world. Two visual questions remain deliberately unresolved for review: Cosmos presently competes strongly with the Tree in the complete view, and low root-level views suggest that the Tree's subsurface gold presentation does not yet occlude convincingly against the Casting Pit membrane. These are P1 findings for Phase 5 steps 6 and 8, not authority to refine the renderer in this block.
 
 ### Acceptance gate
 
