@@ -1,6 +1,6 @@
 # Tree — phased work plan
 
-**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1, C4d-D2 and C4d-D3 are approved; D4 presentation is eligible for a separately defined bounded experiment but has not begun; aggregation, physical roots and environment integration remain gated
+**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1, C4d-D2 and C4d-D3 are approved; D4's technically valid v1 point-locus presentation is retained as artistically insufficient evidence; human review accepts the bounded v2 route-local head-and-wake presentation as the strongest artistic result so far and authorises this checkpoint, while the abrupt junction remains the subject of a later bounded experiment; aggregation, physical roots and environment integration remain gated
 **Scope:** the Tree as an independent construction problem, followed by deliberate integration with the signed-off Casting Pit
 
 ## Decision: develop the Tree separately first
@@ -1584,7 +1584,7 @@ or authorise D3 until those relationships are convincing.
 ##### C4d-D3 — independent packet transmission
 
 **Status:** implemented, technically verified and human-approved on 2026-10-18.
-D4 has not begun.
+The subsequent D4 candidate is now implemented and awaits separate human review.
 
 Route each gold output down exactly one selected D1 path. Different packets may
 select different endpoints or share a route, but a packet never duplicates at a
@@ -1683,23 +1683,112 @@ available for testing. No D4 rendering technique is selected by this sign-off.
 
 ##### C4d-D4 — artistic presentation
 
-**Status:** next eligible experiment after D3 sign-off; not yet defined or begun.
-Implementation requires a separate bounded instruction and human review stop.
+**Status:** the technically valid
+`c4d-d4-packet-local-subsurface-loci-v1` point-locus study is retained as
+artistically insufficient evidence. Candidate
+`c4d-d4-route-local-subsurface-trails-v2` is implemented and technically verified
+on 2026-10-18. Human review accepts it as the strongest artistic result so far and
+authorises this checkpoint. It remains default-off and is not claimed as the final
+transducer treatment. Stop before a junction-form experiment or C5.
 
-Investigate how little of the validated router needs to become perceptible. The
-router may remain transparent while active packets alone reveal its order;
-transillumination, selective material response or another language must be
-compared rather than presumed. Do not reopen C2's permanent inventory or treat a
-diagnostic view as the artwork.
+D4-v1 proved that one genuine D3 identity could be disclosed at its correct
+object-space centre with shell-depth occlusion, but the result looked like a
+succession of small gold beads. That morphology made the post-rune packet appear
+to be a different kind of information from the cyan canopy head and wake. Preserve
+v1 as evidence; do not present it as the current artistic solution.
 
-**Human review gate:** determine whether packet activity suggests a larger unseen
-recursive order while the graphite retains monumentality. An unsuccessful visual
-result is valid evidence and does not authorise indefinite refinement.
+D4-v2 makes the rune the colour boundary and nothing more. The cyan packet enters
+the rune; one distinct Cosmos-gold output leaves with the same head width, wake
+length, wake decay, core scale, cadence and route-following motion used by the
+canopy stream. Each active D3 identity supplies a frozen sample of its own
+immutable route snapshot from its head back through the supported wake length.
+The renderer joins those densely sampled points piecewise, so it cannot round
+across an authored junction, remap the route, create a scheduler or change
+transport. Its live tube radius uses the same conduit-weight formula as the
+canopy packet rather than an enlarged internal substitute. No packet is copied,
+merged, delayed or rephased. When no D3 packet occupies the lower trunk, D4
+leaves no persistent mark. The D1 guide, complete router inventory and C1
+carriers remain hidden, and the accepted graphite geometry and material are
+unchanged.
+
+The opt-in renderer uses five bounded passes: the ordinary scene; front and back
+depth of an unconditional lower-trunk envelope; nearest packet-trail depth; and
+one burial-attenuated gold overlay. Rear transmission has a zero floor. The trail
+shares the Tree's object-space deformation, uses normal rather than additive
+blending and does not use `GreaterDepth`, bloom or a camera-facing projection. An
+exact re-rasterised ownership stencil was removed from v2 because its triangle
+coverage produced visible banding; front/back shell depth still supplies genuine
+three-dimensional occlusion. The same lower-trunk depth envelope is owned by D4
+for all preserved C4 presentation profiles rather than silently depending on C4c.
+
+This is a presentation of **passage**, not aggregation. The invariant is one
+submitted route-local trail per active D3 packet identity, not guaranteed
+pixel-level separation. At `11` packets per second, independent canopy timings can
+place packets almost coincidently on one shared internal route. The transport
+ledger, identity order, route snapshots and head positions remain distinct and
+conserved. Normal alpha blending avoids an additive energy sum, although ordinary
+overlapping coverage can still make a close cluster denser; it carries no semantic
+claim. Guaranteed visual discernibility under that congestion would require a
+later encoding or collision-presentation experiment, not dishonest packet
+displacement inside this block.
+
+The accepted D2/D3 lifecycle remains unchanged. D2 consumes the cyan source and
+its visible wake atomically at the rune, so the Cosmos-gold wake begins at zero
+length and grows behind the continuing head. D3 retires the output presentation
+when that head arrives, so its remaining wake disappears at the endpoint. A
+presentation-only residual wake could be investigated separately if the boundary
+still reads as abrupt, but this block does not resurrect consumed transport state
+or extend a completed packet.
+
+The retained defaults remain tier `3`, `0.20` packets per second and D4 off. The
+review setting is tier `4` at approximately `1.00` packet per second. Browser
+inspection in Silhouette, Structure, Canopy and the close **D4 Passage** view
+confirms that the gold head-and-wake stays on the three-dimensional route under
+orbit, is attenuated or hidden by real shell depth and leaves no persistent
+network between events. The monumental exterior and accepted canopy remain
+unchanged in their ordinary views.
+
+Focused D4 regression passes `6/6`, including default-off behaviour; exact shared
+packet-profile constants; immutable D3 route, identity and provenance reuse; idle
+withdrawal; independence from preserved C4 profiles; Tree/transport invariance;
+maximum-frequency shared-route congestion; and renderer resource ownership. The
+complete Tree suite passes `72/72`. The scoped Vite production build passes at
+`770.17 kB` minified (`196.74 kB` gzip); the existing large-chunk advisory remains
+non-blocking. In one sustained tier-4 `11.00`/`0.50` browser stress sample, `115`
+packets were active, `137` had arrived, all `24/24` routes had been exercised,
+peak concurrency was `122`, both lifecycle balance and visual overflow were `0`,
+and `2,398` trail samples produced a local five-pass CPU-submission EMA of about
+`25.4 ms` at `1075 × 930`. This intentionally severe setting is implementation
+evidence, not GPU timing or a
+performance budget.
+
+**Human review gate:** with tier `4`, frequency near `1.00` and **D4 Passage**,
+watch one cyan head-and-wake reach the central rune and one Cosmos-gold
+head-and-wake leave it. Apart from colour, it should read as the same visual
+information: the same kind of leading head, receding wake, scale, cadence and
+continuous route-following motion. Rotate the Tree: the gold signal should remain
+inside the volume, becoming attenuated or hidden by real graphite depth rather
+than sliding onto the facing surface. Between events the opaque graphite should
+again read as one monumental mass, with no guide or permanent router inventory.
+Use `11.00` only as a conservation and congestion stress test; bright overlaps are
+optical coincidence, not aggregation. Judge whether v2 now preserves the canopy's
+visual sentence through the rune while allowing the colour change to signify
+transduction. An unsuccessful artistic result is valid evidence and does not
+authorise refinement or C5 without a new review decision.
+
+**Human review outcome — 2026-10-18:** D4-v2 is approved as a worthwhile artistic
+checkpoint and the best trunk result so far. The reviewer accepted the continuity
+of the route-local gold head-and-wake language while identifying the sharp
+cyan-to-gold handoff as the remaining visible weakness. The next bounded
+hypothesis may place an intricate, event-responsive three-dimensional form at the
+exact junction point, informed by the earlier filigree experiment but not attached
+to the trunk like a brooch. This review authorises preservation and planning only;
+it does not select that form, begin its implementation or authorise C5.
 
 #### C5 — provenance-preserving behavioural convergence
 
-**Status:** artistic objective retained but paused and unauthorised after the
-C4d sequence; any continuation requires D4 review and a separate explicit brief.
+**Status:** artistic objective retained but paused and unauthorised after D4-v2
+review; any continuation requires a separate explicit C5 brief.
 
 **Purpose:** determine whether multiple independent authored inputs can produce
 one genuinely new rootward output and a perceptible higher-order consequence

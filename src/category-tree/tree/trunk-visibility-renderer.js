@@ -1,4 +1,10 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import {
+    getInformationSignal,
+    informationPacketVisualProfile,
+    internalRouterPresentationCandidateId
+} from './engineered-tree-layer.js';
 
 const swayedVertexBody = `
     vec3 transformed = position;
@@ -345,6 +351,315 @@ function createRuneSubsurfaceMaterial()
     return material;
 }
 
+export const internalRouterPresentationStyle = Object.freeze( {
+    packetCoreRadius: informationPacketVisualProfile.coreRadius,
+    headWidth: informationPacketVisualProfile.headWidth,
+    trailLength: informationPacketVisualProfile.trailLength,
+    wakeAmplitude: informationPacketVisualProfile.wakeAmplitude,
+    wakeDecay: informationPacketVisualProfile.wakeDecay,
+    discardThreshold: informationPacketVisualProfile.discardThreshold,
+    outputColour: informationPacketVisualProfile.outputColour,
+    outputIntensity: informationPacketVisualProfile.outputIntensity,
+    internalTransmissionCompensation:
+        informationPacketVisualProfile.internalTransmissionCompensation,
+    overlapPolicy: 'physical-occlusion-no-semantic-aggregation'
+} );
+
+const packetTrailVertexShader = `
+    uniform float treeTime;
+    uniform float treeResponse;
+    attribute float packetSignal;
+    varying float internalPacketSignal;
+
+    void main()
+    {
+        internalPacketSignal = packetSignal;
+        vec3 transformed = position;
+        #ifdef USE_INSTANCING
+            transformed = ( instanceMatrix * vec4( transformed, 1.0 ) ).xyz;
+        #endif
+        float motionReach = smoothstep( 0.25, 5.6, max( transformed.y, 0.0 ) );
+        float swayX = sin( treeTime * 0.72 + transformed.y * 0.38
+            + transformed.z * 0.12 );
+        float swayZ = sin( treeTime * 0.56 + transformed.y * 0.31
+            + transformed.x * 0.10 + 1.7 );
+        float flutter = sin( treeTime * 1.17 + transformed.y * 0.81
+            + transformed.z * 0.19 );
+        transformed.x += ( swayX * 0.25 + flutter * 0.035 )
+            * treeResponse * motionReach;
+        transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
+            * treeResponse * motionReach;
+        gl_Position = projectionMatrix * modelViewMatrix
+            * vec4( transformed, 1.0 );
+    }
+`;
+
+function createPacketTrailDepthMaterial()
+{
+    const material = new THREE.ShaderMaterial( {
+        uniforms: {
+            treeTime: { value: 0 },
+            treeResponse: { value: 0.22 }
+        },
+        vertexShader: packetTrailVertexShader,
+        fragmentShader: `
+            #include <packing>
+            varying float internalPacketSignal;
+            void main()
+            {
+                if ( internalPacketSignal <= ${informationPacketVisualProfile.discardThreshold.toFixed( 3 )} ) discard;
+                gl_FragColor = packDepthToRGBA( gl_FragCoord.z );
+            }
+        `,
+        side: THREE.DoubleSide,
+        depthTest: true,
+        depthFunc: THREE.LessEqualDepth,
+        depthWrite: true,
+        transparent: false,
+        toneMapped: false,
+        blending: THREE.NoBlending
+    } );
+    material.name = 'D4 nearest route-local packet-trail depth';
+    material.userData.presentationCandidateId =
+        internalRouterPresentationCandidateId;
+    return material;
+}
+
+function createPacketTrailSubsurfaceMaterial()
+{
+    const material = new THREE.ShaderMaterial( {
+        uniforms: {
+            treeTime: { value: 0 },
+            treeResponse: { value: 0.22 },
+            frontDepth: { value: null },
+            backDepth: { value: null },
+            trailDepth: { value: null },
+            viewport: { value: new THREE.Vector2( 1, 1 ) },
+            cameraNear: { value: 0.1 },
+            cameraFar: { value: 80 },
+            packetRadius: {
+                value: informationPacketVisualProfile.coreRadius
+            },
+            outputColour: {
+                value: new THREE.Color(
+                    informationPacketVisualProfile.outputColour
+                ).multiplyScalar(
+                    informationPacketVisualProfile.outputIntensity
+                )
+            }
+        },
+        vertexShader: packetTrailVertexShader,
+        fragmentShader: `
+            #include <packing>
+            uniform sampler2D frontDepth;
+            uniform sampler2D backDepth;
+            uniform sampler2D trailDepth;
+            uniform vec2 viewport;
+            uniform float cameraNear;
+            uniform float cameraFar;
+            uniform float packetRadius;
+            uniform vec3 outputColour;
+            varying float internalPacketSignal;
+
+            float viewDistance( float depth )
+            {
+                float clipZ = depth * 2.0 - 1.0;
+                return ( 2.0 * cameraNear * cameraFar )
+                    / ( cameraFar + cameraNear
+                        - clipZ * ( cameraFar - cameraNear ) );
+            }
+
+            void main()
+            {
+                if ( internalPacketSignal <= ${informationPacketVisualProfile.discardThreshold.toFixed( 3 )} ) discard;
+                vec2 uv = gl_FragCoord.xy / viewport;
+                float front = unpackRGBAToDepth( texture2D( frontDepth, uv ) );
+                float back = unpackRGBAToDepth( texture2D( backDepth, uv ) );
+                float nearestTrail = unpackRGBAToDepth(
+                    texture2D( trailDepth, uv )
+                );
+                if ( front >= 0.99999 || back >= 0.99999
+                    || nearestTrail >= 0.99999 ) discard;
+
+                float frontDistance = viewDistance( front );
+                float backDistance = viewDistance( back );
+                float fragmentDistance = viewDistance( gl_FragCoord.z );
+                float nearestTrailDistance = viewDistance( nearestTrail );
+                float shellThickness = backDistance - frontDistance;
+                if ( shellThickness <= 0.0001
+                    || fragmentDistance <= frontDistance + 0.0005
+                    || fragmentDistance >= backDistance - 0.0005 ) discard;
+
+                float nearestTolerance = max(
+                    packetRadius * 2.0,
+                    fragmentDistance * 0.00025
+                );
+                if ( abs( fragmentDistance - nearestTrailDistance )
+                    > nearestTolerance ) discard;
+
+                float burial = fragmentDistance - frontDistance;
+                float burialFraction = clamp(
+                    burial / shellThickness,
+                    0.0,
+                    1.0
+                );
+                float transmission = exp( -burial )
+                    * max( 0.0, 1.0 - burialFraction );
+                if ( transmission <= 0.005 ) discard;
+                gl_FragColor = vec4(
+                    outputColour,
+                    min(
+                        1.0,
+                        internalPacketSignal
+                            * ${informationPacketVisualProfile.alpha.toFixed( 2 )}
+                            * transmission * 2.2
+                            * ${informationPacketVisualProfile.internalTransmissionCompensation.toFixed( 1 )}
+                    )
+                );
+            }
+        `,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        blending: THREE.NormalBlending,
+        toneMapped: false,
+        stencilWrite: false
+    } );
+    material.name = 'D4 route-local gold head-and-wake transmission';
+    material.userData.presentationCandidateId =
+        internalRouterPresentationCandidateId;
+    material.userData.depthAware = true;
+    material.userData.cameraFacing = false;
+    material.userData.greaterDepth = false;
+    material.userData.persistentDisclosure = false;
+    material.userData.colourBoundary =
+        'cyan-input-to-cosmos-gold-output-at-rune';
+    material.userData.morphology = 'canopy-equivalent-head-and-wake';
+    return material;
+}
+
+export function createInternalRouterPacketTrailGeometry(
+    packetTrails,
+    packetRadius = informationPacketVisualProfile.coreRadius
+)
+{
+    if ( !Number.isFinite( packetRadius ) || packetRadius <= 0 )
+    {
+        throw new Error( 'D4 packet radius must be positive and finite.' );
+    }
+    const sources = [];
+    const radialSegments = 8;
+    let submittedSampleCount = 0;
+    for ( const trail of packetTrails )
+    {
+        const visibleSamples = trail.samples.filter( ( sample ) =>
+            getInformationSignal( sample.distance, trail.headDistance )
+                > informationPacketVisualProfile.discardThreshold
+        );
+        submittedSampleCount += visibleSamples.length;
+        if ( visibleSamples.length === 0 ) continue;
+        if ( visibleSamples.length === 1 )
+        {
+            const sample = visibleSamples[0];
+            const geometry = new THREE.SphereGeometry(
+                packetRadius,
+                radialSegments,
+                6
+            );
+            geometry.translate( ...sample.position );
+            geometry.setAttribute(
+                'packetSignal',
+                new THREE.Float32BufferAttribute(
+                    new Float32Array(
+                        geometry.getAttribute( 'position' ).count
+                    ).fill( getInformationSignal(
+                        sample.distance,
+                        trail.headDistance
+                    ) ),
+                    1
+                )
+            );
+            sources.push( geometry );
+            continue;
+        }
+
+        const routePoints = visibleSamples.map( ( sample ) =>
+            new THREE.Vector3().fromArray( sample.position )
+        );
+        const routeCurve = new THREE.CurvePath();
+        for ( let index = 1; index < routePoints.length; index += 1 )
+        {
+            routeCurve.add( new THREE.LineCurve3(
+                routePoints[index - 1],
+                routePoints[index]
+            ) );
+        }
+        const tubularSegments = Math.max(
+            4,
+            visibleSamples.length - 1
+        );
+        const geometry = new THREE.TubeGeometry(
+            routeCurve,
+            tubularSegments,
+            packetRadius,
+            radialSegments,
+            false
+        );
+        const packetSignal = new Float32Array(
+            geometry.getAttribute( 'position' ).count
+        );
+        const ringStride = radialSegments + 1;
+        const firstDistance = visibleSamples[0].distance;
+        const lastDistance = visibleSamples.at( -1 ).distance;
+        for ( let vertex = 0; vertex < packetSignal.length; vertex += 1 )
+        {
+            const ring = Math.min(
+                tubularSegments,
+                Math.floor( vertex / ringStride )
+            );
+            const routeDistance = THREE.MathUtils.lerp(
+                firstDistance,
+                lastDistance,
+                ring / tubularSegments
+            );
+            packetSignal[vertex] = getInformationSignal(
+                routeDistance,
+                trail.headDistance
+            );
+        }
+        geometry.setAttribute(
+            'packetSignal',
+            new THREE.Float32BufferAttribute( packetSignal, 1 )
+        );
+        sources.push( geometry );
+    }
+    const geometry = sources.length > 0
+        ? mergeGeometries( sources, false )
+        : new THREE.BufferGeometry();
+    for ( const source of sources ) source.dispose();
+    if ( !geometry )
+    {
+        throw new Error( 'D4 packet trails could not be merged.' );
+    }
+    if ( geometry.getAttribute( 'position' ) )
+    {
+        geometry.computeBoundingBox();
+        geometry.computeBoundingSphere();
+    }
+    geometry.userData.internalRouterPresentation = {
+        candidateId: internalRouterPresentationCandidateId,
+        packetCount: packetTrails.length,
+        submittedSampleCount,
+        vertexCount: geometry.getAttribute( 'position' )?.count ?? 0,
+        packetRadius,
+        centreline: 'piecewise-authored-route-samples',
+        objectSpace: true,
+        cameraFacing: false
+    };
+    return geometry;
+}
+
 function createPackedDepthTarget()
 {
     const target = new THREE.WebGLRenderTarget( 1, 1, {
@@ -371,7 +686,9 @@ export function createTrunkVisibilityRenderer(
     const ownershipScene = new THREE.Scene();
     const carrierScene = new THREE.Scene();
     const runeScene = new THREE.Scene();
+    const packetLocusScene = new THREE.Scene();
     const placeholder = new THREE.BufferGeometry();
+    const packetTrailPlaceholder = new THREE.BufferGeometry();
     const frontDepthMaterial = createProxyMaterial( THREE.FrontSide, true );
     const backDepthMaterial = createProxyMaterial( THREE.BackSide, true );
     const ownershipMaterial = createProxyMaterial( THREE.FrontSide, false );
@@ -385,18 +702,28 @@ export function createTrunkVisibilityRenderer(
     const stencilMaterial = createCarrierOverlayMaterial( false );
     const runeDepthMaterial = createRuneDepthMaterial();
     const runeSubsurfaceMaterial = createRuneSubsurfaceMaterial();
+    const packetLocusDepthMaterial = createPacketTrailDepthMaterial();
+    const packetLocusSubsurfaceMaterial =
+        createPacketTrailSubsurfaceMaterial();
     const proxyMesh = new THREE.Mesh( placeholder, ownershipMaterial );
     const ownershipMesh = new THREE.Mesh( placeholder, ownershipMaterial );
     const carrierMesh = new THREE.Mesh( placeholder, attenuationMaterial );
     const runeMesh = new THREE.Mesh( placeholder, runeSubsurfaceMaterial );
+    const packetLocusMesh = new THREE.Mesh(
+        packetTrailPlaceholder,
+        packetLocusSubsurfaceMaterial
+    );
     proxyMesh.matrixAutoUpdate = false;
     ownershipMesh.matrixAutoUpdate = false;
     carrierMesh.matrixAutoUpdate = false;
     runeMesh.matrixAutoUpdate = false;
+    packetLocusMesh.matrixAutoUpdate = false;
+    packetLocusMesh.frustumCulled = false;
     proxyScene.add( proxyMesh );
     ownershipScene.add( ownershipMesh );
     carrierScene.add( carrierMesh );
     runeScene.add( runeMesh );
+    packetLocusScene.add( packetLocusMesh );
     const frontDepthTarget = createPackedDepthTarget();
     const backDepthTarget = createPackedDepthTarget();
     const runeDepthTarget = createPackedDepthTarget();
@@ -413,6 +740,8 @@ export function createTrunkVisibilityRenderer(
         carrierOverlayPasses: 0,
         runeDepthPasses: 0,
         runeOverlayPasses: 0,
+        packetLocusDepthPasses: 0,
+        packetLocusOverlayPasses: 0,
         subsurfaceActive: false,
         renderTargetPixels: 0,
         renderTargetWidth: 0,
@@ -422,11 +751,11 @@ export function createTrunkVisibilityRenderer(
         stencilAvailable: renderer.getContext().getContextAttributes().stencil
     };
 
-    function resize()
+    function resize( scale = 0.5 )
     {
         renderer.getDrawingBufferSize( drawingBufferSize );
-        const width = Math.max( 1, Math.floor( drawingBufferSize.x * 0.5 ) );
-        const height = Math.max( 1, Math.floor( drawingBufferSize.y * 0.5 ) );
+        const width = Math.max( 1, Math.floor( drawingBufferSize.x * scale ) );
+        const height = Math.max( 1, Math.floor( drawingBufferSize.y * scale ) );
         if ( frontDepthTarget.width === width
             && frontDepthTarget.height === height ) return;
         frontDepthTarget.setSize( width, height );
@@ -520,6 +849,56 @@ export function createTrunkVisibilityRenderer(
             runeResources.geometry.userData.trunkRunes.tubeRadius;
     }
 
+    function updatePacketLocusResources( resources )
+    {
+        proxyMesh.geometry = resources.proxyGeometry;
+        resources.trunkMesh.updateWorldMatrix( true, false );
+        proxyMesh.matrix.copy( resources.trunkMesh.matrixWorld );
+        packetLocusMesh.matrix.copy( resources.trunkMesh.matrixWorld );
+        const previousGeometry = packetLocusMesh.geometry;
+        packetLocusMesh.geometry = createInternalRouterPacketTrailGeometry(
+            resources.packetTrails,
+            resources.packetRadius
+        );
+        if ( previousGeometry !== packetTrailPlaceholder )
+        {
+            previousGeometry.dispose();
+        }
+        if ( resources.diagnostics )
+        {
+            const metadata = packetLocusMesh.geometry.userData
+                .internalRouterPresentation;
+            resources.diagnostics.submittedSampleCount =
+                metadata.submittedSampleCount;
+            resources.diagnostics.submittedVertexCount = metadata.vertexCount;
+            resources.diagnostics.sampleOverflowCount = 0;
+        }
+
+        const source = resources.deformationUniforms;
+        for ( const material of [
+            frontDepthMaterial,
+            backDepthMaterial,
+            ownershipMaterial
+        ] )
+        {
+            material.uniforms.treeTime.value = source.time.value;
+            material.uniforms.treeRelief.value = source.relief.value;
+            material.uniforms.treeResponse.value = source.response.value;
+        }
+        for ( const material of [
+            packetLocusDepthMaterial,
+            packetLocusSubsurfaceMaterial
+        ] )
+        {
+            material.uniforms.treeTime.value = source.time.value;
+            material.uniforms.treeResponse.value = source.response.value;
+        }
+        packetLocusSubsurfaceMaterial.uniforms.cameraNear.value = camera.near;
+        packetLocusSubsurfaceMaterial.uniforms.cameraFar.value = camera.far;
+        packetLocusSubsurfaceMaterial.uniforms.packetRadius.value =
+            resources.packetRadius;
+    }
+
     function renderPackedDepth( target, material )
     {
         renderer.setRenderTarget( target );
@@ -553,12 +932,38 @@ export function createTrunkVisibilityRenderer(
         renderer.render( runeScene, camera );
     }
 
+    function renderPacketLocusDepth()
+    {
+        renderer.setRenderTarget( runeDepthTarget );
+        renderer.setClearColor( 0xffffff, 1 );
+        renderer.clear( true, true, false );
+        packetLocusMesh.material = packetLocusDepthMaterial;
+        renderer.render( packetLocusScene, camera );
+    }
+
+    function renderPacketLocusSubsurface()
+    {
+        renderer.setRenderTarget( null );
+        packetLocusMesh.material = packetLocusSubsurfaceMaterial;
+        renderer.render( packetLocusScene, camera );
+    }
+
     function render( mode = engineeredTree.getTrunkVisibilityMode() )
     {
         const started = performance.now();
         const resources = engineeredTree.getTrunkVisibilityResources();
         const runeResources = engineeredTree.getTrunkRuneResources();
-        const runeActive = Boolean( mode === 'off'
+        const packetLocusResources = engineeredTree
+            .getInternalRouterPresentationResources();
+        const packetLocusActive = Boolean( mode === 'off'
+            && packetLocusResources.enabled
+            && packetLocusResources.diagnostics?.productionVisible === true
+            && packetLocusResources.trunkMesh
+            && packetLocusResources.packetTrails?.length > 0
+            && packetLocusResources.trailSampleCount > 0
+            && packetLocusResources.proxyGeometry );
+        const runeActive = Boolean( !packetLocusActive
+            && mode === 'off'
             && runeResources.enabled
             && runeResources.diagnostics?.rendererEligible === true
             && runeResources.mesh
@@ -570,7 +975,8 @@ export function createTrunkVisibilityRenderer(
         renderer.setRenderTarget( null );
         renderer.autoClear = true;
         renderer.render( scene, camera );
-        if ( mode !== 'attenuation' && mode !== 'stencil' && !runeActive )
+        if ( mode !== 'attenuation' && mode !== 'stencil'
+            && !packetLocusActive && !runeActive )
         {
             const cpuSubmissionMs = performance.now() - started;
             cpuSubmissionEmaMs = cpuSubmissionEmaMs === 0
@@ -579,6 +985,7 @@ export function createTrunkVisibilityRenderer(
             diagnostics = {
                 ...diagnostics,
                 mode,
+                requestedMode: mode,
                 passCount: 1,
                 cpuSubmissionMs,
                 cpuSubmissionEmaMs,
@@ -587,13 +994,134 @@ export function createTrunkVisibilityRenderer(
                 carrierOverlayPasses: 0,
                 runeDepthPasses: 0,
                 runeOverlayPasses: 0,
+                packetLocusDepthPasses: 0,
+                packetLocusOverlayPasses: 0,
                 subsurfaceActive: false,
+                activeTraversalCount: 0,
+                activePacketTrailCount: 0,
+                activePacketTrailSampleCount: 0,
+                activePacketTrailVertexCount: 0,
+                opticalModel: null,
+                crossingOrder: null,
                 renderTargetPixels: 0,
                 renderTargetWidth: 0,
                 renderTargetHeight: 0,
                 estimatedRenderTargetBytes: 0
             };
             engineeredTree.group.userData.trunkVisibilityRenderer = diagnostics;
+            if ( runeResources.diagnostics )
+            {
+                runeResources.diagnostics.rendererActive = false;
+                runeResources.diagnostics.activeDrawCalls = 0;
+            }
+            if ( packetLocusResources.diagnostics )
+            {
+                packetLocusResources.diagnostics.rendererActive = false;
+                packetLocusResources.diagnostics.activeDrawCalls = 0;
+            }
+            return;
+        }
+
+        if ( packetLocusActive )
+        {
+            // The canopy core is only a few pixels wide. D4 therefore needs
+            // full-resolution packed depth to retain the same continuous
+            // visual grammar through the graphite shell.
+            resize( 1 );
+            updatePacketLocusResources( packetLocusResources );
+            const previousClearColour = renderer.getClearColor(
+                new THREE.Color()
+            );
+            const previousClearAlpha = renderer.getClearAlpha();
+            renderer.autoClear = false;
+            renderPackedDepth( frontDepthTarget, frontDepthMaterial );
+            renderPackedDepth( backDepthTarget, backDepthMaterial );
+            renderPacketLocusDepth();
+            packetLocusSubsurfaceMaterial.uniforms.frontDepth.value =
+                frontDepthTarget.texture;
+            packetLocusSubsurfaceMaterial.uniforms.backDepth.value =
+                backDepthTarget.texture;
+            packetLocusSubsurfaceMaterial.uniforms.trailDepth.value =
+                runeDepthTarget.texture;
+            packetLocusSubsurfaceMaterial.uniforms.viewport.value.copy(
+                drawingBufferSize
+            );
+            renderPacketLocusSubsurface();
+            renderer.setClearColor( previousClearColour, previousClearAlpha );
+            renderer.autoClear = true;
+            const targetPixels = frontDepthTarget.width
+                * frontDepthTarget.height;
+            const cpuSubmissionMs = performance.now() - started;
+            cpuSubmissionEmaMs = cpuSubmissionEmaMs === 0
+                ? cpuSubmissionMs
+                : cpuSubmissionEmaMs * 0.9 + cpuSubmissionMs * 0.1;
+            diagnostics = {
+                ...diagnostics,
+                mode: 'd4-packet-subsurface',
+                requestedMode: mode,
+                passCount: 5,
+                cpuSubmissionMs,
+                cpuSubmissionEmaMs,
+                packedDepthPasses: 2,
+                ownershipPasses: 0,
+                carrierOverlayPasses: 0,
+                runeDepthPasses: 0,
+                runeOverlayPasses: 0,
+                packetLocusDepthPasses: 1,
+                packetLocusOverlayPasses: 1,
+                subsurfaceActive: true,
+                activeTraversalCount: 0,
+                activePacketTrailCount:
+                    packetLocusResources.activePackets.length,
+                activePacketTrailSampleCount:
+                    packetLocusMesh.geometry.userData
+                        .internalRouterPresentation.submittedSampleCount,
+                activePacketTrailVertexCount:
+                    packetLocusMesh.geometry.userData
+                        .internalRouterPresentation.vertexCount,
+                opticalModel:
+                    'route-local head-and-wake front-depth burial attenuation',
+                crossingOrder: 'nearest active packet trail depth',
+                renderTargetPixels: targetPixels * 3,
+                renderTargetWidth: frontDepthTarget.width,
+                renderTargetHeight: frontDepthTarget.height,
+                estimatedRenderTargetBytes: targetPixels * 8 * 3
+            };
+            engineeredTree.group.userData.trunkVisibilityRenderer = diagnostics;
+            packetLocusResources.diagnostics.rendererActive = true;
+            packetLocusResources.diagnostics.activeDrawCalls = 1;
+            packetLocusResources.diagnostics.renderer = {
+                technique: 'route-local-depth-aware-subsurface-head-and-wake',
+                shellDepthPasses: 2,
+                nearestSignalDepthPasses: 1,
+                ownershipPasses: 0,
+                overlayPasses: 1,
+                burialDependent: true,
+                rearTransmissionFloor: 0,
+                crossingOrderDepthResolved: true,
+                oneSubmittedTrailPerPacket: true,
+                trailCount: packetLocusResources.activePackets.length,
+                trailSampleCount:
+                    packetLocusMesh.geometry.userData
+                        .internalRouterPresentation.submittedSampleCount,
+                trailVertexCount:
+                    packetLocusMesh.geometry.userData
+                        .internalRouterPresentation.vertexCount,
+                trailLength: informationPacketVisualProfile.trailLength,
+                headWidth: informationPacketVisualProfile.headWidth,
+                wakeAmplitude: informationPacketVisualProfile.wakeAmplitude,
+                wakeDecay: informationPacketVisualProfile.wakeDecay,
+                packetRadius: packetLocusResources.packetRadius,
+                internalTransmissionCompensation:
+                    informationPacketVisualProfile
+                        .internalTransmissionCompensation,
+                signalClass: 'output',
+                colour: 'cosmos-gold',
+                overlapPolicy: 'physical occlusion; no additive fusion',
+                greaterDepth: false,
+                cameraFacing: false,
+                persistentDisclosure: false
+            };
             if ( runeResources.diagnostics )
             {
                 runeResources.diagnostics.rendererActive = false;
@@ -645,7 +1173,12 @@ export function createTrunkVisibilityRenderer(
                 carrierOverlayPasses: 0,
                 runeDepthPasses: 1,
                 runeOverlayPasses: 1,
+                packetLocusDepthPasses: 0,
+                packetLocusOverlayPasses: 0,
                 subsurfaceActive: true,
+                activePacketTrailCount: 0,
+                activePacketTrailSampleCount: 0,
+                activePacketTrailVertexCount: 0,
                 activeTraversalCount:
                     runeResources.diagnostics.activeTraversalCount,
                 opticalModel: 'front-depth burial attenuation',
@@ -670,6 +1203,11 @@ export function createTrunkVisibilityRenderer(
                 cameraFacing: false,
                 persistentDisclosure: false
             };
+            if ( packetLocusResources.diagnostics )
+            {
+                packetLocusResources.diagnostics.rendererActive = false;
+                packetLocusResources.diagnostics.activeDrawCalls = 0;
+            }
             return;
         }
         if ( !resources.proxyGeometry
@@ -710,6 +1248,7 @@ export function createTrunkVisibilityRenderer(
         diagnostics = {
             ...diagnostics,
             mode,
+            requestedMode: mode,
             passCount: 3 + packedDepthPasses,
             cpuSubmissionMs,
             cpuSubmissionEmaMs,
@@ -718,7 +1257,15 @@ export function createTrunkVisibilityRenderer(
             carrierOverlayPasses: 1,
             runeDepthPasses: 0,
             runeOverlayPasses: 0,
+            packetLocusDepthPasses: 0,
+            packetLocusOverlayPasses: 0,
             subsurfaceActive: false,
+            activeTraversalCount: 0,
+            activePacketTrailCount: 0,
+            activePacketTrailSampleCount: 0,
+            activePacketTrailVertexCount: 0,
+            opticalModel: null,
+            crossingOrder: null,
             renderTargetPixels,
             renderTargetWidth: mode === 'attenuation'
                 ? frontDepthTarget.width
@@ -737,6 +1284,11 @@ export function createTrunkVisibilityRenderer(
         {
             runeResources.diagnostics.rendererActive = false;
             runeResources.diagnostics.activeDrawCalls = 0;
+        }
+        if ( packetLocusResources.diagnostics )
+        {
+            packetLocusResources.diagnostics.rendererActive = false;
+            packetLocusResources.diagnostics.activeDrawCalls = 0;
         }
     }
 
@@ -757,6 +1309,13 @@ export function createTrunkVisibilityRenderer(
             stencilMaterial.dispose();
             runeDepthMaterial.dispose();
             runeSubsurfaceMaterial.dispose();
+            packetLocusDepthMaterial.dispose();
+            packetLocusSubsurfaceMaterial.dispose();
+            if ( packetLocusMesh.geometry !== packetTrailPlaceholder )
+            {
+                packetLocusMesh.geometry.dispose();
+            }
+            packetTrailPlaceholder.dispose();
             placeholder.dispose();
         }
     };

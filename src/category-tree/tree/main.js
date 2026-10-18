@@ -59,6 +59,7 @@ const formDefaults = {
     internalRouterTiers: 3,
     internalRouterJunctionEnabled: true,
     internalRouterTransportEnabled: true,
+    internalRouterPresentationEnabled: false,
     motionFrozen: false
 };
 const form = { ...formDefaults };
@@ -210,6 +211,10 @@ const cameraViews = {
     transport: {
         position: new THREE.Vector3( 5.2, 3.7, 8.2 ),
         target: new THREE.Vector3( 0, 2.55, 0 )
+    },
+    presentation: {
+        position: new THREE.Vector3( 4.6, 3.55, 7.4 ),
+        target: new THREE.Vector3( 0, 2.45, 0 )
     }
 };
 
@@ -385,6 +390,10 @@ bindSwitch( 'show-edges', diagnostics.setEdgesVisible );
 bindSwitch( 'show-axes', diagnostics.setAxesVisible );
 bindSwitch( 'role-colours', diagnostics.setRoleColoursVisible );
 bindSwitch( 'show-trunk-runes', engineeredTree.setTrunkRunesVisible );
+bindSwitch(
+    'show-internal-router-presentation',
+    engineeredTree.setInternalRouterPresentationEnabled
+);
 bindSwitch( 'freeze-motion', ( frozen ) => { form.motionFrozen = frozen; } );
 bindSwitch( 'neutral-background', ( neutral ) => {
     scene.background = neutral ? neutralBackground : darkBackground;
@@ -495,6 +504,27 @@ function animate( now )
                 + ` · balance ${transport.conservation.lifecycleBalance}`;
         }
         else transportActivity.value = 'waiting for gold output';
+    }
+    const presentationActivity = document.querySelector(
+        '#internal-router-presentation-activity'
+    );
+    if ( presentationActivity )
+    {
+        const presentation = engineeredTree.group.userData
+            .internalRouterPresentation;
+        if ( !presentation?.enabled ) presentationActivity.value = 'off';
+        else if ( presentation.rendererActive )
+        {
+            presentationActivity.value = `${presentation.submittedTrailCount}`
+                + ' route-local gold head+wake packet trails'
+                + ` · ${presentation.submittedSampleCount ?? 0} samples`
+                + ' · depth occluded';
+        }
+        else if ( presentation.activePacketCount > 0 )
+        {
+            presentationActivity.value = 'not rendered in current view';
+        }
+        else presentationActivity.value = 'waiting for gold passage';
     }
     const visibilityCost = document.querySelector( '#trunk-visibility-cost' );
     if ( visibilityCost )

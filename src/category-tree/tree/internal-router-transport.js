@@ -124,6 +124,58 @@ function sampleRoutePoint( traversal, distance )
     return segment.curve.getPointAt( progress );
 }
 
+function sampleActivePacketTrails(
+    activeTraversals,
+    {
+        trailLength,
+        maximumSegmentLength
+    }
+)
+{
+    if ( !Number.isFinite( trailLength ) || trailLength <= 0
+        || !Number.isFinite( maximumSegmentLength )
+        || maximumSegmentLength <= 0 )
+    {
+        throw new Error(
+            'D4 trail sampling requires positive finite length values.'
+        );
+    }
+    return Object.freeze( activeTraversals.map( ( traversal ) => {
+        const headDistance = traversal.headDistance;
+        const startDistance = Math.max( 0, headDistance - trailLength );
+        const visibleLength = headDistance - startDistance;
+        const segmentCount = visibleLength > 0
+            ? Math.max( 1, Math.ceil(
+                visibleLength / maximumSegmentLength
+            ) )
+            : 0;
+        const samples = [];
+        for ( let index = 0; index <= segmentCount; index += 1 )
+        {
+            const distance = segmentCount > 0
+                ? ( index === segmentCount
+                    ? headDistance
+                    : startDistance + visibleLength * index / segmentCount )
+                : headDistance;
+            const point = sampleRoutePoint( traversal, distance );
+            samples.push( Object.freeze( {
+                distance,
+                position: Object.freeze( point.toArray() )
+            } ) );
+        }
+        return Object.freeze( {
+            id: traversal.outputPacketId,
+            outputPacketId: traversal.outputPacketId,
+            sourcePacketId: traversal.sourcePacketId,
+            routeAssignment: traversal.routeAssignment,
+            headDistance,
+            startDistance,
+            segmentCount,
+            samples: Object.freeze( samples )
+        } );
+    } ) );
+}
+
 export function createInternalRouterTransport( {
     capacity = internalRouterTransportAuditCapacity
 } = {} )
@@ -453,5 +505,16 @@ export function createInternalRouterTransport( {
         };
     }
 
-    return Object.freeze( { dispatch, advance, reset, snapshot } );
+    function samplePresentationTrails( options )
+    {
+        return sampleActivePacketTrails( activeTraversals, options );
+    }
+
+    return Object.freeze( {
+        dispatch,
+        advance,
+        reset,
+        snapshot,
+        samplePresentationTrails
+    } );
 }

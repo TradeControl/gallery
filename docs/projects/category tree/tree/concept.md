@@ -78,10 +78,20 @@ establishes an auditable rune boundary. Human review accepted that alignment on
 2026-10-18 as essential causal infrastructure while explicitly withholding any
 claim that the construction diagnostic is the transducer rune. D3 sends
 independent outputs down selected internal routes and received human sign-off on
-2026-10-18. D4 may now investigate how packet activity should become perceptible
-through or within the graphite, but only as a separately defined bounded
-experiment. This sequence does not authorise aggregation, external roots,
-Casting Pit integration or Cosmos transport.
+2026-10-18. D4's first presentation,
+`c4d-d4-packet-local-subsurface-loci-v1`, proved depth-aware packet-local
+disclosure but its compact gold beads broke the visual continuity of the cyan
+canopy stream. It remains technical evidence, not an artistic candidate. The
+current default-off successor,
+`c4d-d4-route-local-subsurface-trails-v2`, keeps the rune as the sole colour
+boundary: cyan enters and Cosmos gold leaves, while the head, wake, scale,
+cadence and route-following motion remain visibly the same kind of information.
+The gold output is still the distinct provenance-linked identity created by D2;
+visual continuity does not erase the causal boundary. The hidden router remains
+unseen. Human review on 2026-10-18 accepted this as the strongest artistic result
+of the trunk experiments so far and authorised it as a checkpoint, while noting
+that the abrupt cyan-to-gold junction remains unresolved. It does not authorise
+aggregation, external roots, Casting Pit integration or Cosmos transport.
 
 Eventually mycelium-like roots will enter the Casting Pit gravity well. Information will continue downward through those roots into Cosmic circuitry while molten material from the physical Universe moves upward through a distinct transport to sustain the Tree. These opposed processes are causally distinct but compositionally connected. Neither may be reduced to decorative animation, and neither requires the internal C1 architecture to become audience-facing imagery.
 
@@ -120,6 +130,35 @@ preserves motion and identity rather than remapping or silently clearing them.
 The epoch is a stable property of the deterministic tier topology, so returning
 to an earlier tier reuses its route identities instead of accumulating revisions.
 
+C4d-D4 gives those accepted moving identities an audience-facing consequence
+without turning the hidden router into an inventory. The v1 point-locus study
+established the depth technique but not the required visual continuity. In v2,
+one active D3 identity submits one sampled object-space trail over its immutable
+route snapshot. The gold trail uses the canopy packet's exact head-and-wake
+signal profile; only the signal class and colour change at the rune. No active
+packet means no mark. Front/back graphite depth and nearest-trail depth attenuate
+or occlude it as the Tree turns. There is no persistent guide, camera-facing
+projection, additive fusion or new packet state. At maximum traffic,
+independently timed packets can be physically near-coincident and their marks can
+occlude one another; their identities and provenance remain separate. That
+overlap is not semantic aggregation, and this candidate claims passage only.
+
+The accepted D2/D3 lifecycle still removes the cyan source wake atomically at the
+boundary and retires the gold presentation when its head arrives. Consequently
+the gold wake begins at zero length and grows, then disappears with the completed
+head. A cross-boundary residual wake may deserve its own later presentation
+experiment, but D4 does not resurrect a consumed source or extend transport state
+to disguise that limitation.
+
+The next bounded artistic hypothesis is a visible, event-responsive form located
+at the exact transformation junction. Earlier gold filigree proved that an
+intricate three-dimensional object can be causally animated, but its exterior
+placement read as a brooch attached to the trunk. Reusing that learning at the
+true cyan-to-gold boundary may give the abrupt handoff a spatial and temporal
+event without returning to surface ornament or exposing the router. Its form and
+transition behaviour require a separate experiment; the D4-v2 checkpoint remains
+preserved before that work begins.
+
 Opposed kinds of flow may retain distinct directions, lanes, colours or rhythms. A selected interpretation may illuminate one meaningful route while leaving the rest present but subdued. A disabled branch may darken recursively; a disconnected branch may remain viable outside the main structure; a changed relationship may visibly reroute subsequent flow.
 
 The Tree should also reveal its own continuing formation. It begins with an established, recognisable structural scaffold—trunk, principal limbs and the initial 36-node hierarchy—not with a bare trunk or a replay of germination. Additional explicit category and terminal subtrees then unfold recursively across that existing crown until it reaches a visible viability threshold. This evolution is neither arbitrary procedural decoration nor ambient sway. It is the temporal manifestation of additional topology, with reproducible but unequal growth rhythms. Once viable, the Tree remains responsive rather than becoming a frozen still object.
@@ -154,8 +193,14 @@ overlap an older packet need not lie over the newest centreline guide. This is a
 explicit diagnostic limitation, not a reason to falsify its route or begin D4.
 Human review found the diagnostic most legible at tier `4` and approximately
 `1.00` packet per second; tier `5` produced a less interesting trajectory. These
-are artistic review settings, not changed technical defaults or limits. D4 has
-not begun and still requires its own bounded proposition.
+are artistic review settings, not changed technical defaults or limits. D4 uses
+the same preferred review setting while retaining tier `3`, `0.20` packets per
+second and D4-off as application defaults. The v1 compact loci remain rejected
+evidence. The v2 subsurface head-and-wake trails remain fixed in the moving Tree
+under orbit and restore the visual grammar of the canopy stream after the rune's
+cyan-to-gold colour change. Whether that continuity now implies the larger unseen
+recursive root order is a human artistic question. The hidden structure, not a
+countable mechanism, must remain the source of that possibility.
 
 The structure should be materially dark and only partially knowable; dynamic colour should continually disclose its recursion. Illumination is therefore capable of manifesting broad connected regions and successive generations without pretending to be an information packet. The Tree should not need uniform visibility to prove that it exists.
 

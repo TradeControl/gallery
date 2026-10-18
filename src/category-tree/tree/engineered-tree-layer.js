@@ -31,13 +31,28 @@ import {
 const routedTerminalId = 'process-readiness-state';
 const defaultInformationSpeed = 1.55;
 const defaultInformationFrequency = 0.2;
-const informationTrailLength = 2.2;
-const informationCoreRadius = 0.032;
+export const informationPacketVisualProfile = Object.freeze( {
+    coreRadius: 0.032,
+    headWidth: 0.46,
+    trailLength: 2.2,
+    wakeAmplitude: 0.42,
+    wakeDecay: 0.42,
+    discardThreshold: 0.004,
+    alpha: 0.95,
+    outputColour: 0xfff2bf,
+    outputIntensity: 1.35,
+    internalTransmissionCompensation: 3.2,
+    internalMaximumSegmentLength: 0.08
+} );
+const informationTrailLength = informationPacketVisualProfile.trailLength;
+const informationCoreRadius = informationPacketVisualProfile.coreRadius;
 const informationTrafficSamples = 64;
 const trunkRuneAuditCapacity = 4096;
 const internalRouterJunctionIngressDistance = 1.1;
 const internalRouterJunctionTraceSamples = 17;
 const internalRouterTransportInitialCapacity = 128;
+export const internalRouterPresentationCandidateId =
+    'c4d-d4-route-local-subsurface-trails-v2';
 function normaliseInternalRouterTiers( value )
 {
     const numeric = Number( value );
@@ -128,7 +143,11 @@ function createInformationCoreMaterial()
         trafficTexture: { value: null },
         sourceColour: { value: new THREE.Vector3( 0.02, 0.48, 1.45 ) },
         outputColour: {
-            value: new THREE.Color( 0xfff2bf ).multiplyScalar( 1.35 )
+            value: new THREE.Color(
+                informationPacketVisualProfile.outputColour
+            ).multiplyScalar(
+                informationPacketVisualProfile.outputIntensity
+            )
         }
     };
     const material = new THREE.ShaderMaterial( {
@@ -455,11 +474,7 @@ export function createInformationCoreGeometry(
         Math.ceil( informationRoute.totalDistance * 20 )
     );
     const radialSegments = 8;
-    const radius = THREE.MathUtils.clamp(
-        informationCoreRadius * conduitWeight / 1.34,
-        0.014,
-        0.04
-    );
+    const radius = getInformationPacketRadius( conduitWeight );
     const geometry = new THREE.TubeGeometry(
         path,
         tubularSegments,
@@ -509,11 +524,7 @@ export function createInformationTrafficGeometry(
     const trafficEdges = Array.from( segmentsByChildId.values() )
         .sort( ( left, right ) => left.childId.localeCompare( right.childId ) );
     const radialSegments = 8;
-    const radius = THREE.MathUtils.clamp(
-        informationCoreRadius * conduitWeight / 1.34,
-        0.014,
-        0.04
-    );
+    const radius = getInformationPacketRadius( conduitWeight );
     const geometries = trafficEdges.map( ( segment, row ) => {
         const curve = segment.curve;
         const path = new THREE.CubicBezierCurve3(
@@ -568,6 +579,15 @@ export function createInformationTrafficGeometry(
     return geometry;
 }
 
+export function getInformationPacketRadius( conduitWeight = 1.34 )
+{
+    return THREE.MathUtils.clamp(
+        informationCoreRadius * conduitWeight / 1.34,
+        0.014,
+        0.04
+    );
+}
+
 function createInformationTrafficTexture( width, height )
 {
     const data = new Uint8Array( width * height * 4 );
@@ -585,18 +605,26 @@ function createInformationTrafficTexture( width, height )
     return { data, texture, width, height };
 }
 
-function getInformationSignal( routeDistance, headDistance )
+export function getInformationSignal( routeDistance, headDistance )
 {
+    const profile = informationPacketVisualProfile;
     const delta = headDistance - routeDistance;
     const head = Math.exp( -Math.pow(
-        ( routeDistance - headDistance ) / 0.46,
+        ( routeDistance - headDistance ) / profile.headWidth,
         2
     ) );
     const wake = delta >= 0
-        ? ( 1 - THREE.MathUtils.smoothstep( delta, 0, informationTrailLength ) )
-            * Math.exp( -delta * 0.42 )
+        ? ( 1 - THREE.MathUtils.smoothstep(
+            delta,
+            0,
+            profile.trailLength
+        ) ) * Math.exp( -delta * profile.wakeDecay )
         : 0;
-    return THREE.MathUtils.clamp( head + wake * 0.42, 0, 1 );
+    return THREE.MathUtils.clamp(
+        head + wake * profile.wakeAmplitude,
+        0,
+        1
+    );
 }
 
 function applyInformationRouteAttributes( geometry, segment )
@@ -2042,6 +2070,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         initialParameters.internalRouterJunctionEnabled === true;
     const internalRouterTransportEnabled = internalRouterJunctionEnabled
         && initialParameters.internalRouterTransportEnabled === true;
+    let internalRouterPresentationEnabled = internalRouterTransportEnabled
+        && initialParameters.internalRouterPresentationEnabled === true;
     const trunkRuneCandidateId = initialParameters.trunkRuneCandidateId
         ?? defaultTrunkRuneCandidateId;
     const trunk = createMaterial( 0x160f0c, 0.38, 0.62 );
@@ -2142,6 +2172,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     let informationRoute = null;
     let informationRoutes = [];
     let informationTraffic = null;
+    let informationPacketRadius = informationCoreRadius;
     let trafficEdges = [];
     let trafficEdgeByChildId = new Map();
     let emitters = [];
@@ -2428,7 +2459,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             packetConnected: true,
             junctionImplemented: true,
             transportImplemented: true,
-            presentationImplemented: false,
+            presentationImplemented: true,
+            presentationCandidateId: internalRouterPresentationCandidateId,
             currentRouterEpoch: currentRouteEpoch,
             currentMaximumTier: descriptor?.maximumTier ?? null,
             currentRouteCapacity: descriptor?.routeCount ?? 0,
@@ -2466,6 +2498,62 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 ? 1 + ( transport.activePacketCount > 0 ? 1 : 0 )
                 : 0,
             resourceRevision: internalRouterTransportResourceRevision
+        };
+        updateInternalRouterPresentationMetadata();
+    }
+
+    function updateInternalRouterPresentationMetadata()
+    {
+        if ( !internalRouterTransportEnabled )
+        {
+            delete group.userData.internalRouterPresentation;
+            return;
+        }
+        const transport = internalRouterTransport.snapshot();
+        const activePacketIds = Object.freeze(
+            transport.activePackets.map( ( packet ) => packet.id )
+        );
+        const rendererEligible = Boolean(
+            trunkMesh
+            && trunkRuneVisibilityProxyGeometry
+        );
+        const presentationVisible = internalRouterPresentationEnabled
+            && surfaceVisible
+            && trunkVisibilityMode === 'off'
+            && rendererEligible
+            && transport.activePacketCount > 0;
+        group.userData.internalRouterPresentation = {
+            candidateId: internalRouterPresentationCandidateId,
+            reviewStatus: 'bounded-d4-presentation-experiment-awaiting-human-review',
+            enabled: internalRouterPresentationEnabled,
+            presentationOnly: true,
+            eventDriven: true,
+            packetConnected: true,
+            transportImplemented: true,
+            aggregation: false,
+            semanticClaim: 'packet-passage-not-aggregation',
+            colourBoundary: 'cyan-input-to-cosmos-gold-output-at-rune',
+            morphology: 'canopy-equivalent-head-and-wake',
+            productionVisible: presentationVisible,
+            packetOnlyDisclosure: true,
+            persistentDisclosure: false,
+            fullRouterInventoryVisible: false,
+            guideVisible: false,
+            objectSpace: true,
+            cameraFacing: false,
+            greaterDepth: false,
+            rendererEligible,
+            occlusionModel: 'lower-trunk-front-and-back-depth-envelope',
+            activePacketCount: transport.activePacketCount,
+            submittedTrailCount: presentationVisible
+                ? transport.activePacketCount
+                : 0,
+            activePacketIds,
+            sourceTransportCandidateId: transport.candidateId,
+            sourceTransportResourceRevision:
+                internalRouterTransportResourceRevision,
+            rendererActive: false,
+            activeDrawCalls: 0
         };
     }
 
@@ -3565,9 +3653,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             sourceGeometry,
             trunkNodes
         );
-        const internalRootSpansAvailable = trunkRuneCandidateId
-            === trunkRuneCandidateIds.internalArborescence
-            && trunkNodes.some( ( node, index ) =>
+        const internalRootSpansAvailable = trunkNodes.some( ( node, index ) =>
                 node.id === 'exchange'
                 && trunkNodes[index + 1]?.id === 'meaning'
             )
@@ -3978,6 +4064,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         internalRouterTransportPacketCapacity = 0;
         delete group.userData.internalRouterJunction;
         delete group.userData.internalRouterTree;
+        delete group.userData.internalRouterPresentation;
 
         const asymmetry = parameters.asymmetry ?? 0.55;
         const selectedTerminalId = parameters.informationTerminalId
@@ -4135,6 +4222,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             parameters.conduitWeight ?? 1.34,
             informationTrafficSamples
         );
+        informationPacketRadius =
+            coreGeometry.userData.informationTraffic.radius;
         trafficEdges = coreGeometry.userData.informationTraffic.trafficEdges;
         trafficEdgeByChildId = new Map( trafficEdges.map( ( edge ) => [
             edge.childId,
@@ -4621,6 +4710,59 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 internalRouterTransportEnabled && Boolean( visible );
             applyGrowthProgress();
             return internalRouterTransportDiagnosticVisible;
+        },
+        setInternalRouterPresentationEnabled( enabled ) {
+            internalRouterPresentationEnabled = internalRouterTransportEnabled
+                && Boolean( enabled );
+            updateInternalRouterPresentationMetadata();
+            return internalRouterPresentationEnabled;
+        },
+        getInternalRouterPresentationResources() {
+            const rendererEligible = Boolean(
+                trunkMesh && trunkRuneVisibilityProxyGeometry
+            );
+            const presentationActive = internalRouterPresentationEnabled
+                && surfaceVisible
+                && trunkVisibilityMode === 'off'
+                && rendererEligible
+                && ( group.userData.internalRouterPresentation
+                    ?.activePacketCount ?? 0 ) > 0;
+            const transport = presentationActive
+                ? internalRouterTransport.snapshot()
+                : null;
+            const packetTrails = presentationActive
+                ? internalRouterTransport.samplePresentationTrails( {
+                    trailLength: informationPacketVisualProfile.trailLength,
+                    maximumSegmentLength:
+                        informationPacketVisualProfile
+                            .internalMaximumSegmentLength
+                } )
+                : Object.freeze( [] );
+            return {
+                enabled: internalRouterPresentationEnabled,
+                candidateId: internalRouterPresentationCandidateId,
+                revision: internalRouterTransportResourceRevision,
+                trunkRevision: trunkVisibilityResourceRevision,
+                trunkMesh,
+                proxyGeometry: trunkRuneVisibilityProxyGeometry,
+                packetTrails,
+                trailSegmentCount: packetTrails.reduce(
+                    ( total, trail ) => total + trail.segmentCount,
+                    0
+                ),
+                trailSampleCount: packetTrails.reduce(
+                    ( total, trail ) => total + trail.samples.length,
+                    0
+                ),
+                packetVisualProfile: informationPacketVisualProfile,
+                packetRadius: informationPacketRadius,
+                deformationUniforms: trunk.uniforms,
+                activePackets: transport?.activePackets ?? Object.freeze( [] ),
+                activePacketIds: ( transport?.activePackets ?? [] ).map(
+                    ( packet ) => packet.id
+                ),
+                diagnostics: group.userData.internalRouterPresentation ?? null
+            };
         },
         getInternalRouterTransportResources() {
             const transport = internalRouterTransport.snapshot();
