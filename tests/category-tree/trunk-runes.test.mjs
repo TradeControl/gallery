@@ -16,7 +16,6 @@ import {
 import {
     createTrunkRuneGeometry,
     createTrunkRuneGranuleGeometry,
-    defaultTrunkRuneCandidateId,
     getTrunkRuneAdmission,
     getTrunkRuneCandidateProfile,
     getTrunkRuneRouteDistance,
@@ -760,7 +759,6 @@ function assertConserved( diagnostics )
 }
 
 test( 'C4a-E1 exterior brooch remains exact reproducible evidence', () => {
-    assert.equal( defaultTrunkRuneCandidateId, trunkRuneCandidateIds.opticalFibre );
     assert.ok( Object.isFrozen( trunkRuneCandidateIds ) );
     assert.ok( Object.isFrozen( trunkRuneCandidateProfiles ) );
     assert.ok( Object.values( trunkRuneCandidateProfiles ).every( Object.isFrozen ) );
@@ -1494,8 +1492,6 @@ test( 'C4b-O1 is one narrow taper-following exterior spiral across three trunk s
     const entrySegment = route.byChildId.get( 'meaning' );
     const exitSegment = route.byChildId.get( 'uptake' );
 
-    assert.equal( defaultTrunkRuneCandidateId,
-        trunkRuneCandidateIds.opticalFibre );
     assert.equal( metadata.candidateId, trunkRuneCandidateIds.opticalFibre );
     assert.equal( resources.candidateId, trunkRuneCandidateIds.opticalFibre );
     assert.equal( metadata.reviewStatus,

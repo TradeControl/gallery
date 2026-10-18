@@ -8,6 +8,7 @@ import {
     defaultTrunkRuneCandidateId,
     getTrunkRuneRouteDistances,
     setTrunkRuneGeometryTraversals,
+    trunkRuneCandidateIds,
     trunkRuneSites,
     trunkRuneTransducerSite
 } from './trunk-rune-layer.js';
@@ -1733,6 +1734,153 @@ export function createLocalTrunkVisibilityProxyGeometry( sourceGeometry, trunkNo
     return proxy;
 }
 
+function getInternalRootVisibilityRange( sourceGeometry, trunkNodes )
+{
+    const metadata = sourceGeometry.userData.monumentalTrunk;
+    const entrySpanIndex = trunkNodes.findIndex( ( node, index ) =>
+        node.id === 'exchange' && trunkNodes[index + 1]?.id === 'meaning'
+    );
+    const exitSpanIndex = trunkNodes.findIndex( ( node, index ) =>
+        node.id === 'planting-root' && trunkNodes[index + 1]?.id === 'uptake'
+    );
+    if ( !metadata || entrySpanIndex < 0 || exitSpanIndex < 0 )
+    {
+        throw new Error(
+            'Internal-root visibility requires the authored lower trunk spans.'
+        );
+    }
+    return {
+        entrySpanIndex,
+        exitSpanIndex,
+        startRing: 1 + exitSpanIndex * metadata.samplesPerSpan,
+        endRing: 1 + ( entrySpanIndex + 1 ) * metadata.samplesPerSpan,
+        radialSegments: metadata.radialSegments,
+        baseIndexCount: metadata.baseIndexCount
+    };
+}
+
+export function createInternalRootVisibilityProxyGeometry(
+    sourceGeometry,
+    trunkNodes
+)
+{
+    const range = getInternalRootVisibilityRange( sourceGeometry, trunkNodes );
+    const sourcePosition = sourceGeometry.getAttribute( 'position' );
+    const sourceNormal = sourceGeometry.getAttribute( 'normal' );
+    const vertices = [];
+    const normals = [];
+    const indices = [];
+    for ( let ring = range.startRing; ring <= range.endRing; ring += 1 )
+    {
+        for ( let side = 0; side < range.radialSegments; side += 1 )
+        {
+            const sourceIndex = ring * range.radialSegments + side;
+            vertices.push(
+                sourcePosition.getX( sourceIndex ),
+                sourcePosition.getY( sourceIndex ),
+                sourcePosition.getZ( sourceIndex )
+            );
+            normals.push(
+                sourceNormal.getX( sourceIndex ),
+                sourceNormal.getY( sourceIndex ),
+                sourceNormal.getZ( sourceIndex )
+            );
+        }
+    }
+    const ringCount = range.endRing - range.startRing + 1;
+    for ( let ring = 0; ring < ringCount - 1; ring += 1 )
+    {
+        for ( let side = 0; side < range.radialSegments; side += 1 )
+        {
+            const nextSide = ( side + 1 ) % range.radialSegments;
+            const a = ring * range.radialSegments + side;
+            const b = ( ring + 1 ) * range.radialSegments + side;
+            const c = ( ring + 1 ) * range.radialSegments + nextSide;
+            const d = ring * range.radialSegments + nextSide;
+            indices.push( a, d, b, b, d, c );
+        }
+    }
+    const startCentre = getRingCentre(
+        sourcePosition,
+        range.startRing,
+        range.radialSegments
+    );
+    const endCentre = getRingCentre(
+        sourcePosition,
+        range.endRing,
+        range.radialSegments
+    );
+    const startCentreIndex = vertices.length / 3;
+    vertices.push( ...startCentre.toArray() );
+    const endCentreIndex = vertices.length / 3;
+    vertices.push( ...endCentre.toArray() );
+    const capAxis = endCentre.clone().sub( startCentre ).normalize();
+    normals.push( -capAxis.x, -capAxis.y, -capAxis.z );
+    normals.push( capAxis.x, capAxis.y, capAxis.z );
+    const lastRingStart = ( ringCount - 1 ) * range.radialSegments;
+    for ( let side = 0; side < range.radialSegments; side += 1 )
+    {
+        const nextSide = ( side + 1 ) % range.radialSegments;
+        indices.push( startCentreIndex, nextSide, side );
+        indices.push(
+            endCentreIndex,
+            lastRingStart + side,
+            lastRingStart + nextSide
+        );
+    }
+    const proxy = new THREE.BufferGeometry();
+    proxy.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute( vertices, 3 )
+    );
+    proxy.setAttribute(
+        'normal',
+        new THREE.Float32BufferAttribute( normals, 3 )
+    );
+    proxy.setIndex( indices );
+    proxy.computeBoundingSphere();
+    proxy.userData.internalRootVisibilityProxy = {
+        ...range,
+        closed: true,
+        ringCount,
+        triangleCount: indices.length / 3
+    };
+    return proxy;
+}
+
+export function createInternalRootVisibilityOwnershipGeometry(
+    sourceGeometry,
+    trunkNodes
+)
+{
+    const range = getInternalRootVisibilityRange( sourceGeometry, trunkNodes );
+    const sourceIndices = sourceGeometry.index.array;
+    const indices = [];
+    for ( let ring = range.startRing; ring < range.endRing; ring += 1 )
+    {
+        for ( let side = 0; side < range.radialSegments; side += 1 )
+        {
+            const offset = range.baseIndexCount
+                + ( ring * range.radialSegments + side ) * 6;
+            for ( let index = 0; index < 6; index += 1 )
+            {
+                indices.push( sourceIndices[offset + index] );
+            }
+        }
+    }
+    const ownership = sourceGeometry.clone();
+    ownership.setIndex( indices );
+    ownership.computeBoundingSphere();
+    ownership.userData.internalRootVisibilityOwnership = {
+        ...range,
+        fullCircumference: true,
+        cellCount: ( range.endRing - range.startRing )
+            * range.radialSegments,
+        triangleCount: indices.length / 3
+    };
+    return ownership;
+}
+
 export function createEngineeredTreeLayer( hierarchy, initialPositions, initialParameters = {} )
 {
     const group = new THREE.Group();
@@ -1767,6 +1915,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     let apertureLinerMesh = null;
     let trunkVisibilityProxyGeometry = null;
     let trunkVisibilityOwnershipGeometry = null;
+    let trunkRuneVisibilityProxyGeometry = null;
+    let trunkRuneVisibilityOwnershipGeometry = null;
     let trunkVisibilityResourceRevision = 0;
     let interiorSkeletonMesh = null;
     let informationRoute = null;
@@ -1786,6 +1936,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     let trunkRuneResourceRevision = 0;
     let trunkRunePathLength = 0;
     let trunkRunePathProfile = null;
+    let trunkRunePathProfiles = new Map();
     let trunkRuneDepartureRecords = [];
     let trunkRuneTransductionRecords = [];
     let trunkRuneResumeRecords = [];
@@ -1798,6 +1949,10 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     function updateTrunkRuneMetadata()
     {
         const geometry = trunkRuneMesh?.geometry.userData.trunkRunes;
+        const geometryClaim = ( key, fallback ) => geometry
+            && Object.prototype.hasOwnProperty.call( geometry, key )
+            ? geometry[key]
+            : fallback;
         const activeTraversals = inRunePackets.map( ( traversal ) =>
             Object.freeze( {
                 id: traversal.id,
@@ -1818,6 +1973,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 pathLength: traversal.pathLength,
                 internalTransformationDistance:
                     traversal.internalTransformationDistance,
+                pathIndex: traversal.pathIndex ?? null,
+                pathOwnerId: traversal.pathOwnerId ?? null,
                 progress: THREE.MathUtils.clamp(
                     traversal.distance / traversal.pathLength,
                     0,
@@ -1837,7 +1994,12 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             visualEnabled: trunkRunesVisible,
             transductionAlwaysActive: true,
             visible: trunkRuneMesh?.visible ?? false,
-            rendererEligible: false,
+            rendererEligible: geometry?.rendering
+                    === 'depth-aware-packet-gated-subsurface-transmission'
+                && trunkRunesVisible
+                && surfaceVisible
+                && trunkVisibilityMode === 'off'
+                && activeTraversals.length > 0,
             exteriorVisible: surfaceVisible,
             visibilityMode: trunkVisibilityMode,
             siteCount: trunkRuneSites.length,
@@ -1907,6 +2069,12 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 aggregation: false
             },
             pathLength: trunkRunePathLength,
+            pathCount: geometry?.pathCount ?? 1,
+            pathOwnerIds: geometry?.pathOwnerIds ?? [],
+            minimumPathLength: geometry?.minimumPathLength
+                ?? trunkRunePathLength,
+            maximumPathLength: geometry?.maximumPathLength
+                ?? trunkRunePathLength,
             centreEntryDistance: geometry?.centreEntryDistance ?? 0,
             internalTransformationDistance:
                 geometry?.internalTransformationDistance ?? 0,
@@ -1915,7 +2083,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             internalTransformationPhase:
                 geometry?.internalTransformationPhase ?? 1,
             internal3d: geometry?.internal3d ?? false,
-            surfaceExcursion: geometry?.surfaceExcursion ?? false,
+            surfaceExcursion: geometryClaim( 'surfaceExcursion', false ),
             artisticForm: geometry?.artisticForm ?? null,
             visibleArtifact: geometry?.visibleArtifact ?? false,
             persistentStructure: geometry?.persistentStructure ?? false,
@@ -1938,16 +2106,30 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             transformationArtifact:
                 geometry?.transformationArtifact ?? false,
             motionModel: geometry?.motionModel ?? null,
-            straddlesShell: geometry?.straddlesShell ?? false,
-            buriedSampleCount: geometry?.buriedSampleCount ?? 0,
-            shellCrossingSampleCount: geometry?.shellCrossingSampleCount ?? 0,
-            exteriorSampleCount: geometry?.exteriorSampleCount ?? 0,
-            insideOpaqueShell: geometry?.insideOpaqueShell ?? false,
-            carrierCollisionFree: geometry?.carrierCollisionFree ?? false,
-            minimumPathToShellClearance:
-                geometry?.minimumPathToShellClearance ?? null,
-            minimumPathToCarrierClearance:
-                geometry?.minimumPathToCarrierClearance ?? null,
+            straddlesShell: geometryClaim( 'straddlesShell', false ),
+            buriedSampleCount: geometryClaim( 'buriedSampleCount', 0 ),
+            shellCrossingSampleCount:
+                geometryClaim( 'shellCrossingSampleCount', 0 ),
+            exteriorSampleCount: geometryClaim( 'exteriorSampleCount', 0 ),
+            insideOpaqueShell: geometryClaim( 'insideOpaqueShell', false ),
+            continuousShellContainmentVerified: geometryClaim(
+                'continuousShellContainmentVerified',
+                null
+            ),
+            containmentEvidence: geometry?.containmentEvidence ?? null,
+            carrierCollisionFree:
+                geometryClaim( 'carrierCollisionFree', false ),
+            carrierClearanceModel: geometry?.carrierClearanceModel ?? null,
+            minimumPathToShellClearance: geometryClaim(
+                'minimumPathToShellClearance',
+                null
+            ),
+            minimumInheritedCarrierToShellClearance:
+                geometry?.minimumInheritedCarrierToShellClearance ?? null,
+            minimumPathToCarrierClearance: geometryClaim(
+                'minimumPathToCarrierClearance',
+                null
+            ),
             rendering: geometry?.rendering ?? 'inactive',
             resourceRevision: trunkRuneResourceRevision,
             meshCount: geometry?.meshCount ?? 0,
@@ -1967,10 +2149,11 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     function applyTrunkRuneVisibility()
     {
         if ( !trunkRuneMesh ) return;
-        // The same physical, object-space filigree is visible at rest and
-        // carries the packet signal. Ordinary depth lets graphite occlude the
-        // buried folds while the exterior folds remain tangible under orbit.
-        trunkRuneMesh.visible = trunkRunesVisible
+        const rendererOwned = trunkRuneMesh.geometry.userData.trunkRunes
+            ?.rendering === 'depth-aware-packet-gated-subsurface-transmission';
+        // Internal roots are never drawn as exposed geometry. Their causal
+        // signal is composited through the graphite by the depth-aware renderer.
+        trunkRuneMesh.visible = !rendererOwned && trunkRunesVisible
             && surfaceVisible
             && trunkVisibilityMode === 'off';
         updateTrunkRuneMetadata();
@@ -1982,7 +2165,13 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             node.id === trunkRuneTransducerSite.parentId
             && trunkNodes[index + 1]?.id === trunkRuneTransducerSite.childId
         );
-        if ( !authoredSitesAvailable )
+        const internalExitAvailable = trunkRuneCandidateId
+            !== trunkRuneCandidateIds.internalArborescence
+            || trunkNodes.some( ( node, index ) =>
+                node.id === 'planting-root'
+                && trunkNodes[index + 1]?.id === 'uptake'
+            );
+        if ( !authoredSitesAvailable || !internalExitAvailable )
         {
             if ( trunkRuneMesh )
             {
@@ -1994,6 +2183,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             }
             trunkRunePathLength = 0;
             trunkRunePathProfile = null;
+            trunkRunePathProfiles = new Map();
             updateTrunkRuneMetadata();
             return;
         }
@@ -2021,6 +2211,12 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 runeGeometry.centreResumePoint.slice()
             )
         } );
+        trunkRunePathProfiles = new Map(
+            ( runeGeometry.pathProfiles ?? [] ).map( ( path ) => [
+                path.ownerId,
+                path
+            ] )
+        );
         if ( trunkRuneMesh )
         {
             trunkRuneGranuleMesh?.geometry.dispose();
@@ -2058,8 +2254,10 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             }
             else
             {
-                trunkRuneMesh.name =
-                    'packet-lit exterior optical fibre spiral';
+                trunkRuneMesh.name = geometry.userData.trunkRunes.candidateId
+                    === trunkRuneCandidateIds.internalArborescence
+                    ? 'event-revealed internal information arborescence'
+                    : 'packet-lit exterior optical fibre spiral';
             }
             trunkRuneMesh.userData.trunkRunes = true;
             trunkRuneGranuleMesh = granuleGeometry
@@ -2088,6 +2286,21 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         }
     }
 
+    function selectTrunkRunePathProfile( packet )
+    {
+        if ( trunkRunePathProfiles.size === 0 ) return trunkRunePathProfile;
+        const matches = packet.route.nodeIds.filter( ( nodeId ) =>
+            trunkRunePathProfiles.has( nodeId )
+        );
+        if ( matches.length !== 1 )
+        {
+            throw new Error(
+                `Packet '${packet.id}' maps to ${matches.length} internal root paths.`
+            );
+        }
+        return trunkRunePathProfiles.get( matches[0] );
+    }
+
     function beginTrunkRuneTraversal(
         packet,
         enteredAt,
@@ -2096,7 +2309,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         packetSpeed
     )
     {
-        if ( !trunkRunePathProfile )
+        const pathProfile = selectTrunkRunePathProfile( packet );
+        if ( !pathProfile )
         {
             throw new Error( 'Functional rune path profile is unavailable.' );
         }
@@ -2114,7 +2328,9 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             entryRouteDistance,
             exitRouteDistance,
             enteredAt,
-            centreEntryPoint: trunkRunePathProfile.centreEntryPoint,
+            centreEntryPoint: pathProfile.centreEntryPoint,
+            pathIndex: pathProfile.pathIndex ?? null,
+            pathOwnerId: pathProfile.ownerId ?? null,
             semanticClaim: 'transduction',
             mode: 'one-to-one',
             aggregation: false,
@@ -2133,13 +2349,15 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             entryRouteDistance,
             exitRouteDistance,
             distance: 0,
-            pathLength: trunkRunePathProfile.pathLength,
+            pathIndex: pathProfile.pathIndex ?? null,
+            pathOwnerId: pathProfile.ownerId ?? null,
+            pathLength: pathProfile.pathLength,
             internalTransformationDistance:
-                trunkRunePathProfile.internalTransformationDistance,
-            centreEntryPoint: trunkRunePathProfile.centreEntryPoint,
+                pathProfile.internalTransformationDistance,
+            centreEntryPoint: pathProfile.centreEntryPoint,
             internalTransformationPoint:
-                trunkRunePathProfile.internalTransformationPoint,
-            centreResumePoint: trunkRunePathProfile.centreResumePoint,
+                pathProfile.internalTransformationPoint,
+            centreResumePoint: pathProfile.centreResumePoint,
             motionAnchorTime: enteredAt,
             motionAnchorDistance: 0,
             motionSpeed: packetSpeed,
@@ -2166,7 +2384,9 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             entryRouteDistance: traversal.entryRouteDistance,
             exitRouteDistance: traversal.exitRouteDistance,
             internalTransformationPoint:
-                traversal.internalTransformationPoint
+                traversal.internalTransformationPoint,
+            pathIndex: traversal.pathIndex ?? null,
+            pathOwnerId: traversal.pathOwnerId ?? null
         } );
         const provenance = Object.freeze( [ provenanceEntry ] );
         const record = Object.freeze( {
@@ -2187,6 +2407,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             exitRouteDistance: traversal.exitRouteDistance,
             internalTransformationDistance:
                 traversal.internalTransformationDistance,
+            pathIndex: traversal.pathIndex ?? null,
+            pathOwnerId: traversal.pathOwnerId ?? null,
             pathLength: traversal.pathLength,
             centreEntryPoint: traversal.centreEntryPoint,
             internalTransformationPoint:
@@ -2243,6 +2465,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             internalTransformationPoint:
                 traversal.internalTransformationPoint,
             centreResumePoint: traversal.centreResumePoint,
+            pathIndex: traversal.pathIndex ?? null,
+            pathOwnerId: traversal.pathOwnerId ?? null,
             semanticClaim: 'transduction',
             mode: 'one-to-one',
             aggregation: false
@@ -2386,6 +2610,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         {
             const traversals = inRunePackets.map( ( traversal ) => ( {
                     progress: traversal.distance / traversal.pathLength,
+                    pathIndex: traversal.pathIndex,
                     transformed: traversal.transformed,
                     transformationPhase:
                         traversal.internalTransformationDistance
@@ -2421,6 +2646,28 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             sourceGeometry,
             trunkNodes
         );
+        const internalRootSpansAvailable = trunkRuneCandidateId
+            === trunkRuneCandidateIds.internalArborescence
+            && trunkNodes.some( ( node, index ) =>
+                node.id === 'exchange'
+                && trunkNodes[index + 1]?.id === 'meaning'
+            )
+            && trunkNodes.some( ( node, index ) =>
+                node.id === 'planting-root'
+                && trunkNodes[index + 1]?.id === 'uptake'
+            );
+        const internalRootProxyGeometry = internalRootSpansAvailable
+            ? createInternalRootVisibilityProxyGeometry(
+                sourceGeometry,
+                trunkNodes
+            )
+            : null;
+        const internalRootOwnershipGeometry = internalRootSpansAvailable
+            ? createInternalRootVisibilityOwnershipGeometry(
+                sourceGeometry,
+                trunkNodes
+            )
+            : null;
         if ( apertureTrunkMesh )
         {
             apertureTrunkMesh.geometry.dispose();
@@ -2452,6 +2699,11 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         trunkVisibilityProxyGeometry = proxyGeometry;
         trunkVisibilityOwnershipGeometry?.dispose();
         trunkVisibilityOwnershipGeometry = ownershipGeometry;
+        trunkRuneVisibilityProxyGeometry?.dispose();
+        trunkRuneVisibilityProxyGeometry = internalRootProxyGeometry;
+        trunkRuneVisibilityOwnershipGeometry?.dispose();
+        trunkRuneVisibilityOwnershipGeometry =
+            internalRootOwnershipGeometry;
         trunkVisibilityResourceRevision += 1;
         replaceTrunkRuneGeometry( sourceGeometry, trunkNodes );
     }
@@ -2761,6 +3013,10 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         trunkVisibilityProxyGeometry = null;
         trunkVisibilityOwnershipGeometry?.dispose();
         trunkVisibilityOwnershipGeometry = null;
+        trunkRuneVisibilityProxyGeometry?.dispose();
+        trunkRuneVisibilityProxyGeometry = null;
+        trunkRuneVisibilityOwnershipGeometry?.dispose();
+        trunkRuneVisibilityOwnershipGeometry = null;
         trunkRuneGranuleMesh?.geometry.dispose();
         for ( const candidate of [ apertureTrunkMesh, apertureLinerMesh ] )
         {
@@ -2778,6 +3034,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         trunkRuneGranuleMesh = null;
         trunkRunePathLength = 0;
         trunkRunePathProfile = null;
+        trunkRunePathProfiles = new Map();
         trunkRuneDepartureRecords = [];
         trunkRuneTransductionRecords = [];
         trunkRuneResumeRecords = [];
@@ -3283,6 +3540,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             applyTrunkRuneVisibility();
         },
         getTrunkRuneResources() {
+            const internalArborescence = trunkRuneCandidateId
+                === trunkRuneCandidateIds.internalArborescence;
             return {
                 enabled: trunkRunesVisible,
                 candidateId: trunkRuneCandidateId,
@@ -3295,8 +3554,12 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 ],
                 granuleMesh: trunkRuneGranuleMesh,
                 granuleGeometry: trunkRuneGranuleMesh?.geometry ?? null,
-                ownershipGeometry: null,
-                proxyGeometry: trunkVisibilityProxyGeometry,
+                ownershipGeometry: internalArborescence
+                    ? trunkRuneVisibilityOwnershipGeometry
+                    : null,
+                proxyGeometry: internalArborescence
+                    ? trunkRuneVisibilityProxyGeometry
+                    : trunkVisibilityProxyGeometry,
                 trunkMesh,
                 deformationUniforms: trunk.uniforms,
                 sites: trunkRuneSites,

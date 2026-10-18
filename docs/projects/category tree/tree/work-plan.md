@@ -1,6 +1,6 @@
 # Tree — phased work plan
 
-**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; the C4a filigree direction is closed without artistic sign-off, with E1 and the last green E2 retained only as reproducible technical evidence; the separately bounded C4b-O1 exterior optical-fibre spiral is implemented, technically promising and stopped for human artistic review; further refinement, C4 generalisation, C5 aggregation, roots and environment integration remain unauthorised
+**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1 is authorised as the next bounded block; its later junction, packet, presentation, aggregation, physical-root and environment phases remain gated
 **Scope:** the Tree as an independent construction problem, followed by deliberate integration with the signed-off Casting Pit
 
 ## Decision: develop the Tree separately first
@@ -1013,9 +1013,9 @@ silently rewritten as E2 evidence or treated as the accepted form.
 ###### C4a-E2 — longitudinal placement/presentation study
 
 **Status:** experiment closed without artistic sign-off. The last green
-`c4a-longitudinal-placement-v1` remains the source default only so that the
-evidence is reproducible; it is not the accepted Tree language. The immutable E1
-evidence profile remains `c4a-exterior-brooch-v1`.
+`c4a-longitudinal-placement-v1` remains selectable so that the evidence is
+reproducible; it is not the accepted Tree language or the live default. The
+immutable E1 evidence profile remains `c4a-exterior-brooch-v1`.
 
 **Purpose:** investigate spatial placement and presentation before adding
 complexity. E2 tests whether the same bounded transduction interval can read as a
@@ -1078,7 +1078,7 @@ presentation at `meaning` and the metadata needed to distinguish the two studies
 
 ###### C4a-E2 implementation and verification record
 
-`c4a-longitudinal-placement-v1` is retained as the source default; the exact E1
+`c4a-longitudinal-placement-v1` is retained as selectable evidence; the exact E1
 candidate is retained independently as immutable `c4a-exterior-brooch-v1`. E2
 constructs one continuous rail in a transported authored-shell frame. The default
 initial and mature fixtures both select object-space phase `0.5833333333`, while
@@ -1290,10 +1290,189 @@ the Tree or reads as a barber-pole cable around it. Stop here. Do not refine the
 colour, turns, placement or material, infer C5 readiness, add aggregation or begin
 Cosmos integration before that review.
 
+#### C4c — internal transport presentation study
+
+##### C4c-I1 — event-revealed internal arborescence
+
+**Status:** technically complete but artistically rejected on 2026-10-18. O1 and
+I1 remain selectable evidence; neither is the accepted internal-root language.
+
+Human review of O1 found the exterior spiral pretty but artistically misplaced:
+the canopy stream ran through the Tree's centre and then appeared to jump onto a
+thread wrapped around the trunk. I1 tests one simpler proposition: the stream
+continues through an internal root-like family of possible journeys and remains
+central at both the canopy-side entry and rootward resume.
+
+This is not permission to expose C1. The accepted C1 descriptor remains hidden
+and unchanged, and supplies authored provenance, internal placement and clearance
+constraints only. Each eligible terminal route intersects exactly one C1 carrier
+owner. A packet therefore selects one derived strand by its existing route
+ancestry and traverses that strand alone. At the existing boundary the source is
+consumed once and creates one distinct output with immutable single-source
+provenance. It does not illuminate every branch, fan out, merge or establish
+higher-order meaning. Runtime remains `spatialConvergenceClaim: false` and
+`aggregation: false`.
+
+The source mesh is absent from the normal scene. At idle the accepted opaque
+graphite is unchanged. During a genuine traversal, a short head and wake are
+composited through a closed three-span depth proxy and full-circumference
+lower-trunk ownership shell. Front depth, back depth, the nearest active fragment
+and burial attenuation govern visibility. The construction is object-space and
+shares Tree deformation; it does not use `GreaterDepth`, an aperture, global
+transparency, a camera-facing coordinate, persistent light or bloom.
+
+###### C4c-I1 acceptance gate
+
+- Every eligible packet route maps to exactly one authored owner at supported
+  growth tiers; no decorative or random roots are invented.
+- Every strand meets the same exact centreline entry and rootward resume and is
+  constructed from accepted buried C1 centreline samples with positive inherited
+  carrier clearance. This bounded study does not claim an independent continuous
+  shell proof for every interpolated tube point.
+- One packet illuminates only its selected strand. Different packets may share a
+  strand or occupy different strands while identities and timings remain
+  independent.
+- Idle graphite, accepted Tree geometry, canopy transport, scheduler, controls,
+  C1 descriptor and E1/E2/O1 evidence remain unchanged.
+- Orbit shows stable three-dimensional placement and burial-dependent occlusion,
+  not a mark that follows the facing surface.
+- Default `0.20` traffic discloses fragments rather than an inventory. The `11`
+  packets-per-second stress setting must conserve all events and expose whether
+  dense activity collapses into a static cable bundle.
+- Review must explicitly reject the candidate if it reads as X-ray plumbing,
+  roots trapped in glass, a miniature literal tree, broad surface illumination
+  or a permanent mechanical inventory.
+
+###### C4c-I1 implementation state
+
+The candidate profile is `c4c-internal-arborescence-v1`. At growth tiers `0`,
+`3` and `8`, respectively, `163`, `213` and `345` eligible routes map uniquely to
+`3`, `9` and `24` authored owner strands. The candidate stores owner keys rather
+than unstable carrier indices. Its merged geometry contains one contiguous range
+per owner; packet stamping groups active traversals by range so high-frequency
+traffic does not make every vertex scan unrelated packets.
+
+Focused regression establishes deterministic geometry and ownership, exact
+centreline boundaries, single-strand disclosure, path-specific timing, one-source
+provenance, fine/coarse cadence equivalence, shared-strand congestion, exact
+conservation, bounded depth resources and unchanged Tree geometry. Existing
+filigree and optical-fibre profiles remain separately selectable and retain their
+own evidence. Full suite, build and final browser evidence are recorded in the
+Experiment C review.
+
+Human review found that the upper central entry remained legible but the lower
+C1-derived paths were predominantly longitudinal and too visually subdued to
+read as the intended recursive internal root system. High traffic concentrated
+into a nearly continuous cyan knot instead of revealing a convincing branching
+order. Preserve the implementation and its technical evidence; do not refine it
+into C4d or report it as an accepted artistic solution.
+
+#### C4d — inverted internal router-tree sequence
+
+**Sequence rule:** D1–D4 are separate bounded blocks with human review between
+them. Passing a block authorises no later block. The accepted Tree, C1, packet
+scheduler and prior evidence profiles remain preserved throughout.
+
+The new hypothesis places an independent recursive tree at the exact central
+rune point. It grows rootward inside the monumental trunk, reusing suitable curve
+and tier concepts from the crown while replacing gravity with a deterministic
+wall-clearance constraint. The inner tree is primarily routing topology: normal
+artwork mode may keep it completely transparent, while an opt-in diagnostic may
+show it for construction and review. It must not be confused with the future
+physical or mycelial roots outside the trunk.
+
+##### C4d-D1 — internal router topology and containment
+
+**Status:** authorised as the only current implementation block.
+
+Build one deterministic, acyclic inverted tree whose single seed is the existing
+model-space rune point. Its principal limbs descend and recurse through explicit
+tiers within the lower monumental trunk. Candidate growth is evaluated in the
+trunk's transported local cross-sections. A segment must steer inward, shorten or
+terminate before its tube radius plus safety margin would cross the physical
+wall. The increasing lower-trunk circumference may supply additional viable
+branch sites; no branch may be clamped into a false surface attachment after the
+fact.
+
+D1 establishes topology, geometry, tier ownership and containment only. Do not
+connect the canopy route, create or consume packets, implement cyan-to-gold
+transduction, modify provenance, add packet signals, select an artistic
+transillumination language or change the accepted graphite. The router is absent
+from normal artwork rendering. A separate diagnostic view may render it clearly
+enough to inspect its recursive form and wall relationship.
+
+###### D1 acceptance gate
+
+- The seed is the exact authored rune point in Tree object space and rebuilds
+  with the monumental trunk; it is not a camera coordinate or hand-placed offset.
+- Topology is one rooted tree with stable IDs, one parent per non-root node, no
+  cycles or disconnected nodes, deterministic tier counts and deterministic
+  geometry for identical inputs.
+- The form has a readable inverted recursive silhouette: principal downward
+  limbs produce subordinate branches across more than one tier rather than a
+  bundle of parallel longitudinal conduits.
+- Independently sampled centreline and tube-clearance checks prove that every
+  accepted branch remains inside the current trunk envelope with a positive
+  safety margin. Wall-limited proposals terminate or change course
+  deterministically.
+- Representative default and form-control rebuilds retain valid containment and
+  do not mutate the accepted trunk, crown, C1 descriptor, packet routes,
+  scheduler, ledgers or earlier evidence profiles.
+- Normal artwork mode adds no persistent visible internal object or draw call.
+  The opt-in diagnostic is clearly identified as construction evidence, not the
+  proposed final presentation.
+- Focused regression, complete Tree tests, build and browser inspection in the
+  diagnostic plus Silhouette, Structure and Canopy views pass before review.
+
+**Human review stop:** judge only whether the isolated inverted topology is a
+credible internal root/router form and whether its relationship to the rune point
+and trunk wall is convincing. Do not begin D2 during this review.
+
+##### C4d-D2 — rune junction and auditable boundary
+
+**Status:** planned but unauthorised until D1 sign-off.
+
+Connect the existing central canopy route exactly to the D1 seed. Establish the
+one-to-one boundary `one cyan source consumed → one distinct gold output created`
+with immutable single-source provenance. Place the output at the internal router
+root but do not yet transmit it through the branches. The term “junction box”
+defines a causal and spatial role, not a required mechanical form.
+
+**Human review gate:** prove coordinate continuity, exact one-to-one ledger
+balance and a credible relationship between canopy, junction and router without
+claiming aggregation. Stop before D3.
+
+##### C4d-D3 — independent packet transmission
+
+**Status:** planned but unauthorised until D2 sign-off.
+
+Route each gold output down exactly one selected D1 path. Different packets may
+select different endpoints or share a route, but a packet never duplicates at a
+branch. Reuse the existing deterministic scheduler, speed and frequency controls
+without artificial synchronisation.
+
+**Human review gate:** verify default and `11` Hz traffic, shared-route
+congestion, cadence independence, identity conservation and continuous motion
+from rune towards the lower trunk. Stop before D4.
+
+##### C4d-D4 — artistic presentation
+
+**Status:** future experiment, unauthorised until D3 sign-off.
+
+Investigate how little of the validated router needs to become perceptible. The
+router may remain transparent while active packets alone reveal its order;
+transillumination, selective material response or another language must be
+compared rather than presumed. Do not reopen C2's permanent inventory or treat a
+diagnostic view as the artwork.
+
+**Human review gate:** determine whether packet activity suggests a larger unseen
+recursive order while the graphite retains monumentality. An unsuccessful visual
+result is valid evidence and does not authorise indefinite refinement.
+
 #### C5 — provenance-preserving behavioural convergence
 
 **Status:** artistic objective retained but paused and unauthorised after the
-C4b-O1 review stop; any continuation requires a separate explicit brief.
+C4d sequence; any continuation requires D4 review and a separate explicit brief.
 
 **Purpose:** determine whether multiple independent authored inputs can produce
 one genuinely new rootward output and a perceptible higher-order consequence
@@ -1348,13 +1527,17 @@ artistically rejected; C3b remains an optional concealed-transport hypothesis;
 C4a-E1 preserves a technically successful but brooch-like exterior presentation;
 the last green C4a-E2 profile preserves a technically successful but artistically
 unresolved axial presentation with one-to-one semantics; and C5 would later test
-behavioural convergence. The filigree direction is closed and no replacement
-implementation is authorised. Any later C5 success would validate a candidate
-mechanism at `meaning`, not complete or automatically generalise Phase 3.
+behavioural convergence. The filigree direction is closed. C4b-O1 subsequently
+supplied a valid exterior transport study but was rejected as a wrapped thread.
+C4c-I1 then supplied technically valid internal transport but failed to make a
+recursive root order visibly convincing. C4d now separates the replacement into
+router topology, junction, transmission and presentation gates; D1 alone is
+authorised. Any later C5 success would validate a candidate mechanism at
+`meaning`, not complete or automatically generalise Phase 3.
 
-That final sentence records the C4a closure state. The later reviewed brief
-authorises only C4b-O1 as the single bounded exterior transport study described
-above. It does not reopen C4a, generalise C4 or authorise C5.
+The C4a closure remains in force. The later reviewed briefs authorised C4b-O1 as
+one exterior transport study, C4c-I1 as one internal presentation study and
+C4d-D1 as one topology study. None reopens C4a, generalises C4 or authorises C5.
 
 The work list below is a provisional Phase 3 direction, not an authorised
 implementation sequence. Its confluence rule, behavioural language and proposed

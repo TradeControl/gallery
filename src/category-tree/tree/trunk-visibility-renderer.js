@@ -242,10 +242,10 @@ function createRuneSubsurfaceMaterial()
             cameraFar: { value: 80 },
             runeRadius: { value: 0.026 },
             sourceColour: {
-                value: new THREE.Color( 0x46a9ff ).multiplyScalar( 1.20 )
+                value: new THREE.Color( 0x249cff ).multiplyScalar( 1.75 )
             },
             outputColour: {
-                value: new THREE.Color( 0xfff2bf ).multiplyScalar( 1.18 )
+                value: new THREE.Color( 0xffc451 ).multiplyScalar( 1.65 )
             }
         },
         vertexShader: runeVertexShader,
@@ -308,10 +308,10 @@ function createRuneSubsurfaceMaterial()
                     1.0
                 );
                 float transmission = clamp(
-                    exp( -burial * 1.72 )
-                        * ( 1.0 - burialFraction * 0.34 ),
-                    0.08,
-                    0.78
+                    exp( -burial * 1.55 )
+                        * ( 1.0 - burialFraction * 0.28 ),
+                    0.12,
+                    0.82
                 );
                 float signal = pow( internalRuneSignal, 0.78 );
                 vec3 colour = mix(
@@ -321,7 +321,7 @@ function createRuneSubsurfaceMaterial()
                 );
                 gl_FragColor = vec4(
                     colour,
-                    signal * transmission * 0.72
+                    signal * transmission * 0.82
                 );
             }
         `,
@@ -436,10 +436,10 @@ export function createTrunkVisibilityRenderer(
 
     function updateResources( resources )
     {
+        proxyMesh.geometry = resources.proxyGeometry;
+        carrierMesh.geometry = resources.skeletonMesh.geometry;
         if ( resources.revision !== resourceRevision )
         {
-            proxyMesh.geometry = resources.proxyGeometry;
-            carrierMesh.geometry = resources.skeletonMesh.geometry;
             resourceRevision = resources.revision;
         }
         ownershipMesh.geometry = resources.ownershipGeometry;
@@ -481,9 +481,9 @@ export function createTrunkVisibilityRenderer(
 
     function updateRuneResources( visibilityResources, runeResources )
     {
+        proxyMesh.geometry = runeResources.proxyGeometry;
         if ( visibilityResources.revision !== resourceRevision )
         {
-            proxyMesh.geometry = visibilityResources.proxyGeometry;
             resourceRevision = visibilityResources.revision;
         }
         if ( runeResources.revision !== runeResourceRevision )
@@ -564,7 +564,9 @@ export function createTrunkVisibilityRenderer(
             && runeResources.mesh
             && runeResources.geometry
             && runeResources.ownershipGeometry
-            && resources.proxyGeometry );
+            && runeResources.proxyGeometry
+            && runeResources.activeTraversals.length > 0
+            && diagnostics.stencilAvailable );
         renderer.setRenderTarget( null );
         renderer.autoClear = true;
         renderer.render( scene, camera );

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const trunkRuneTransducerSite = Object.freeze( {
     id: 'meaning-passage',
@@ -18,9 +19,11 @@ export const trunkRuneFullAdmissionFrequency = Number.POSITIVE_INFINITY;
 export const trunkRuneCandidateIds = Object.freeze( {
     evidence: 'c4a-exterior-brooch-v1',
     longitudinal: 'c4a-longitudinal-placement-v1',
-    opticalFibre: 'c4b-exterior-optical-fibre-v1'
+    opticalFibre: 'c4b-exterior-optical-fibre-v1',
+    internalArborescence: 'c4c-internal-arborescence-v1'
 } );
-export const defaultTrunkRuneCandidateId = trunkRuneCandidateIds.opticalFibre;
+export const defaultTrunkRuneCandidateId =
+    trunkRuneCandidateIds.internalArborescence;
 
 const e1LongitudinalSpan = 0.29;
 const e1BodySpan = 0.44;
@@ -38,6 +41,12 @@ const o1SpiralTurns = 3.25;
 const o1EntryLocalProgress = 0.96;
 const o1ExitLocalProgress = 0.04;
 const o1TransformationPhase = 0.62;
+const i1TubeRadius = 0.024;
+const i1TubularSegments = 112;
+const i1RadialSegments = 6;
+const i1EntryLocalProgress = 0.96;
+const i1ExitLocalProgress = 0.04;
+const i1TransformationPhase = 0.62;
 const runeSignalHeadWidth = 0.036;
 const runeSignalTailLength = 0.19;
 // Fixed in object space and aimed toward the authored Structure view. It is
@@ -156,6 +165,27 @@ export const trunkRuneCandidateProfiles = Object.freeze( {
         transformationPhase: o1TransformationPhase,
         transformationControlIndex: Math.round(
             ( o1ControlCount - 1 ) * o1TransformationPhase
+        ),
+        controls: Object.freeze( [] )
+    } ),
+    [trunkRuneCandidateIds.internalArborescence]: Object.freeze( {
+        candidateId: trunkRuneCandidateIds.internalArborescence,
+        reviewStatus: 'bounded-artistic-experiment-awaiting-human-review',
+        placementModel: 'packet-selected-internal-c1-authored-arborescence',
+        spatialConvergenceClaim: false,
+        routeEntryParentId: 'exchange',
+        routeEntryChildId: 'meaning',
+        routeExitParentId: 'planting-root',
+        routeExitChildId: 'uptake',
+        entryLocalProgress: i1EntryLocalProgress,
+        exitLocalProgress: i1ExitLocalProgress,
+        bodyLongitudinalSpan: 1,
+        tubeRadius: i1TubeRadius,
+        tubularSegments: i1TubularSegments,
+        radialSegments: i1RadialSegments,
+        transformationPhase: i1TransformationPhase,
+        transformationControlIndex: Math.round(
+            i1TubularSegments * i1TransformationPhase
         ),
         controls: Object.freeze( [] )
     } )
@@ -1029,6 +1059,349 @@ function setSignalAttributes(
     geometry.getAttribute( 'runeWarmth' ).setUsage( THREE.DynamicDrawUsage );
 }
 
+function sampleCarrierCentreline( carrier, station )
+{
+    const pointCount = carrier.centreline.length / 3;
+    const clamped = THREE.MathUtils.clamp( station, 0, pointCount - 1 );
+    const left = Math.floor( clamped );
+    const right = Math.min( pointCount - 1, left + 1 );
+    const amount = clamped - left;
+    return new THREE.Vector3()
+        .fromArray( carrier.centreline, left * 3 )
+        .lerp(
+            new THREE.Vector3().fromArray( carrier.centreline, right * 3 ),
+            amount
+        );
+}
+
+function createInternalArborescenceGeometry(
+    sourceGeometry,
+    trunkNodes,
+    informationRoute,
+    interiorDescriptor,
+    profile
+)
+{
+    if ( !interiorDescriptor?.carriers?.length )
+    {
+        throw new Error( 'The internal arborescence requires the accepted C1 descriptor.' );
+    }
+    const entrySpanIndex = getAuthoredSpanIndexForPair(
+        trunkNodes,
+        profile.routeEntryParentId,
+        profile.routeEntryChildId
+    );
+    const exitSpanIndex = getAuthoredSpanIndexForPair(
+        trunkNodes,
+        profile.routeExitParentId,
+        profile.routeExitChildId
+    );
+    const entrySegment = informationRoute?.byChildId.get(
+        profile.routeEntryChildId
+    );
+    const exitSegment = informationRoute?.byChildId.get(
+        profile.routeExitChildId
+    );
+    if ( entrySpanIndex < 0 || exitSpanIndex < 0
+        || entrySegment?.parentId !== profile.routeEntryParentId
+        || exitSegment?.parentId !== profile.routeExitParentId )
+    {
+        throw new Error(
+            'The internal arborescence requires its authored centreline boundaries.'
+        );
+    }
+
+    const samplesPerSpan = interiorDescriptor.samplesPerSpan;
+    const entryStation = ( entrySpanIndex + profile.entryLocalProgress )
+        * samplesPerSpan;
+    const exitStation = ( exitSpanIndex + profile.exitLocalProgress )
+        * samplesPerSpan;
+    const entryPoint = entrySegment.curve.getPointAt(
+        profile.entryLocalProgress
+    );
+    const exitPoint = exitSegment.curve.getPointAt(
+        profile.exitLocalProgress
+    );
+    const eligibleCarriers = interiorDescriptor.carriers
+        .filter( ( carrier ) =>
+            carrier.centreline.length / 3 > Math.ceil( entryStation )
+        )
+        .slice()
+        .sort( ( left, right ) => left.ownerId.localeCompare( right.ownerId ) );
+    if ( eligibleCarriers.length === 0 )
+    {
+        throw new Error( 'No C1 carrier reaches the internal arborescence entry.' );
+    }
+
+    const sources = [];
+    const pathProfiles = [];
+    const pathRanges = [];
+    let vertexStart = 0;
+    let indexStart = 0;
+    let minimumInheritedCarrierToShellClearance = Number.POSITIVE_INFINITY;
+    for ( let pathIndex = 0; pathIndex < eligibleCarriers.length; pathIndex += 1 )
+    {
+        const carrier = eligibleCarriers[pathIndex];
+        const controls = [ entryPoint.clone() ];
+        controls.push( sampleCarrierCentreline( carrier, entryStation ) );
+        for ( let station = Math.floor( entryStation ) - 1;
+            station > Math.ceil( exitStation );
+            station -= 1 )
+        {
+            controls.push( sampleCarrierCentreline( carrier, station ) );
+        }
+        controls.push( sampleCarrierCentreline( carrier, exitStation ) );
+        controls.push( exitPoint.clone() );
+        const curve = new THREE.CatmullRomCurve3(
+            controls,
+            false,
+            'centripetal',
+            0.42
+        );
+        const geometry = new THREE.TubeGeometry(
+            curve,
+            profile.tubularSegments,
+            profile.tubeRadius,
+            profile.radialSegments,
+            false
+        );
+        setSignalAttributes(
+            geometry,
+            null,
+            profile.tubularSegments,
+            profile.radialSegments
+        );
+        geometry.setAttribute(
+            'runeOwner',
+            new THREE.Float32BufferAttribute(
+                new Float32Array(
+                    geometry.getAttribute( 'position' ).count
+                ).fill( pathIndex ),
+                1
+            )
+        );
+        const pathLength = curve.getLength();
+        const internalTransformationDistance = pathLength
+            * profile.transformationPhase;
+        const internalTransformationPoint = curve.getPointAt(
+            profile.transformationPhase
+        );
+        const centrelinePoints = new Float32Array(
+            Array.from(
+                { length: profile.tubularSegments + 1 },
+                ( _, step ) => curve.getPointAt(
+                    step / profile.tubularSegments
+                ).toArray()
+            ).flat()
+        );
+        const pathProfile = Object.freeze( {
+            pathIndex,
+            ownerId: carrier.ownerId,
+            entryTrunkNodeId: carrier.entryTrunkNodeId,
+            pathLength,
+            internalTransformationDistance,
+            transformationPhase: profile.transformationPhase,
+            centreEntryPoint: Object.freeze( entryPoint.toArray() ),
+            internalTransformationPoint: Object.freeze(
+                internalTransformationPoint.toArray()
+            ),
+            centreResumePoint: Object.freeze( exitPoint.toArray() ),
+            controlPoints: new Float32Array(
+                controls.flatMap( ( point ) => point.toArray() )
+            ),
+            centrelinePoints
+        } );
+        pathProfiles.push( pathProfile );
+        pathRanges.push( Object.freeze( {
+            pathIndex,
+            ownerId: carrier.ownerId,
+            vertexStart,
+            vertexCount: geometry.getAttribute( 'position' ).count,
+            indexStart,
+            indexCount: geometry.index.count
+        } ) );
+        vertexStart += geometry.getAttribute( 'position' ).count;
+        indexStart += geometry.index.count;
+        minimumInheritedCarrierToShellClearance = Math.min(
+            minimumInheritedCarrierToShellClearance,
+            carrier.minimumWallClearance + carrier.radius
+                - profile.tubeRadius
+        );
+        sources.push( geometry );
+    }
+    const geometry = mergeGeometries( sources, false );
+    if ( !geometry )
+    {
+        for ( const source of sources ) source.dispose();
+        throw new Error( 'The internal arborescence geometry could not be merged.' );
+    }
+    for ( const source of sources ) source.dispose();
+    geometry.getAttribute( 'runeSignal' ).setUsage( THREE.DynamicDrawUsage );
+    geometry.getAttribute( 'runeWarmth' ).setUsage( THREE.DynamicDrawUsage );
+    geometry.computeBoundingSphere();
+
+    const pathLengths = pathProfiles.map( ( path ) => path.pathLength );
+    const transformationDistances = pathProfiles.map(
+        ( path ) => path.internalTransformationDistance
+    );
+    const representative = pathProfiles[0];
+    geometry.userData.trunkRunes = {
+        siteCount: 1,
+        sites: trunkRuneSites,
+        candidateId: profile.candidateId,
+        reviewStatus: profile.reviewStatus,
+        placementModel: profile.placementModel,
+        spatialConvergenceClaim: false,
+        transducerId: trunkRuneTransducerSite.transducerId,
+        parentId: trunkRuneTransducerSite.parentId,
+        childId: trunkRuneTransducerSite.childId,
+        spanIndex: entrySpanIndex,
+        artisticForm: 'event-revealed-internal-information-arborescence',
+        inspiration: 'root-system-within-monumental-graphite',
+        ethnicStyleClaim: false,
+        literalCulturalMotif: false,
+        visibleArtifact: false,
+        persistentStructure: false,
+        idleLuminosity: 0,
+        functionalPath: true,
+        internal3d: true,
+        surfaceExcursion: null,
+        shellRelationship:
+            'c1-derived-internal-packet-gated-transillumination',
+        connectedPath: true,
+        inletCount: 1,
+        outletCount: 1,
+        branched: true,
+        aggregation: false,
+        pathSelection: 'unique-authored-route-owner',
+        routeEntryParentId: profile.routeEntryParentId,
+        routeEntryChildId: profile.routeEntryChildId,
+        routeExitParentId: profile.routeExitParentId,
+        routeExitChildId: profile.routeExitChildId,
+        coveredTrunkSpans: trunkNodes.slice(
+            exitSpanIndex,
+            entrySpanIndex + 2
+        ).slice( 0, -1 ).map( ( node, offset ) => {
+            const span = exitSpanIndex + offset;
+            return {
+                parentId: trunkNodes[span].id,
+                childId: trunkNodes[span + 1].id,
+                spanIndex: span,
+                fromLocalProgress: span === entrySpanIndex
+                    ? profile.entryLocalProgress
+                    : 1,
+                toLocalProgress: span === exitSpanIndex
+                    ? profile.exitLocalProgress
+                    : 0
+            };
+        } ).reverse(),
+        coveredTrunkSpanCount: entrySpanIndex - exitSpanIndex + 1,
+        spiralTurns: 0,
+        taperFollowing: true,
+        packetOnlyDisclosure: true,
+        colourTransition: 'continuous-blue-to-cosmos-gold-rootward',
+        colourTransitionContinuous: true,
+        colourTransitionDirection: 'rootward',
+        transformationArtifact: false,
+        pathLength: pathLengths.reduce( ( total, value ) => total + value, 0 )
+            / pathLengths.length,
+        minimumPathLength: Math.min( ...pathLengths ),
+        maximumPathLength: Math.max( ...pathLengths ),
+        internalTransformationDistance: transformationDistances.reduce(
+            ( total, value ) => total + value,
+            0
+        ) / transformationDistances.length,
+        internalTransformationPhase: profile.transformationPhase,
+        centreEntryDistance: 0,
+        centreResumeDistance: pathLengths.reduce(
+            ( total, value ) => total + value,
+            0
+        ) / pathLengths.length,
+        centreEntryPhase: 0,
+        centreResumePhase: 1,
+        entryLocalProgress: profile.entryLocalProgress,
+        exitLocalProgress: profile.exitLocalProgress,
+        bodyLongitudinalSpan: profile.bodyLongitudinalSpan,
+        centreEntryPoint: representative.centreEntryPoint.slice(),
+        internalTransformationPoint:
+            representative.internalTransformationPoint.slice(),
+        centreResumePoint: representative.centreResumePoint.slice(),
+        controlPoints: representative.controlPoints,
+        centrelinePoints: representative.centrelinePoints,
+        controlPointCount: representative.controlPoints.length / 3,
+        centreSampleCount: representative.centrelinePoints.length / 3,
+        pathProfiles: Object.freeze( pathProfiles ),
+        pathRanges: Object.freeze( pathRanges ),
+        pathOwnerIds: Object.freeze(
+            pathProfiles.map( ( path ) => path.ownerId )
+        ),
+        pathCount: pathProfiles.length,
+        tubularSegments: profile.tubularSegments,
+        radialSegments: profile.radialSegments,
+        tubeRadius: profile.tubeRadius,
+        granuleRadius: 0,
+        maximumNormalisedRadius: Math.max(
+            ...eligibleCarriers.map( ( carrier ) => carrier.slotRadius )
+        ),
+        minimumPathToShellClearance: null,
+        minimumInheritedCarrierToShellClearance,
+        maximumPathToShellClearance: null,
+        maximumExteriorProtrusion: null,
+        shellExposureBandCount: 0,
+        shellExposureBands: [],
+        buriedSampleCount: null,
+        shellCrossingSampleCount: null,
+        exteriorSampleCount: null,
+        straddlesShell: null,
+        continuousShellContainmentVerified: false,
+        containmentEvidence:
+            'accepted-c1-carrier-samples-and-exact-central-boundaries',
+        minimumPathToCarrierClearance: null,
+        checkedCarrierCount: interiorDescriptor.carriers.length,
+        insideOpaqueShell: null,
+        carrierCollisionFree: null,
+        carrierClearanceModel:
+            'selected-path-coincident-with-owner-and-shared-boundaries',
+        pathFrame: {
+            model: 'accepted-c1-object-space-carrier-family',
+            cameraIndependent: true
+        },
+        rendering: 'depth-aware-packet-gated-subsurface-transmission',
+        motionModel: 'shared-tree-deformation',
+        renderContract: {
+            activation: 'genuine-traversal-only',
+            mainSceneMeshVisible: false,
+            persistentGoldStructure: false,
+            packetOnlyDisclosure: true,
+            mostlyInvisibleAtIdle: true,
+            gradualRootwardColour: true,
+            multiSpanPath: true,
+            transformationGranule: false,
+            idleLuminosity: 0,
+            activeExtraPassCount: 5,
+            ordinaryDepthOnly: false,
+            depthAwareSubsurface: true,
+            greaterDepth: false,
+            cameraFacing: false,
+            aperture: false,
+            c1InventoryVisible: false,
+            bloomRequired: false
+        },
+        idlePassCount: 1,
+        activeOverlayDrawCalls: 1,
+        meshCount: 1,
+        maximumDrawCalls: 1,
+        tubeVertexCount: geometry.getAttribute( 'position' ).count,
+        tubeTriangleCount: geometry.index.count / 3,
+        vertexCount: geometry.getAttribute( 'position' ).count,
+        triangleCount: geometry.index.count / 3,
+        objectSpace: true,
+        cameraFacing: false,
+        sourceGeometryUuid: sourceGeometry.uuid
+    };
+    return geometry;
+}
+
 export function createTrunkRuneGeometry(
     sourceGeometry,
     trunkNodes,
@@ -1053,6 +1426,17 @@ export function createTrunkRuneGeometry(
     if ( !routeSegment || routeSegment.parentId !== site.parentId )
     {
         throw new Error( `Trunk rune site '${site.id}' requires its authored transport span.` );
+    }
+
+    if ( candidateId === trunkRuneCandidateIds.internalArborescence )
+    {
+        return createInternalArborescenceGeometry(
+            sourceGeometry,
+            trunkNodes,
+            informationRoute,
+            interiorDescriptor,
+            profile
+        );
     }
 
     let authored;
@@ -1455,55 +1839,90 @@ export function setTrunkRuneGeometryTraversals( geometry, traversals )
     const phase = geometry.getAttribute( 'runePhase' );
     const signal = geometry.getAttribute( 'runeSignal' );
     const warmth = geometry.getAttribute( 'runeWarmth' );
+    const owner = geometry.getAttribute( 'runeOwner' );
     const continuousRootwardColour = geometry.userData.trunkRunes
         ?.colourTransitionContinuous === true;
     let changed = false;
-    for ( let index = 0; index < phase.count; index += 1 )
+    const updateRange = ( start, count, candidates ) => {
+        const end = Math.min( phase.count, start + count );
+        for ( let index = start; index < end; index += 1 )
+        {
+            const pathPhase = phase.getX( index );
+            let strongestSignal = 0;
+            let strongestWarmth = 0;
+            for ( const traversal of candidates )
+            {
+                const progress = THREE.MathUtils.clamp(
+                    traversal.progress ?? 0,
+                    0,
+                    1
+                );
+                const headDelta = ( pathPhase - progress )
+                    / runeSignalHeadWidth;
+                const head = Math.exp( -headDelta * headDelta );
+                const trailDistance = progress - pathPhase;
+                const trail = trailDistance >= 0
+                    ? ( 1 - THREE.MathUtils.smoothstep(
+                        trailDistance,
+                        0,
+                        runeSignalTailLength
+                    ) ) * Math.exp( -trailDistance * 4.6 )
+                    : 0;
+                const candidate = THREE.MathUtils.clamp(
+                    head + trail * 0.44,
+                    0,
+                    1
+                );
+                if ( candidate <= strongestSignal ) continue;
+                strongestSignal = candidate;
+                if ( continuousRootwardColour )
+                {
+                    strongestWarmth = pathPhase * pathPhase
+                        * ( 3 - 2 * pathPhase );
+                }
+                else
+                {
+                    strongestWarmth = traversal.transformed === true
+                        && pathPhase + 1e-6
+                            >= ( traversal.transformationPhase ?? 1 )
+                        ? 1
+                        : 0;
+                }
+            }
+            if ( signal.getX( index ) !== strongestSignal )
+            {
+                signal.setX( index, strongestSignal );
+                changed = true;
+            }
+            if ( warmth.getX( index ) !== strongestWarmth )
+            {
+                warmth.setX( index, strongestWarmth );
+                changed = true;
+            }
+        }
+    };
+    const pathRanges = geometry.userData.trunkRunes?.pathRanges;
+    if ( owner && pathRanges?.length )
     {
-        const pathPhase = phase.getX( index );
-        let strongestSignal = 0;
-        let strongestWarmth = 0;
+        const traversalsByPath = new Map();
         for ( const traversal of traversals )
         {
-            const progress = THREE.MathUtils.clamp( traversal.progress ?? 0, 0, 1 );
-            const headDelta = ( pathPhase - progress ) / runeSignalHeadWidth;
-            const head = Math.exp( -headDelta * headDelta );
-            const trailDistance = progress - pathPhase;
-            const trail = trailDistance >= 0
-                ? ( 1 - THREE.MathUtils.smoothstep(
-                    trailDistance,
-                    0,
-                    runeSignalTailLength
-                ) ) * Math.exp( -trailDistance * 4.6 )
-                : 0;
-            const candidate = THREE.MathUtils.clamp( head + trail * 0.44, 0, 1 );
-            if ( candidate <= strongestSignal ) continue;
-            strongestSignal = candidate;
-            if ( continuousRootwardColour )
-            {
-                strongestWarmth = pathPhase * pathPhase
-                    * ( 3 - 2 * pathPhase );
-            }
-            else
-            {
-                strongestWarmth = traversal.transformed === true
-                    && pathPhase + 1e-6
-                        >= ( traversal.transformationPhase ?? 1 )
-                    ? 1
-                    : 0;
-            }
+            const pathIndex = traversal.pathIndex;
+            if ( pathIndex === undefined ) continue;
+            const candidates = traversalsByPath.get( pathIndex ) ?? [];
+            candidates.push( traversal );
+            traversalsByPath.set( pathIndex, candidates );
         }
-        if ( signal.getX( index ) !== strongestSignal )
+        for ( const range of pathRanges )
         {
-            signal.setX( index, strongestSignal );
-            changed = true;
-        }
-        if ( warmth.getX( index ) !== strongestWarmth )
-        {
-            warmth.setX( index, strongestWarmth );
-            changed = true;
+            updateRange(
+                range.vertexStart,
+                range.vertexCount,
+                traversalsByPath.get( range.pathIndex ) ?? []
+            );
         }
     }
+    else updateRange( 0, phase.count, traversals );
     if ( changed )
     {
         signal.needsUpdate = true;
@@ -1527,27 +1946,30 @@ export function createTrunkRuneMaterial(
 )
 {
     const isOpticalFibre = candidateId === trunkRuneCandidateIds.opticalFibre;
+    const isInternalArborescence = candidateId
+        === trunkRuneCandidateIds.internalArborescence;
+    const usesContinuousColour = isOpticalFibre || isInternalArborescence;
     const uniforms = {
         time: deformationUniforms.time ?? { value: 0 },
         response: deformationUniforms.response ?? { value: 0.22 },
         sourceColour: {
             value: new THREE.Color( 0x249cff ).multiplyScalar(
-                isOpticalFibre ? 3.15 : 2.25
+                usesContinuousColour ? 3.15 : 2.25
             )
         },
         outputColour: {
             value: new THREE.Color( 0xffc451 ).multiplyScalar(
-                isOpticalFibre ? 2.85 : 2.05
+                usesContinuousColour ? 2.85 : 2.05
             )
         }
     };
     const material = new THREE.MeshPhysicalMaterial( {
-        color: isOpticalFibre ? 0x0b0e10 : 0xc89232,
+        color: usesContinuousColour ? 0x0b0e10 : 0xc89232,
         emissive: 0x000000,
-        metalness: isOpticalFibre ? 0.42 : 0.96,
-        roughness: isOpticalFibre ? 0.58 : 0.27,
-        clearcoat: isOpticalFibre ? 0.06 : 0.28,
-        clearcoatRoughness: isOpticalFibre ? 0.62 : 0.34,
+        metalness: usesContinuousColour ? 0.42 : 0.96,
+        roughness: usesContinuousColour ? 0.58 : 0.27,
+        clearcoat: usesContinuousColour ? 0.06 : 0.28,
+        clearcoatRoughness: usesContinuousColour ? 0.62 : 0.34,
         depthTest: true,
         depthFunc: THREE.LessEqualDepth,
         depthWrite: true,
@@ -1602,23 +2024,27 @@ export function createTrunkRuneMaterial(
         );
         material.userData.shader = shader;
     };
-    material.customProgramCacheKey = () => isOpticalFibre
-        ? 'causal-exterior-optical-fibre-c4b'
-        : 'visible-filigree-transducer-c4a';
-    material.name = isOpticalFibre
-        ? 'packet-lit exterior optical fibre'
-        : 'visible functional gold filigree transducer';
-    material.userData.rendererOwned = false;
+    material.customProgramCacheKey = () => isInternalArborescence
+        ? 'causal-internal-arborescence-c4c'
+        : isOpticalFibre
+            ? 'causal-exterior-optical-fibre-c4b'
+            : 'visible-filigree-transducer-c4a';
+    material.name = isInternalArborescence
+        ? 'renderer-owned internal information arborescence'
+        : isOpticalFibre
+            ? 'packet-lit exterior optical fibre'
+            : 'visible functional gold filigree transducer';
+    material.userData.rendererOwned = isInternalArborescence;
     material.userData.depthMode = 'ordinary-less-equal';
     material.userData.idleLuminosity = 0;
     material.userData.candidateId = candidateId;
-    material.userData.causalSignal = isOpticalFibre
+    material.userData.causalSignal = usesContinuousColour
         ? 'per-packet-max-clamped-continuous-blue-to-cosmos-gold'
         : 'per-packet-max-clamped-blue-to-gold';
-    material.userData.packetOnlyDisclosure = isOpticalFibre;
-    material.userData.mostlyInvisibleAtIdle = isOpticalFibre;
-    material.userData.colourTransitionContinuous = isOpticalFibre;
-    material.userData.colourTransitionDirection = isOpticalFibre
+    material.userData.packetOnlyDisclosure = usesContinuousColour;
+    material.userData.mostlyInvisibleAtIdle = usesContinuousColour;
+    material.userData.colourTransitionContinuous = usesContinuousColour;
+    material.userData.colourTransitionDirection = usesContinuousColour
         ? 'rootward'
         : null;
     material.userData.motionModel = 'shared-tree-deformation';
@@ -1626,8 +2052,10 @@ export function createTrunkRuneMaterial(
         time: uniforms.time,
         response: uniforms.response
     };
-    material.userData.inspiration = isOpticalFibre
-        ? 'bounded-optical-fibre-alternative'
-        : 'user-personal-1980s-gold-filigree-jewellery-memory';
+    material.userData.inspiration = isInternalArborescence
+        ? 'root-system-within-monumental-graphite'
+        : isOpticalFibre
+            ? 'bounded-optical-fibre-alternative'
+            : 'user-personal-1980s-gold-filigree-jewellery-memory';
     return material;
 }

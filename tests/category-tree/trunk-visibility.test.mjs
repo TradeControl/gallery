@@ -564,3 +564,106 @@ test( 'C2 renderer uses trunk-only ownership passes and records bounded costs', 
 
     comparison.dispose();
 } );
+
+test( 'renderer rebinds bounded proxies when switching between active roots and C2', () => {
+    const { layer, parameters } = createMatureLayer( {
+        packetFrequency: 11,
+        packetSpeed: 1.55
+    } );
+    layer.update( 0, parameters );
+    let elapsed = 0;
+    while ( layer.getTrunkRuneResources().activeTraversals.length === 0
+        && elapsed < 30 )
+    {
+        elapsed += 0.5;
+        layer.update( elapsed, parameters );
+    }
+    const runeResources = layer.getTrunkRuneResources();
+    assert.ok(
+        runeResources.activeTraversals.length > 0,
+        'the regression requires one genuine packet inside the internal roots'
+    );
+    assert.equal( runeResources.diagnostics.rendererEligible, true );
+
+    const scene = new THREE.Scene();
+    scene.add( layer.group );
+    const camera = new THREE.PerspectiveCamera( 48, 640 / 360, 0.1, 80 );
+    camera.position.set( 7.5, 8.2, 11.5 );
+    camera.lookAt( -0.6, 6.5, 0 );
+    camera.updateMatrixWorld();
+    const renderer = new RecordingRenderer();
+    const comparison = createTrunkVisibilityRenderer(
+        renderer,
+        scene,
+        camera,
+        layer
+    );
+    const visibilityResources = layer.getTrunkVisibilityResources();
+
+    comparison.render();
+    assert.equal( renderer.renders.length, 6 );
+    assert.equal(
+        renderer.renders[1].participants[0].geometry,
+        runeResources.proxyGeometry,
+        'active roots must use their closed three-span proxy'
+    );
+    assert.equal(
+        renderer.renders[2].participants[0].geometry,
+        runeResources.proxyGeometry
+    );
+    assert.equal(
+        renderer.renders[3].participants[0].geometry,
+        runeResources.geometry,
+        'the nearest-signal pass must draw the active internal roots'
+    );
+    assert.equal(
+        renderer.renders[4].participants[0].geometry,
+        runeResources.ownershipGeometry
+    );
+    assert.equal(
+        renderer.renders[5].participants[0].geometry,
+        runeResources.geometry
+    );
+
+    renderer.resetRecording();
+    layer.setTrunkVisibilityMode( 'attenuation' );
+    comparison.render();
+    assert.equal( renderer.renders.length, 5 );
+    assert.equal(
+        renderer.renders[1].participants[0].geometry,
+        visibilityResources.proxyGeometry,
+        'C2 attenuation must rebind its own local proxy after root rendering'
+    );
+    assert.equal(
+        renderer.renders[2].participants[0].geometry,
+        visibilityResources.proxyGeometry
+    );
+    assert.equal(
+        renderer.renders[3].participants[0].geometry,
+        visibilityResources.ownershipGeometry
+    );
+    assert.equal(
+        renderer.renders[4].participants[0].geometry,
+        visibilityResources.skeletonMesh.geometry
+    );
+
+    renderer.resetRecording();
+    layer.setTrunkVisibilityMode( 'off' );
+    comparison.render();
+    assert.equal( renderer.renders.length, 6 );
+    assert.equal(
+        renderer.renders[1].participants[0].geometry,
+        runeResources.proxyGeometry,
+        'returning to the active roots must restore their proxy'
+    );
+    assert.equal(
+        renderer.renders[4].participants[0].geometry,
+        runeResources.ownershipGeometry
+    );
+    assert.equal(
+        renderer.renders[5].participants[0].geometry,
+        runeResources.geometry
+    );
+
+    comparison.dispose();
+} );

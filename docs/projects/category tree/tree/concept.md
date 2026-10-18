@@ -36,11 +36,47 @@ towards the gold vocabulary of Cosmos near the rootward resume. That colour
 progression describes passage through the bounded route; it does not prove
 many-to-one transformation or higher-order meaning. The existing one-to-one
 causal ledger remains authoritative, with immutable single-source provenance and
-`aggregation: false`. One candidate is now implemented and technically verified;
-it awaits human artistic review without further refinement. This authorisation
-covers that candidate and its review only. It does not authorise C5, aggregation,
-root construction, Casting Pit
-integration, Cosmos transport or any redesign of the Tree.
+`aggregation: false`. O1 remains reproducible technical evidence, but human
+review found that its exterior helix reads as a pretty thread wrapped around the
+Tree rather than the intended artistic language.
+
+**C4c-I1 — event-revealed internal arborescence** is the bounded successor. The
+information route remains central at its canopy-side entry and rootward resume.
+Between those exact boundaries, each packet's authored branch provenance selects
+one and only one hidden C1-derived internal strand. The source is consumed once
+at the existing transformation boundary and creates one distinct output with
+immutable single-source provenance; there is no fan-out or many-to-one merge.
+Different asynchronous packets briefly disclose different rootward journeys,
+allowing a larger internal root system to be inferred over time without
+presenting C1 as a permanent inventory.
+
+The graphite stays opaque and unchanged at rest. During a genuine traversal, a
+short moving fragment is perceived through packet-gated, burial-attenuated
+transillumination. Front and back shell depth, the nearest active fragment and a
+bounded lower-trunk ownership shell determine what can be seen, so orbit changes
+depth and occlusion rather than sliding a mark onto the camera-facing surface.
+Blue progresses towards the gold vocabulary of Cosmos as an account of passage;
+the ledger remains one-to-one, single-source and `aggregation: false`. I1 is
+retained as technically valid evidence, but human review found that it did not
+produce the visible recursive root form the artwork requires. Its C1-derived
+paths remain too longitudinal and visually subdued; it is not an accepted root
+language.
+
+**C4d — inverted internal router tree** replaces the inherited carrier-family
+premise with a new recursive topology planted at the exact central rune point.
+It grows rootward inside the monumental trunk: curve and tier ideas may be reused
+from the crown, while the changing internal wall replaces gravity as the growth
+constraint. The new tree is fundamentally a packet router, not another permanent
+object that must be displayed. It may remain absent from the artwork while an
+opt-in diagnostic makes its topology inspectable.
+
+C4d is deliberately phased. D1 establishes only the deterministic internal tree
+and its containment. D2 connects the canopy route to its seed and establishes an
+auditable rune boundary. D3 sends independent outputs down selected internal
+routes. D4, only after those mechanisms pass review, investigates how packet
+activity should become perceptible through or within the graphite. This sequence
+does not authorise aggregation, external roots, Casting Pit integration or Cosmos
+transport.
 
 Eventually mycelium-like roots will enter the Casting Pit gravity well. Information will continue downward through those roots into Cosmic circuitry while molten material from the physical Universe moves upward through a distinct transport to sustain the Tree. These opposed processes are causally distinct but compositionally connected. Neither may be reduced to decorative animation, and neither requires the internal C1 architecture to become audience-facing imagery.
 
@@ -54,6 +90,12 @@ descent, not evidence that several inputs have become one output. Between real
 events the fibre should withdraw from attention rather than becoming a permanent
 decorative cable.
 
+C4c-I1 applies the same discipline to several possible internal journeys. A
+packet is assigned to exactly one strand by its existing authored ancestry, and
+only that strand can respond to the packet. Simultaneous packets may occupy the
+same or different strands without sharing identity. The resulting spatial
+plurality is transport evidence, not semantic convergence or higher-order unity.
+
 Opposed kinds of flow may retain distinct directions, lanes, colours or rhythms. A selected interpretation may illuminate one meaningful route while leaving the rest present but subdued. A disabled branch may darken recursively; a disconnected branch may remain viable outside the main structure; a changed relationship may visibly reroute subsequent flow.
 
 The Tree should also reveal its own continuing formation. It begins with an established, recognisable structural scaffold—trunk, principal limbs and the initial 36-node hierarchy—not with a bare trunk or a replay of germination. Additional explicit category and terminal subtrees then unfold recursively across that existing crown until it reaches a visible viability threshold. This evolution is neither arbitrary procedural decoration nor ambient sway. It is the temporal manifestation of additional topology, with reproducible but unequal growth rhythms. Once viable, the Tree remains responsive rather than becoming a frozen still object.
@@ -64,13 +106,14 @@ These behaviours offer an artistic vocabulary for classification, aggregation, p
 
 From a distance, the Tree should read as one extraordinary object with a strong silhouette and monumental balance. At closer range, its hierarchy should become discoverable: terminals, finite conduits, junctions, repeated motifs and traces of activity. Complexity should reward inspection without collapsing into noise.
 
-The finite visible form should imply a potentially infinite recursive order. Omission and unseen depth are active parts of the work. C1's carrier architecture remains hidden causal structure and an opt-in diagnostic facility; C2's aperture, attenuation and stencil disclosures remain rejected because they exposed a countable inventory. That decision does not ban all visibility. A single visible filigree transducer may intensify rather than diminish mystery if its axial volume feels held within the monumental trunk rather than attached to its surface, while the larger mechanism remains unseen.
+The finite visible form should imply a potentially infinite recursive order. Omission and unseen depth are active parts of the work. C1's carrier architecture remains hidden causal structure and an opt-in diagnostic facility; C2's aperture, attenuation and stencil disclosures remain rejected because they exposed a countable inventory. That decision does not ban visibility through bounded causal events. A fleeting manifestation may intensify rather than diminish mystery when it belongs spatially and behaviourally to the monumental trunk while the larger mechanism remains unseen.
 
-The C4b-O1 question is narrower: can transient packets momentarily reveal a
-three-dimensional descending spiral without turning the monumental graphite body
-into either an exposed mechanism or a decorated pipe? Its success depends on
-causal light, real occlusion and restraint, not on the fibre being continuously
-legible.
+The immediate D1 question is narrower: can a finite, wall-constrained inverted
+tree inside the trunk establish a convincing recursive packet-routing topology?
+Its diagnostic may expose the whole form for engineering and artistic review,
+but that visibility is not a commitment to the final rendering language. The
+ordinary artwork remains free to keep the router transparent and reveal only the
+consequences of packet passage in a later phase.
 
 The structure should be materially dark and only partially knowable; dynamic colour should continually disclose its recursion. Illumination is therefore capable of manifesting broad connected regions and successive generations without pretending to be an information packet. The Tree should not need uniform visibility to prove that it exists.
 
