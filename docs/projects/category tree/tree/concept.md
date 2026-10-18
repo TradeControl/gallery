@@ -70,13 +70,18 @@ constraint. The new tree is fundamentally a packet router, not another permanent
 object that must be displayed. It may remain absent from the artwork while an
 opt-in diagnostic makes its topology inspectable.
 
-C4d is deliberately phased. D1 establishes only the deterministic internal tree
-and its containment. D2 connects the canopy route to its seed and establishes an
-auditable rune boundary. D3 sends independent outputs down selected internal
-routes. D4, only after those mechanisms pass review, investigates how packet
-activity should become perceptible through or within the graphite. This sequence
-does not authorise aggregation, external roots, Casting Pit integration or Cosmos
-transport.
+C4d is deliberately phased. D1 established only the deterministic internal tree
+and its containment; human review accepted that topology on 2026-10-18, with tier
+`4` judged sufficient for the likely artwork while the bounded `3–6` diagnostic
+range remains useful. D2 connects every shared canopy route to that exact seed and
+establishes an auditable rune boundary. Human review accepted that alignment on
+2026-10-18 as essential causal infrastructure while explicitly withholding any
+claim that the construction diagnostic is the transducer rune. D3 now sends
+independent outputs down selected internal routes. D4, only after those
+mechanisms pass review,
+investigates how packet activity should become perceptible through or within the
+graphite. This sequence does not authorise aggregation, external roots, Casting
+Pit integration or Cosmos transport.
 
 Eventually mycelium-like roots will enter the Casting Pit gravity well. Information will continue downward through those roots into Cosmic circuitry while molten material from the physical Universe moves upward through a distinct transport to sustain the Tree. These opposed processes are causally distinct but compositionally connected. Neither may be reduced to decorative animation, and neither requires the internal C1 architecture to become audience-facing imagery.
 
@@ -96,6 +101,14 @@ only that strand can respond to the packet. Simultaneous packets may occupy the
 same or different strands without sharing identity. The resulting spatial
 plurality is transport evidence, not semantic convergence or higher-order unity.
 
+C4d-D2 now applies the one-to-one rule at the accepted router seed itself. A cyan
+source crossing the shared `exchange → meaning` centreline at authored progress
+`0.58` is consumed once and creates one distinct gold identity with immutable
+single-source provenance. That output is parked at the router root as an auditable
+state; it is not assigned to a branch, duplicated or resumed along the old route.
+The boundary therefore proves connection and transduction but not D3 transport,
+aggregation or higher-order unity.
+
 Opposed kinds of flow may retain distinct directions, lanes, colours or rhythms. A selected interpretation may illuminate one meaningful route while leaving the rest present but subdued. A disabled branch may darken recursively; a disconnected branch may remain viable outside the main structure; a changed relationship may visibly reroute subsequent flow.
 
 The Tree should also reveal its own continuing formation. It begins with an established, recognisable structural scaffold—trunk, principal limbs and the initial 36-node hierarchy—not with a bare trunk or a replay of germination. Additional explicit category and terminal subtrees then unfold recursively across that existing crown until it reaches a visible viability threshold. This evolution is neither arbitrary procedural decoration nor ambient sway. It is the temporal manifestation of additional topology, with reproducible but unequal growth rhythms. Once viable, the Tree remains responsive rather than becoming a frozen still object.
@@ -108,12 +121,22 @@ From a distance, the Tree should read as one extraordinary object with a strong 
 
 The finite visible form should imply a potentially infinite recursive order. Omission and unseen depth are active parts of the work. C1's carrier architecture remains hidden causal structure and an opt-in diagnostic facility; C2's aperture, attenuation and stencil disclosures remain rejected because they exposed a countable inventory. That decision does not ban visibility through bounded causal events. A fleeting manifestation may intensify rather than diminish mystery when it belongs spatially and behaviourally to the monumental trunk while the larger mechanism remains unseen.
 
-The immediate D1 question is narrower: can a finite, wall-constrained inverted
-tree inside the trunk establish a convincing recursive packet-routing topology?
-Its diagnostic may expose the whole form for engineering and artistic review,
-but that visibility is not a commitment to the final rendering language. The
-ordinary artwork remains free to keep the router transparent and reveal only the
-consequences of packet passage in a later phase.
+The D2 question is resolved: the real canopy stream meets the accepted router at
+one credible point and every crossing leaves an exact one-to-one account. Its
+opt-in marks remain engineering evidence, not a proposed rune form or D4
+presentation language. The immediate D3 question is whether every distinct gold
+output can leave that point along exactly one deterministic internal route,
+including shared-route traffic, without loss, duplication or artificial
+synchronisation. Ordinary artwork mode retains the opaque graphite and hides the
+router and boundary diagnostic.
+
+The bounded D1 baseline remains a four-level tree with maximum growth tier `3`;
+the independent **Internal router tiers** control extends it through tiers `4–6`.
+Tier `4` is the current human-preferred working candidate, not a changed technical
+default. D2 owns no router path, so changing that diagnostic complexity cannot
+move, duplicate or consume a parked output. Its coordinate continuity, causal
+balance and visual relationship at the seed are now accepted; D3 is authorised
+as transport evidence only and must stop before D4 presentation.
 
 The structure should be materially dark and only partially knowable; dynamic colour should continually disclose its recursion. Illumination is therefore capable of manifesting broad connected regions and successive generations without pretending to be an information packet. The Tree should not need uniform visibility to prove that it exists.
 

@@ -1,6 +1,6 @@
 # Tree — phased work plan
 
-**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1 is authorised as the next bounded block; its later junction, packet, presentation, aggregation, physical-root and environment phases remain gated
+**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1 and C4d-D2 are approved; D3 packet routing is the authorised bounded block; D4 presentation, aggregation, physical roots and environment integration remain gated
 **Scope:** the Tree as an independent construction problem, followed by deliberate integration with the signed-off Casting Pit
 
 ## Decision: develop the Tree separately first
@@ -1383,7 +1383,9 @@ physical or mycelial roots outside the trunk.
 
 ##### C4d-D1 — internal router topology and containment
 
-**Status:** authorised as the only current implementation block.
+**Status:** approved by human review on 2026-10-18. Tier `4` is the preferred
+working candidate; the independent `3–6` diagnostic range and technical default
+of `3` remain available. D2 was then authorised as the next bounded block.
 
 Build one deterministic, acyclic inverted tree whose single seed is the existing
 model-space rune point. Its principal limbs descend and recurse through explicit
@@ -1401,6 +1403,12 @@ transillumination language or change the accepted graphite. The router is absent
 from normal artwork rendering. A separate diagnostic view may render it clearly
 enough to inspect its recursive form and wall relationship.
 
+For D1 review only, the independent **Internal router tiers** control permits
+maximum growth tiers `3–6`, defaulting to `3`. It does not share state with canopy
+**Growth tiers**. Changing it replaces only the hidden router descriptor and
+merged diagnostic geometry; it does not rebuild the accepted Tree, reset packets
+or begin D2 behaviour.
+
 ###### D1 acceptance gate
 
 - The seed is the exact authored rune point in Tree object space and rebuilds
@@ -1408,6 +1416,13 @@ enough to inspect its recursive form and wall relationship.
 - Topology is one rooted tree with stable IDs, one parent per non-root node, no
   cycles or disconnected nodes, deterministic tier counts and deterministic
   geometry for identical inputs.
+- Every permitted tier value `3–6` produces its exact deterministic topology and
+  one contained merged diagnostic mesh. Returning from `6` to `3` restores the
+  byte-equivalent baseline without changing accepted Tree geometry or causal
+  transport state.
+- Unrelated tubes retain positive sampled separation at every permitted tier and
+  across representative form extremes; added recursion must not create false
+  geometric junctions.
 - The form has a readable inverted recursive silhouette: principal downward
   limbs produce subordinate branches across more than one tier rather than a
   bundle of parallel longitudinal conduits.
@@ -1424,13 +1439,83 @@ enough to inspect its recursive form and wall relationship.
 - Focused regression, complete Tree tests, build and browser inspection in the
   diagnostic plus Silhouette, Structure and Canopy views pass before review.
 
-**Human review stop:** judge only whether the isolated inverted topology is a
-credible internal root/router form and whether its relationship to the rune point
-and trunk wall is convincing. Do not begin D2 during this review.
+**Human review outcome:** the isolated topology is accepted as a credible hidden
+router. The reviewer judged that four maximum tiers would probably be sufficient
+for the artwork and retained the wider control because later phases may benefit
+from configurable complexity. This approval authorises D2 only.
+
+###### D1 implementation and evidence
+
+The candidate `d1-inverted-internal-router-v1` is a separate, normally invisible
+resource rather than an extension of the rejected C1-derived I1 paths. Its exact
+`exchange → meaning` seed is sampled at authored progress `0.58`. Tier `1` is
+triadic and every later tier is binary. The technical default remains maximum tier
+`3`; the bounded diagnostic control adds recursion without changing the seed,
+envelope or routing rules:
+
+| Router tiers | Total levels | Nodes | Edges | Terminal routes |
+|---:|---:|---:|---:|---:|
+| `3` | `4` | `22` | `21` | `12` |
+| `4` | `5` | `46` | `45` | `24` |
+| `5` | `6` | `94` | `93` | `48` |
+| `6` | `7` | `190` | `189` | `96` |
+
+Route chains remain seed-first for possible D3 work, but D1 neither admits nor
+creates a packet.
+
+Every curve is evaluated in transported trunk cross-sections. Centreline offsets
+are constrained by the conservative shell radius multiplied by the accepted
+`0.58` minimum ring-growth scale, with tube radius and a separate wall margin
+included. The twelve terminal proposals ask for more reach than the available
+envelope and are shortened deterministically by the wall instead of being attached
+to its surface. The default diagnostic reports zero centreline or vertex breaches,
+approximately `0.014` minimum growth-wall clearance and approximately `0.119`
+minimum separation between unrelated edges. The merged neutral diagnostic has
+one mesh, one draw call and `4,158` vertices; it is absent from normal artwork
+rendering and has explicit `packetConnected: false`, `junctionImplemented: false`
+and `transportImplemented: false` state.
+
+The higher-tier settings remain wall-contained and retain positive sampled
+separation between unrelated tubes. For tiers `3–6`, the default-form minima are
+approximately `+0.119`, `+0.078`, `+0.049` and `+0.023`; the tight-form minima are
+approximately `+0.057`, `+0.032`, `+0.014` and `+0.0020`. An independent
+`129`-sample check of the limiting tight tier-`6` form remains positive at
+approximately `+0.00196`. To avoid false junctions while preserving the accepted
+tier-`3` form exactly, tiers `4–6` use deterministic global angular slots and
+half-strength radial bends. This makes the deepest diagnostic recursion more
+ordered and leaves only a narrow packing margin. That trade-off is evidence for
+human review, not a final rendering decision or authority to begin D3.
+
+Changing the maximum tier also re-spaces the router's tier stations across the
+same seed-to-root interval; it does not merely append short descendants to fixed
+existing nodes. That is safe while D1 has no router packets. D3 must explicitly
+decide whether this diagnostic control remains live once packets own those paths.
+
+Focused regression passes `9/9`, covering the unchanged tier-`3` baseline, every
+permitted tier from `3–6`, deterministic topology and geometry, invalid-tier
+rejection, the independent UI contract, the full tier/form containment matrix,
+hidden production state, one-mesh isolation, unchanged `11` Hz transport and a
+live `3 → 6 → 3` resource-lifecycle/no-regression cycle. The complete Tree suite
+passes `53/53`. The scoped Vite build passes with
+its existing large-chunk advisory (`723.01 kB` minified). Browser inspection
+passed at every permitted tier in the isolated D1 camera and at tier `6` under
+orbit; the accepted artwork remained intact and the browser reported no warning
+or error entries. These checks establish technical readiness for review, not
+artistic acceptance.
+
+###### D1 human sign-off
+
+Human review on 2026-10-18 approved D1 and authorised the next bounded step. Tier
+`4` is the current preferred review setting, not a change to the technical
+default. D1 remains a hidden routing architecture and construction diagnostic;
+its acceptance does not make the neutral mesh an artistic presentation and does
+not authorise packet travel along its branches.
 
 ##### C4d-D2 — rune junction and auditable boundary
 
-**Status:** planned but unauthorised until D1 sign-off.
+**Status:** human-approved on 2026-10-18 as essential spatial and causal
+infrastructure. The construction diagnostic is not an accepted transducer-rune
+artwork. D3 is authorised as the next bounded block.
 
 Connect the existing central canopy route exactly to the D1 seed. Establish the
 one-to-one boundary `one cyan source consumed → one distinct gold output created`
@@ -1442,9 +1527,64 @@ defines a causal and spatial role, not a required mechanical form.
 balance and a credible relationship between canopy, junction and router without
 claiming aggregation. Stop before D3.
 
+###### D2 implementation and evidence
+
+The live Tree study now opts into candidate `c4d-d2-router-junction-v1`. This mode
+is mutually exclusive with the retained C4c-I1 causal path: I1 remains
+reproducible when selected explicitly, but it cannot intercept a D2 source at its
+earlier boundary. Every manifested route shares the authored
+`exchange → meaning` span. D2 resolves its boundary at local progress `0.58` and
+checks that the route point and current D1 descriptor seed coincide within
+`0.000002` Tree units before admitting an event.
+
+At that analytic crossing the cyan source leaves routed transport exactly once.
+One distinct output ID is created atomically and recorded with a frozen
+single-source provenance entry, source route, terminal, emission time, event time,
+site and copied model-space point. The output state is
+`parked-at-router-root`; it owns no D1 terminal route, edge or distance, is not
+placed back into the moving packet array and cannot advance into the router.
+Runtime state therefore reports `packetConnected: true`,
+`junctionImplemented: true`, `transportImplemented: false`,
+`assignedRouteCount: 0`, one-to-one mode and `aggregation: false`. Lifetime
+counters remain exact after the bounded `4,096`-record audit window begins to
+truncate retained evidence.
+
+The separate **Inspect D2 junction** view is diagnostic evidence only. It hides
+the accepted shell, shows the neutral D1 router, lets a solid cyan packet and
+short depth-tested continuity trace approach the exact seed, and leaves a compact
+gold marker at the parked output point. The marker and trace are ordinary
+object-space geometry with scene occlusion; they do not prescribe a junction box,
+rune form, transillumination language or D4 artwork. Turning the diagnostic off
+restores the unchanged opaque graphite.
+
+Focused D2 regression passes `6/6`: explicit application opt-in and independent
+UI control; exact route/seed continuity across representative forms; atomic
+conversion and deeply frozen provenance; an event-gated trace terminating at the
+exact root; stationary output through time and a live `3 → 4` tier change; exact
+default and `11` Hz fine/coarse cadence equivalence with more than one hundred
+high-rate outputs; legacy C4c inactivity; and byte-preserved Tree, C1 and D1
+geometry. Combined D1/D2 regression passes `15/15`; the complete Tree suite passes
+`59/59`. The scoped Vite build passes with the existing non-blocking large-chunk
+advisory (`734.09 kB` minified). Browser inspection passes in normal artwork and
+the tier-`4` D2 view at default and `11` Hz traffic: the visible counter remains
+balanced, the cyan ingress terminates at the gold/root point, no router branch
+carries colour and the diagnostic remains a single ordinary render pass. No
+browser warning or error is known at this review stop.
+
+**Human review stop:** in plain terms, watch one blue packet descend to the top
+of the neutral internal tree. It should meet the small gold point without a jump
+or camera-facing slide. The blue identity must end there; the gold count must rise
+by one and remain parked while every lower branch stays neutral. Orbit the view to
+check that the packet, short trace, gold point and router share real depth. Turn
+the diagnostic off and confirm that the monumental graphite Tree is unchanged.
+The counter must continue to read equal cyan consumed and gold parked with balance
+`0`, including at high frequency. Do not judge this diagnostic as the final rune
+or authorise D3 until those relationships are convincing.
+
 ##### C4d-D3 — independent packet transmission
 
-**Status:** planned but unauthorised until D2 sign-off.
+**Status:** authorised on 2026-10-18 after D2 sign-off; implementation is the
+current bounded block. D4 remains unauthorised.
 
 Route each gold output down exactly one selected D1 path. Different packets may
 select different endpoints or share a route, but a packet never duplicates at a
@@ -1531,8 +1671,8 @@ behavioural convergence. The filigree direction is closed. C4b-O1 subsequently
 supplied a valid exterior transport study but was rejected as a wrapped thread.
 C4c-I1 then supplied technically valid internal transport but failed to make a
 recursive root order visibly convincing. C4d now separates the replacement into
-router topology, junction, transmission and presentation gates; D1 alone is
-authorised. Any later C5 success would validate a candidate mechanism at
+router topology, junction, transmission and presentation gates; D1 and D2 are
+approved and D3 alone is currently authorised. Any later C5 success would validate a candidate mechanism at
 `meaning`, not complete or automatically generalise Phase 3.
 
 The C4a closure remains in force. The later reviewed briefs authorised C4b-O1 as

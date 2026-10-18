@@ -30,8 +30,9 @@
       <div class="section-label">Routed information</div>
       <label class="control" for="packet-speed"><span>Packet speed</span><output id="packet-speed-value">1.55</output><input id="packet-speed" type="range" min="0.50" max="3.00" step="0.05" value="1.55"></label>
       <label class="control" for="packet-frequency"><span>Packet frequency (/s)</span><output id="packet-frequency-value">0.20</output><input id="packet-frequency" type="range" min="0.05" max="11.00" step="0.01" value="0.20"></label>
-      <label class="switch" for="show-trunk-runes"><span>Functional meaning rune</span><input id="show-trunk-runes" type="checkbox" checked></label>
-      <div class="growth-readout"><span>Rune transduction</span><output id="trunk-rune-activity">waiting for input</output></div>
+      <label class="switch" for="show-trunk-runes"><span>Legacy C4c presentation</span><input id="show-trunk-runes" type="checkbox" checked></label>
+      <div class="growth-readout"><span>Legacy C4c path</span><output id="trunk-rune-activity">inactive in D2</output></div>
+      <div class="growth-readout"><span>D2 junction boundary</span><output id="internal-router-junction-activity">waiting for input</output></div>
 
       <div class="section-label">Structural growth</div>
       <label class="control" for="growth-tiers"><span>Growth tiers</span><output id="growth-tiers-value">3</output><input id="growth-tiers" type="range" min="0" max="8" step="1" value="3"></label>
@@ -43,12 +44,15 @@
       <button id="reset-form" class="wide-button" type="button">Reset structural study</button>
 
       <div class="section-label">Diagnostics</div>
+      <label class="control" for="internal-router-tiers"><span>Internal router tiers</span><output id="internal-router-tiers-value">3</output><input id="internal-router-tiers" type="range" min="3" max="6" step="1" value="3"></label>
       <label class="switch" for="show-surface"><span>Engineered body</span><input id="show-surface" type="checkbox" checked></label>
       <label class="switch" for="show-nodes"><span>Topology nodes</span><input id="show-nodes" type="checkbox"></label>
       <label class="switch" for="show-edges"><span>Finite connections</span><input id="show-edges" type="checkbox"></label>
       <label class="switch" for="role-colours"><span>Role colours</span><input id="role-colours" type="checkbox" checked></label>
       <label class="switch" for="show-axes"><span>Local planting axes</span><input id="show-axes" type="checkbox"></label>
       <label class="switch" for="inspect-trunk-interior"><span>Isolate trunk carriers</span><input id="inspect-trunk-interior" type="checkbox"></label>
+      <label class="switch" for="inspect-internal-router"><span>Isolate D1 internal router</span><input id="inspect-internal-router" type="checkbox"></label>
+      <label class="switch" for="inspect-router-junction"><span>Inspect D2 junction</span><input id="inspect-router-junction" type="checkbox"></label>
       <label class="select-control" for="trunk-visibility-mode">
         <span>Carrier visibility study</span>
         <select id="trunk-visibility-mode">
@@ -66,6 +70,8 @@
         <button type="button" data-view="silhouette">Silhouette</button>
         <button type="button" data-view="elevated">Canopy</button>
         <button type="button" data-view="structure">Structure</button>
+        <button type="button" data-view="router">D1 Router</button>
+        <button type="button" data-view="junction">D2 Junction</button>
       </fieldset>
 
       <div class="section-label">Validated topology</div>
