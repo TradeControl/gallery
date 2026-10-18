@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import * as THREE from 'three';
 import {
@@ -176,6 +177,26 @@ class RecordingRenderer
         this.clears.length = 0;
     }
 }
+
+test( 'rejected carrier-visibility studies are absent from the live Tree', () => {
+    const mainSource = readFileSync(
+        new URL( '../../src/category-tree/tree/main.js', import.meta.url ),
+        'utf8'
+    );
+    const htmlSource = readFileSync(
+        new URL( '../../src/category-tree/tree/index.html', import.meta.url ),
+        'utf8'
+    );
+
+    assert.doesNotMatch( htmlSource, /id="inspect-trunk-interior"/ );
+    assert.doesNotMatch( htmlSource, /id="trunk-visibility-mode"/ );
+    assert.doesNotMatch( htmlSource,
+        /Carrier visibility study|C2A|C2B|C2C/ );
+    assert.doesNotMatch( mainSource,
+        /querySelector\(\s*'#(?:inspect-trunk-interior|trunk-visibility-mode)'/ );
+    assert.match( mainSource,
+        /engineeredTree\.setTrunkVisibilityMode\(\s*'off'\s*\)/ );
+} );
 
 test( 'C2 modes use one fixed C1 skeleton and expose a bounded deterministic API', () => {
     assert.deepEqual( trunkVisibilityModes, expectedModes );

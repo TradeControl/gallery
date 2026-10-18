@@ -175,7 +175,7 @@ function presentationContract( layer )
     } );
 }
 
-test( 'the junction form is default-off and exactly contained at the D1/D2 seed', () => {
+test( 'the restored junction form is exactly contained at the D1/D2 seed', () => {
     const mainSource = readFileSync(
         new URL( '../../src/category-tree/tree/main.js', import.meta.url ),
         'utf8'
@@ -185,9 +185,11 @@ test( 'the junction form is default-off and exactly contained at the D1/D2 seed'
         'utf8'
     );
     assert.match( mainSource,
-        /internalRouterJunctionFormEnabled:\s*false/ );
-    assert.match( htmlSource,
-        /id="show-internal-router-junction-form" type="checkbox">/ );
+        /internalRouterJunctionFormEnabled:\s*true/ );
+    assert.doesNotMatch( htmlSource,
+        /id="show-internal-router-junction-form"/ );
+    assert.doesNotMatch( mainSource,
+        /bindSwitch\(\s*'show-internal-router-junction-form'/ );
     assert.match( htmlSource,
         /id="internal-router-junction-form-activity"/ );
     assert.match( mainSource,

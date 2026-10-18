@@ -99,7 +99,7 @@ function transportContract( layer )
     };
 }
 
-test( 'D4 is an opt-in packet-only presentation with retained study defaults', () => {
+test( 'the signed-off packet-only presentation is integral on load', () => {
     const mainSource = readFileSync(
         new URL( '../../src/category-tree/tree/main.js', import.meta.url ),
         'utf8'
@@ -115,18 +115,30 @@ test( 'D4 is an opt-in packet-only presentation with retained study defaults', (
         ),
         'utf8'
     );
-    assert.match( mainSource, /packetFrequency:\s*0\.2/ );
-    assert.match( mainSource, /internalRouterTiers:\s*3/ );
+    assert.match( mainSource, /packetFrequency:\s*1/ );
+    assert.match( mainSource, /internalRouterTiers:\s*4/ );
     assert.match( mainSource,
-        /internalRouterPresentationEnabled:\s*false/ );
+        /internalRouterPresentationEnabled:\s*true/ );
+    assert.match( mainSource, /trunkRunesVisible:\s*false/ );
+    assert.match( mainSource,
+        /matureGrowth\s*=\s*growthCycle\.sample\(\s*Number\.MAX_SAFE_INTEGER/ );
+    assert.match( mainSource, /let unfoldingActive\s*=\s*false/ );
+    assert.match( mainSource,
+        /setCameraView\(\s*cameraViews\.presentation\s*\)/ );
     assert.match( htmlSource,
-        /id="packet-frequency"[^>]*max="11\.00"[^>]*value="0\.20"/ );
+        /id="packet-frequency"[^>]*max="11\.00"[^>]*value="1\.00"/ );
     assert.match( htmlSource,
-        /id="internal-router-tiers"[^>]*min="3"[^>]*max="6"[^>]*value="3"/ );
+        /id="internal-router-tiers"[^>]*min="3"[^>]*max="6"[^>]*value="4"/ );
+    assert.doesNotMatch( htmlSource, /id="show-internal-router-presentation"/ );
+    assert.doesNotMatch( htmlSource, /id="show-trunk-runes"/ );
+    assert.doesNotMatch( mainSource,
+        /bindSwitch\(\s*'show-internal-router-presentation'/ );
+    assert.doesNotMatch( mainSource, /bindSwitch\(\s*'show-trunk-runes'/ );
     assert.match( htmlSource,
-        /id="show-internal-router-presentation" type="checkbox">/ );
-    assert.match( htmlSource, /D4 gold packet trails \(experiment\)/ );
-    assert.match( htmlSource, /data-view="presentation">D4 Passage/ );
+        /id="recursive-complexity">100%<\/output>/ );
+    assert.doesNotMatch( htmlSource, /Legacy C4c|D4 gold packet trails/ );
+    assert.match( htmlSource,
+        /data-view="presentation">Packet Passage/ );
     assert.match( rendererSource, /oneSubmittedTrailPerPacket:\s*true/ );
     assert.match( rendererSource, /new THREE\.CurvePath\(\)/ );
     assert.doesNotMatch( rendererSource, /new THREE\.CatmullRomCurve3/ );

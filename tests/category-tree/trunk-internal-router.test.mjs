@@ -519,7 +519,7 @@ test( 'D1 exposes a separate bounded internal-router tier control', async () => 
     assert.match( slider, /\bmin="3"/ );
     assert.match( slider, /\bmax="6"/ );
     assert.match( slider, /\bstep="1"/ );
-    assert.match( slider, /\bvalue="3"/ );
+    assert.match( slider, /\bvalue="4"/ );
     assert.match(
         main,
         /bindRange\(\s*'growth-tiers',\s*'growthTiers'/,
