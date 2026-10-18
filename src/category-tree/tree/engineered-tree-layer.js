@@ -23,6 +23,14 @@ import {
     resolveInternalRouterJunctionBoundary
 } from './internal-router-junction.js';
 import {
+    createInternalRouterJunctionFormGeometry,
+    internalRouterJunctionFormCandidateId,
+    internalRouterJunctionFormCircumferenceRange,
+    internalRouterJunctionFormStyle,
+    normaliseInternalRouterJunctionFormCircumference,
+    setInternalRouterJunctionFormManifestations
+} from './internal-router-junction-form.js';
+import {
     createInternalRouterRouteEpoch,
     createInternalRouterTransport,
     internalRouterTransportCandidateId
@@ -39,6 +47,7 @@ export const informationPacketVisualProfile = Object.freeze( {
     wakeDecay: 0.42,
     discardThreshold: 0.004,
     alpha: 0.95,
+    sourceColour: Object.freeze( [ 0.02, 0.48, 1.45 ] ),
     outputColour: 0xfff2bf,
     outputIntensity: 1.35,
     internalTransmissionCompensation: 3.2,
@@ -141,7 +150,11 @@ function createInformationCoreMaterial()
         time: { value: 0 },
         response: { value: 0.22 },
         trafficTexture: { value: null },
-        sourceColour: { value: new THREE.Vector3( 0.02, 0.48, 1.45 ) },
+        sourceColour: {
+            value: new THREE.Vector3().fromArray(
+                informationPacketVisualProfile.sourceColour
+            )
+        },
         outputColour: {
             value: new THREE.Color(
                 informationPacketVisualProfile.outputColour
@@ -2072,6 +2085,12 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         && initialParameters.internalRouterTransportEnabled === true;
     let internalRouterPresentationEnabled = internalRouterTransportEnabled
         && initialParameters.internalRouterPresentationEnabled === true;
+    let internalRouterJunctionFormEnabled = internalRouterTransportEnabled
+        && initialParameters.internalRouterJunctionFormEnabled === true;
+    let internalRouterJunctionFormCircumference =
+        normaliseInternalRouterJunctionFormCircumference(
+            initialParameters.internalRouterJunctionFormCircumference
+        );
     const trunkRuneCandidateId = initialParameters.trunkRuneCandidateId
         ?? defaultTrunkRuneCandidateId;
     const trunk = createMaterial( 0x160f0c, 0.38, 0.62 );
@@ -2169,6 +2188,16 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     let internalRouterTransportPacketMesh = null;
     let internalRouterTransportPacketCapacity = 0;
     let internalRouterTransportResourceRevision = 0;
+    let internalRouterJunctionFormGeometry = null;
+    let internalRouterJunctionFormResourceRevision = 0;
+    let internalRouterJunctionFormState = Object.freeze( {
+        active: false,
+        maximumSignal: 0,
+        activeManifestationCount: 0,
+        activeManifestationIds: Object.freeze( [] )
+    } );
+    let internalRouterJunctionFormManifestations = Object.freeze( [] );
+    let internalRouterJunctionFormManifestationOverflowCount = 0;
     let informationRoute = null;
     let informationRoutes = [];
     let informationTraffic = null;
@@ -2237,6 +2266,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             && !internalRouterTransportDiagnosticVisible;
         internalRouterResourceRevision += 1;
         replaceInternalRouterTransportGuide( descriptor );
+        if ( informationTraffic ) replaceInternalRouterJunctionFormGeometry();
         updateInternalRouterTransportMetadata();
         updateInternalRouterJunctionMetadata();
         return true;
@@ -2246,6 +2276,31 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     {
         return internalRouterMesh?.geometry.userData.internalRouterTree
             ?.descriptor ?? null;
+    }
+
+    function replaceInternalRouterJunctionFormGeometry()
+    {
+        internalRouterJunctionFormGeometry?.dispose();
+        internalRouterJunctionFormGeometry = null;
+        internalRouterJunctionFormManifestations = Object.freeze( [] );
+        internalRouterJunctionFormManifestationOverflowCount = 0;
+        internalRouterJunctionFormState = Object.freeze( {
+            active: false,
+            maximumSignal: 0,
+            activeManifestationCount: 0,
+            activeManifestationIds: Object.freeze( [] )
+        } );
+        if ( !internalRouterTransportEnabled ) return;
+        const descriptor = getInternalRouterDescriptor();
+        if ( !descriptor ) return;
+        internalRouterJunctionFormGeometry =
+            createInternalRouterJunctionFormGeometry(
+                descriptor,
+                informationPacketRadius,
+                internalRouterJunctionFormCircumference,
+                internalRouterConstruction?.envelope ?? null
+            );
+        internalRouterJunctionFormResourceRevision += 1;
     }
 
     function createInternalRouterJunctionDiagnostic()
@@ -2555,6 +2610,144 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             rendererActive: false,
             activeDrawCalls: 0
         };
+    }
+
+    function collectInternalRouterJunctionFormManifestations()
+    {
+        internalRouterJunctionFormManifestationOverflowCount = 0;
+        const effectiveEnabled = internalRouterJunctionFormEnabled
+            && internalRouterPresentationEnabled;
+        const descriptor = getInternalRouterDescriptor();
+        if ( !effectiveEnabled || !descriptor ) return Object.freeze( [] );
+        const manifestations = [];
+        const site = descriptor.seedSite;
+        for ( const packet of activePackets )
+        {
+            if ( packet.kind !== 'source' ) continue;
+            const segment = packet.route.byChildId.get( site.childId );
+            if ( !segment || segment.parentId !== site.parentId ) continue;
+            const boundaryDistance = THREE.MathUtils.lerp(
+                segment.parentDistance,
+                segment.childDistance,
+                site.localProgress
+            );
+            const remaining = boundaryDistance - packet.headDistance;
+            if ( remaining < -1e-9
+                || remaining > internalRouterJunctionFormStyle.approachDistance
+                || packet.headDistance + 1e-9 < segment.childDistance )
+            {
+                continue;
+            }
+            manifestations.push( Object.freeze( {
+                id: `${packet.id}::junction-form-approach`,
+                kind: 'cyan-approach',
+                sourcePacketId: packet.id,
+                outputPacketId: null,
+                terminalId: packet.terminalId,
+                occurredAt: null,
+                remainingDistance: remaining,
+                headPhase: 0.5 * ( 1 - remaining
+                    / internalRouterJunctionFormStyle.approachDistance )
+            } ) );
+        }
+
+        const transport = internalRouterTransport.snapshot();
+        const recordByOutputId = new Map(
+            internalRouterJunctionLedger.snapshot().transductionRecords.map(
+                ( record ) => [ record.outputPacketId, record ]
+            )
+        );
+        for ( const packet of transport.activePackets )
+        {
+            const headPhase = 0.5 + 0.5 * packet.headDistance
+                / internalRouterJunctionFormStyle.departureDistance;
+            if ( headPhase > 1 + internalRouterJunctionFormStyle.wakeLength )
+            {
+                continue;
+            }
+            const record = recordByOutputId.get( packet.outputPacketId );
+            if ( !record ) continue;
+            manifestations.push( Object.freeze( {
+                id: `${record.id}::junction-form-departure`,
+                kind: 'gold-departure',
+                sourcePacketId: record.sourcePacketId,
+                outputPacketId: record.outputPacketId,
+                terminalId: record.terminalId,
+                occurredAt: record.outputAt,
+                remainingDistance: null,
+                headPhase
+            } ) );
+        }
+        internalRouterJunctionFormManifestationOverflowCount = Math.max(
+            0,
+            manifestations.length
+                - internalRouterJunctionFormStyle.maximumManifestations
+        );
+        return Object.freeze( manifestations.slice(
+            0,
+            internalRouterJunctionFormStyle.maximumManifestations
+        ) );
+    }
+
+    function updateInternalRouterJunctionFormMetadata()
+    {
+        if ( !internalRouterTransportEnabled
+            || !internalRouterJunctionFormGeometry )
+        {
+            delete group.userData.internalRouterJunctionForm;
+            return;
+        }
+        const geometry = internalRouterJunctionFormGeometry.userData
+            .internalRouterJunctionForm;
+        const effectiveEnabled = internalRouterJunctionFormEnabled
+            && internalRouterPresentationEnabled;
+        group.userData.internalRouterJunctionForm = {
+            ...geometry,
+            enabled: internalRouterJunctionFormEnabled,
+            effectiveEnabled,
+            presentationOnly: true,
+            eventDriven: true,
+            packetConnected: true,
+            transportImplemented: true,
+            semanticClaim: 'one-to-one-transduction-presentation',
+            aggregation: false,
+            sourceColour: informationPacketVisualProfile.sourceColour,
+            outputColour: informationPacketVisualProfile.outputColour,
+            productionVisible: effectiveEnabled
+                && internalRouterJunctionFormState.active
+                && surfaceVisible
+                && trunkVisibilityMode === 'off',
+            activeManifestationCount:
+                internalRouterJunctionFormState.activeManifestationCount,
+            activeManifestationIds:
+                internalRouterJunctionFormState.activeManifestationIds,
+            activeManifestations: internalRouterJunctionFormManifestations,
+            maximumSignal: internalRouterJunctionFormState.maximumSignal,
+            maximumManifestations:
+                internalRouterJunctionFormStyle.maximumManifestations,
+            manifestationOverflowCount:
+                internalRouterJunctionFormManifestationOverflowCount,
+            rendererActive: false,
+            activeDrawCalls: 0,
+            resourceRevision: internalRouterJunctionFormResourceRevision
+        };
+    }
+
+    function refreshInternalRouterJunctionForm()
+    {
+        if ( !internalRouterJunctionFormGeometry )
+        {
+            updateInternalRouterJunctionFormMetadata();
+            return;
+        }
+        internalRouterJunctionFormManifestations =
+            collectInternalRouterJunctionFormManifestations();
+        internalRouterJunctionFormState =
+            setInternalRouterJunctionFormManifestations(
+                internalRouterJunctionFormGeometry,
+                internalRouterJunctionFormManifestations
+            );
+        updateInternalRouterJunctionFormMetadata();
     }
 
     function refreshInternalRouterTransportDiagnostic(
@@ -4022,6 +4215,16 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         trunkRuneVisibilityProxyGeometry = null;
         trunkRuneVisibilityOwnershipGeometry?.dispose();
         trunkRuneVisibilityOwnershipGeometry = null;
+        internalRouterJunctionFormGeometry?.dispose();
+        internalRouterJunctionFormGeometry = null;
+        internalRouterJunctionFormManifestations = Object.freeze( [] );
+        internalRouterJunctionFormManifestationOverflowCount = 0;
+        internalRouterJunctionFormState = Object.freeze( {
+            active: false,
+            maximumSignal: 0,
+            activeManifestationCount: 0,
+            activeManifestationIds: Object.freeze( [] )
+        } );
         trunkRuneGranuleMesh?.geometry.dispose();
         for ( const candidate of [ apertureTrunkMesh, apertureLinerMesh ] )
         {
@@ -4065,6 +4268,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         delete group.userData.internalRouterJunction;
         delete group.userData.internalRouterTree;
         delete group.userData.internalRouterPresentation;
+        delete group.userData.internalRouterJunctionForm;
 
         const asymmetry = parameters.asymmetry ?? 0.55;
         const selectedTerminalId = parameters.informationTerminalId
@@ -4107,6 +4311,11 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         internalRouterMaximumTier = normaliseInternalRouterTiers(
             parameters.internalRouterTiers ?? internalRouterMaximumTier
         );
+        internalRouterJunctionFormCircumference =
+            normaliseInternalRouterJunctionFormCircumference(
+                parameters.internalRouterJunctionFormCircumference
+                    ?? internalRouterJunctionFormCircumference
+            );
         const trunkNodes = getActiveTrunkNodes( hierarchy );
         const loadDirection = getCrownLoadDirection( hierarchy, positions );
         const trunkGeometry = createMonumentalTrunkGeometry( trunkNodes, positions, {
@@ -4224,6 +4433,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         );
         informationPacketRadius =
             coreGeometry.userData.informationTraffic.radius;
+        replaceInternalRouterJunctionFormGeometry();
         trafficEdges = coreGeometry.userData.informationTraffic.trafficEdges;
         trafficEdgeByChildId = new Map( trafficEdges.map( ( edge ) => [
             edge.childId,
@@ -4243,6 +4453,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         };
         coreMesh.userData.informationTraffic = coreGeometry.userData.informationTraffic;
         group.add( coreMesh );
+        refreshInternalRouterJunctionForm();
         applyGrowthProgress();
     }
 
@@ -4549,6 +4760,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                     parameters
                 );
             }
+            refreshInternalRouterJunctionForm();
             const manifestedRoutes = informationRoutes.filter( routeIsManifested );
             const routerTransportState = internalRouterTransport.snapshot();
             const packetDiagnostics = activePackets.map( ( packet ) => {
@@ -4715,6 +4927,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             internalRouterPresentationEnabled = internalRouterTransportEnabled
                 && Boolean( enabled );
             updateInternalRouterPresentationMetadata();
+            refreshInternalRouterJunctionForm();
             return internalRouterPresentationEnabled;
         },
         getInternalRouterPresentationResources() {
@@ -4762,6 +4975,39 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                     ( packet ) => packet.id
                 ),
                 diagnostics: group.userData.internalRouterPresentation ?? null
+            };
+        },
+        setInternalRouterJunctionFormEnabled( enabled ) {
+            internalRouterJunctionFormEnabled = internalRouterTransportEnabled
+                && Boolean( enabled );
+            refreshInternalRouterJunctionForm();
+            return internalRouterJunctionFormEnabled;
+        },
+        setInternalRouterJunctionFormCircumference( value ) {
+            const next = normaliseInternalRouterJunctionFormCircumference(
+                value
+            );
+            if ( next === internalRouterJunctionFormCircumference ) return next;
+            internalRouterJunctionFormCircumference = next;
+            replaceInternalRouterJunctionFormGeometry();
+            refreshInternalRouterJunctionForm();
+            return internalRouterJunctionFormCircumference;
+        },
+        getInternalRouterJunctionFormResources() {
+            return {
+                enabled: internalRouterJunctionFormEnabled,
+                effectiveEnabled: internalRouterJunctionFormEnabled
+                    && internalRouterPresentationEnabled,
+                candidateId: internalRouterJunctionFormCandidateId,
+                circumference: internalRouterJunctionFormCircumference,
+                circumferenceRange:
+                    internalRouterJunctionFormCircumferenceRange,
+                revision: internalRouterJunctionFormResourceRevision,
+                geometry: internalRouterJunctionFormGeometry,
+                manifestations: internalRouterJunctionFormManifestations,
+                active: internalRouterJunctionFormState.active,
+                maximumSignal: internalRouterJunctionFormState.maximumSignal,
+                diagnostics: group.userData.internalRouterJunctionForm ?? null
             };
         },
         getInternalRouterTransportResources() {

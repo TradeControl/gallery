@@ -369,11 +369,14 @@ const packetTrailVertexShader = `
     uniform float treeTime;
     uniform float treeResponse;
     attribute float packetSignal;
+    attribute float packetWarmth;
     varying float internalPacketSignal;
+    varying float internalPacketWarmth;
 
     void main()
     {
         internalPacketSignal = packetSignal;
+        internalPacketWarmth = packetWarmth;
         vec3 transformed = position;
         #ifdef USE_INSTANCING
             transformed = ( instanceMatrix * vec4( transformed, 1.0 ) ).xyz;
@@ -440,6 +443,11 @@ function createPacketTrailSubsurfaceMaterial()
             packetRadius: {
                 value: informationPacketVisualProfile.coreRadius
             },
+            sourceColour: {
+                value: new THREE.Vector3().fromArray(
+                    informationPacketVisualProfile.sourceColour
+                )
+            },
             outputColour: {
                 value: new THREE.Color(
                     informationPacketVisualProfile.outputColour
@@ -458,8 +466,10 @@ function createPacketTrailSubsurfaceMaterial()
             uniform float cameraNear;
             uniform float cameraFar;
             uniform float packetRadius;
+            uniform vec3 sourceColour;
             uniform vec3 outputColour;
             varying float internalPacketSignal;
+            varying float internalPacketWarmth;
 
             float viewDistance( float depth )
             {
@@ -506,8 +516,13 @@ function createPacketTrailSubsurfaceMaterial()
                 float transmission = exp( -burial )
                     * max( 0.0, 1.0 - burialFraction );
                 if ( transmission <= 0.005 ) discard;
-                gl_FragColor = vec4(
+                vec3 packetColour = mix(
+                    sourceColour,
                     outputColour,
+                    clamp( internalPacketWarmth, 0.0, 1.0 )
+                );
+                gl_FragColor = vec4(
+                    packetColour,
                     min(
                         1.0,
                         internalPacketSignal
@@ -541,7 +556,8 @@ function createPacketTrailSubsurfaceMaterial()
 
 export function createInternalRouterPacketTrailGeometry(
     packetTrails,
-    packetRadius = informationPacketVisualProfile.coreRadius
+    packetRadius = informationPacketVisualProfile.coreRadius,
+    junctionFormGeometry = null
 )
 {
     if ( !Number.isFinite( packetRadius ) || packetRadius <= 0 )
@@ -549,6 +565,7 @@ export function createInternalRouterPacketTrailGeometry(
         throw new Error( 'D4 packet radius must be positive and finite.' );
     }
     const sources = [];
+    const ownedSources = [];
     const radialSegments = 8;
     let submittedSampleCount = 0;
     for ( const trail of packetTrails )
@@ -580,7 +597,26 @@ export function createInternalRouterPacketTrailGeometry(
                     1
                 )
             );
+            geometry.setAttribute(
+                'packetWarmth',
+                new THREE.Float32BufferAttribute(
+                    new Float32Array(
+                        geometry.getAttribute( 'position' ).count
+                    ).fill( 1 ),
+                    1
+                )
+            );
+            geometry.setAttribute(
+                'junctionPhase',
+                new THREE.Float32BufferAttribute(
+                    new Float32Array(
+                        geometry.getAttribute( 'position' ).count
+                    ).fill( -1 ),
+                    1
+                )
+            );
             sources.push( geometry );
+            ownedSources.push( geometry );
             continue;
         }
 
@@ -632,12 +668,28 @@ export function createInternalRouterPacketTrailGeometry(
             'packetSignal',
             new THREE.Float32BufferAttribute( packetSignal, 1 )
         );
+        geometry.setAttribute(
+            'packetWarmth',
+            new THREE.Float32BufferAttribute(
+                new Float32Array( packetSignal.length ).fill( 1 ),
+                1
+            )
+        );
+        geometry.setAttribute(
+            'junctionPhase',
+            new THREE.Float32BufferAttribute(
+                new Float32Array( packetSignal.length ).fill( -1 ),
+                1
+            )
+        );
         sources.push( geometry );
+        ownedSources.push( geometry );
     }
+    if ( junctionFormGeometry ) sources.push( junctionFormGeometry );
     const geometry = sources.length > 0
         ? mergeGeometries( sources, false )
         : new THREE.BufferGeometry();
-    for ( const source of sources ) source.dispose();
+    for ( const source of ownedSources ) source.dispose();
     if ( !geometry )
     {
         throw new Error( 'D4 packet trails could not be merged.' );
@@ -652,7 +704,14 @@ export function createInternalRouterPacketTrailGeometry(
         packetCount: packetTrails.length,
         submittedSampleCount,
         vertexCount: geometry.getAttribute( 'position' )?.count ?? 0,
+        packetTrailVertexCount:
+            ( geometry.getAttribute( 'position' )?.count ?? 0 )
+                - ( junctionFormGeometry
+                    ?.getAttribute( 'position' )?.count ?? 0 ),
         packetRadius,
+        junctionFormIncluded: junctionFormGeometry !== null,
+        junctionFormVertexCount: junctionFormGeometry
+            ?.getAttribute( 'position' )?.count ?? 0,
         centreline: 'piecewise-authored-route-samples',
         objectSpace: true,
         cameraFacing: false
@@ -849,7 +908,7 @@ export function createTrunkVisibilityRenderer(
             runeResources.geometry.userData.trunkRunes.tubeRadius;
     }
 
-    function updatePacketLocusResources( resources )
+    function updatePacketLocusResources( resources, junctionFormResources )
     {
         proxyMesh.geometry = resources.proxyGeometry;
         resources.trunkMesh.updateWorldMatrix( true, false );
@@ -858,7 +917,10 @@ export function createTrunkVisibilityRenderer(
         const previousGeometry = packetLocusMesh.geometry;
         packetLocusMesh.geometry = createInternalRouterPacketTrailGeometry(
             resources.packetTrails,
-            resources.packetRadius
+            resources.packetRadius,
+            junctionFormResources.active
+                ? junctionFormResources.geometry
+                : null
         );
         if ( previousGeometry !== packetTrailPlaceholder )
         {
@@ -870,7 +932,8 @@ export function createTrunkVisibilityRenderer(
                 .internalRouterPresentation;
             resources.diagnostics.submittedSampleCount =
                 metadata.submittedSampleCount;
-            resources.diagnostics.submittedVertexCount = metadata.vertexCount;
+            resources.diagnostics.submittedVertexCount =
+                metadata.packetTrailVertexCount;
             resources.diagnostics.sampleOverflowCount = 0;
         }
 
@@ -955,12 +1018,22 @@ export function createTrunkVisibilityRenderer(
         const runeResources = engineeredTree.getTrunkRuneResources();
         const packetLocusResources = engineeredTree
             .getInternalRouterPresentationResources();
+        const junctionFormResources = engineeredTree
+            .getInternalRouterJunctionFormResources();
+        const packetTrailsActive = Boolean(
+            packetLocusResources.packetTrails?.length > 0
+            && packetLocusResources.trailSampleCount > 0
+        );
+        const junctionFormActive = Boolean(
+            junctionFormResources.effectiveEnabled
+            && junctionFormResources.active
+            && junctionFormResources.geometry
+            && junctionFormResources.diagnostics?.productionVisible === true
+        );
         const packetLocusActive = Boolean( mode === 'off'
             && packetLocusResources.enabled
-            && packetLocusResources.diagnostics?.productionVisible === true
             && packetLocusResources.trunkMesh
-            && packetLocusResources.packetTrails?.length > 0
-            && packetLocusResources.trailSampleCount > 0
+            && ( packetTrailsActive || junctionFormActive )
             && packetLocusResources.proxyGeometry );
         const runeActive = Boolean( !packetLocusActive
             && mode === 'off'
@@ -1001,6 +1074,9 @@ export function createTrunkVisibilityRenderer(
                 activePacketTrailCount: 0,
                 activePacketTrailSampleCount: 0,
                 activePacketTrailVertexCount: 0,
+                junctionFormActive: false,
+                activeJunctionFormManifestationCount: 0,
+                junctionFormVertexCount: 0,
                 opticalModel: null,
                 crossingOrder: null,
                 renderTargetPixels: 0,
@@ -1019,6 +1095,11 @@ export function createTrunkVisibilityRenderer(
                 packetLocusResources.diagnostics.rendererActive = false;
                 packetLocusResources.diagnostics.activeDrawCalls = 0;
             }
+            if ( junctionFormResources.diagnostics )
+            {
+                junctionFormResources.diagnostics.rendererActive = false;
+                junctionFormResources.diagnostics.activeDrawCalls = 0;
+            }
             return;
         }
 
@@ -1028,7 +1109,10 @@ export function createTrunkVisibilityRenderer(
             // full-resolution packed depth to retain the same continuous
             // visual grammar through the graphite shell.
             resize( 1 );
-            updatePacketLocusResources( packetLocusResources );
+            updatePacketLocusResources(
+                packetLocusResources,
+                junctionFormResources
+            );
             const previousClearColour = renderer.getClearColor(
                 new THREE.Color()
             );
@@ -1078,7 +1162,15 @@ export function createTrunkVisibilityRenderer(
                         .internalRouterPresentation.submittedSampleCount,
                 activePacketTrailVertexCount:
                     packetLocusMesh.geometry.userData
-                        .internalRouterPresentation.vertexCount,
+                        .internalRouterPresentation.packetTrailVertexCount,
+                junctionFormActive,
+                activeJunctionFormManifestationCount: junctionFormActive
+                    ? junctionFormResources.manifestations.length
+                    : 0,
+                junctionFormVertexCount: junctionFormActive
+                    ? packetLocusMesh.geometry.userData
+                        .internalRouterPresentation.junctionFormVertexCount
+                    : 0,
                 opticalModel:
                     'route-local head-and-wake front-depth burial attenuation',
                 crossingOrder: 'nearest active packet trail depth',
@@ -1106,7 +1198,7 @@ export function createTrunkVisibilityRenderer(
                         .internalRouterPresentation.submittedSampleCount,
                 trailVertexCount:
                     packetLocusMesh.geometry.userData
-                        .internalRouterPresentation.vertexCount,
+                        .internalRouterPresentation.packetTrailVertexCount,
                 trailLength: informationPacketVisualProfile.trailLength,
                 headWidth: informationPacketVisualProfile.headWidth,
                 wakeAmplitude: informationPacketVisualProfile.wakeAmplitude,
@@ -1122,6 +1214,27 @@ export function createTrunkVisibilityRenderer(
                 cameraFacing: false,
                 persistentDisclosure: false
             };
+            if ( junctionFormResources.diagnostics )
+            {
+                junctionFormResources.diagnostics.rendererActive =
+                    junctionFormActive;
+                junctionFormResources.diagnostics.activeDrawCalls =
+                    junctionFormActive ? 1 : 0;
+                junctionFormResources.diagnostics.renderer = {
+                    technique:
+                        'shared-d4-depth-aware-subsurface-junction-knot',
+                    shellDepthPasses: 2,
+                    nearestSignalDepthPasses: 1,
+                    overlayPasses: 1,
+                    burialDependent: true,
+                    rearTransmissionFloor: 0,
+                    crossingOrderDepthResolved: true,
+                    sharedPacketTrailDraw: true,
+                    greaterDepth: false,
+                    cameraFacing: false,
+                    persistentDisclosure: false
+                };
+            }
             if ( runeResources.diagnostics )
             {
                 runeResources.diagnostics.rendererActive = false;
@@ -1179,6 +1292,9 @@ export function createTrunkVisibilityRenderer(
                 activePacketTrailCount: 0,
                 activePacketTrailSampleCount: 0,
                 activePacketTrailVertexCount: 0,
+                junctionFormActive: false,
+                activeJunctionFormManifestationCount: 0,
+                junctionFormVertexCount: 0,
                 activeTraversalCount:
                     runeResources.diagnostics.activeTraversalCount,
                 opticalModel: 'front-depth burial attenuation',
@@ -1207,6 +1323,11 @@ export function createTrunkVisibilityRenderer(
             {
                 packetLocusResources.diagnostics.rendererActive = false;
                 packetLocusResources.diagnostics.activeDrawCalls = 0;
+            }
+            if ( junctionFormResources.diagnostics )
+            {
+                junctionFormResources.diagnostics.rendererActive = false;
+                junctionFormResources.diagnostics.activeDrawCalls = 0;
             }
             return;
         }
@@ -1264,6 +1385,9 @@ export function createTrunkVisibilityRenderer(
             activePacketTrailCount: 0,
             activePacketTrailSampleCount: 0,
             activePacketTrailVertexCount: 0,
+            junctionFormActive: false,
+            activeJunctionFormManifestationCount: 0,
+            junctionFormVertexCount: 0,
             opticalModel: null,
             crossingOrder: null,
             renderTargetPixels,
@@ -1289,6 +1413,11 @@ export function createTrunkVisibilityRenderer(
         {
             packetLocusResources.diagnostics.rendererActive = false;
             packetLocusResources.diagnostics.activeDrawCalls = 0;
+        }
+        if ( junctionFormResources.diagnostics )
+        {
+            junctionFormResources.diagnostics.rendererActive = false;
+            junctionFormResources.diagnostics.activeDrawCalls = 0;
         }
     }
 

@@ -60,6 +60,8 @@ const formDefaults = {
     internalRouterJunctionEnabled: true,
     internalRouterTransportEnabled: true,
     internalRouterPresentationEnabled: false,
+    internalRouterJunctionFormEnabled: false,
+    internalRouterJunctionFormCircumference: 0.55,
     motionFrozen: false
 };
 const form = { ...formDefaults };
@@ -120,7 +122,8 @@ function bindRange(
     decimals = 2,
     rebuild = true,
     restartGrowth = false,
-    applyValue = null
+    applyValue = null,
+    formatValue = null
 )
 {
     const control = document.querySelector( `#${id}` );
@@ -128,7 +131,9 @@ function bindRange(
     function apply()
     {
         form[property] = Number( control.value );
-        output.value = form[property].toFixed( decimals );
+        output.value = formatValue
+            ? formatValue( form[property] )
+            : form[property].toFixed( decimals );
         if ( applyValue ) applyValue( form[property] );
         else if ( rebuild ) rebuildTree();
         if ( restartGrowth )
@@ -138,7 +143,9 @@ function bindRange(
         }
     }
     control.addEventListener( 'input', apply );
-    output.value = form[property].toFixed( decimals );
+    output.value = formatValue
+        ? formatValue( form[property] )
+        : form[property].toFixed( decimals );
 }
 
 bindRange( 'crown-spread', 'crownSpread' );
@@ -159,6 +166,15 @@ bindRange(
     false,
     engineeredTree.setInternalRouterTiers
 );
+bindRange(
+    'junction-circumference',
+    'internalRouterJunctionFormCircumference',
+    2,
+    false,
+    false,
+    engineeredTree.setInternalRouterJunctionFormCircumference,
+    ( value ) => `${Math.round( value * 100 )}% trunk max`
+);
 
 document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
     const ids = {
@@ -172,7 +188,8 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
         packetSpeed: 'packet-speed',
         packetFrequency: 'packet-frequency',
         growthTiers: 'growth-tiers',
-        internalRouterTiers: 'internal-router-tiers'
+        internalRouterTiers: 'internal-router-tiers',
+        internalRouterJunctionFormCircumference: 'junction-circumference'
     };
     for ( const [ property, id ] of Object.entries( ids ) )
     {
@@ -394,6 +411,10 @@ bindSwitch(
     'show-internal-router-presentation',
     engineeredTree.setInternalRouterPresentationEnabled
 );
+bindSwitch(
+    'show-internal-router-junction-form',
+    engineeredTree.setInternalRouterJunctionFormEnabled
+);
 bindSwitch( 'freeze-motion', ( frozen ) => { form.motionFrozen = frozen; } );
 bindSwitch( 'neutral-background', ( neutral ) => {
     scene.background = neutral ? neutralBackground : darkBackground;
@@ -515,16 +536,44 @@ function animate( now )
         if ( !presentation?.enabled ) presentationActivity.value = 'off';
         else if ( presentation.rendererActive )
         {
-            presentationActivity.value = `${presentation.submittedTrailCount}`
-                + ' route-local gold head+wake packet trails'
-                + ` · ${presentation.submittedSampleCount ?? 0} samples`
-                + ' · depth occluded';
+            presentationActivity.value = presentation.submittedTrailCount > 0
+                ? `${presentation.submittedTrailCount}`
+                    + ' route-local gold head+wake packet trails'
+                    + ` · ${presentation.submittedSampleCount ?? 0} samples`
+                    + ' · depth occluded'
+                : 'junction response only · no active gold trail'
+                    + ' · depth occluded';
         }
         else if ( presentation.activePacketCount > 0 )
         {
             presentationActivity.value = 'not rendered in current view';
         }
         else presentationActivity.value = 'waiting for gold passage';
+    }
+    const junctionFormActivity = document.querySelector(
+        '#internal-router-junction-form-activity'
+    );
+    if ( junctionFormActivity )
+    {
+        const junctionForm = engineeredTree.group.userData
+            .internalRouterJunctionForm;
+        if ( !junctionForm?.enabled ) junctionFormActivity.value = 'off';
+        else if ( !junctionForm.effectiveEnabled )
+        {
+            junctionFormActivity.value = 'enable D4 packet trails';
+        }
+        else if ( junctionForm.rendererActive )
+        {
+            const cyan = junctionForm.activeManifestations.filter(
+                ( manifestation ) => manifestation.kind === 'cyan-approach'
+            ).length;
+            const gold = junctionForm.activeManifestations.filter(
+                ( manifestation ) => manifestation.kind === 'gold-departure'
+            ).length;
+            junctionFormActivity.value = `${cyan} cyan approach`
+                + ` · ${gold} gold departure · depth occluded`;
+        }
+        else junctionFormActivity.value = 'waiting for boundary event';
     }
     const visibilityCost = document.querySelector( '#trunk-visibility-cost' );
     if ( visibilityCost )

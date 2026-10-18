@@ -93,6 +93,24 @@ of the trunk experiments so far and authorised it as a checkpoint, while noting
 that the abrupt cyan-to-gold junction remains unresolved. It does not authorise
 aggregation, external roots, Casting Pit integration or Cosmos transport.
 
+The subsequent bounded candidate, `c4d-d4-junction-knot-v1`, tests that remaining
+boundary rather than replacing D4-v2. One slender, asymmetric double-loop
+filament is centred exactly on the D1/D2 seed and aligned longitudinally inside
+the graphite. It is not a route, chamber or exposed inventory. A genuine cyan
+source approaching the boundary manifests only its canopy-facing half; the
+immutable D2 event occurs at the exact waist; the matching provenance-linked D3
+output briefly reveals the woven volume as Cosmos gold departs. At rest the form
+disappears. It shares D4's object-space deformation and front/back shell-depth
+occlusion, so orbit reveals or conceals real volume instead of moving decoration
+onto the camera-facing surface. Simultaneous events combine by per-vertex maximum
+rather than additive semantic fusion. The candidate remains `aggregation: false`
+and awaits human artistic review. Its longitudinal span and packet-derived strand
+weight remain fixed, but its radial circumference is now an experimental control
+from `20%` to `100%` of the locally safe graphite-trunk reach, with `55%` as the
+review setting. The maximum is derived from the changing physical trunk envelope
+over the knot's complete height and verified against every generated vertex; it is
+not a licence for surface excursion or a change to the hidden D1 router.
+
 Eventually mycelium-like roots will enter the Casting Pit gravity well. Information will continue downward through those roots into Cosmic circuitry while molten material from the physical Universe moves upward through a distinct transport to sustain the Tree. These opposed processes are causally distinct but compositionally connected. Neither may be reduced to decorative animation, and neither requires the internal C1 architecture to become audience-facing imagery.
 
 ## Behaviour
@@ -150,14 +168,16 @@ head. A cross-boundary residual wake may deserve its own later presentation
 experiment, but D4 does not resurrect a consumed source or extend transport state
 to disguise that limitation.
 
-The next bounded artistic hypothesis is a visible, event-responsive form located
-at the exact transformation junction. Earlier gold filigree proved that an
-intricate three-dimensional object can be causally animated, but its exterior
-placement read as a brooch attached to the trunk. Reusing that learning at the
-true cyan-to-gold boundary may give the abrupt handoff a spatial and temporal
-event without returning to surface ornament or exposing the router. Its form and
-transition behaviour require a separate experiment; the D4-v2 checkpoint remains
-preserved before that work begins.
+The current bounded artistic hypothesis is now implemented as an exact-seed
+junction knot. Earlier gold filigree proved that a three-dimensional object could
+be causally animated, but its exterior placement read as a brooch attached to the
+trunk. The new candidate keeps only that volumetric lesson: the form is contained
+inside the true cyan-to-gold boundary, appears solely because real packets cross
+it and leaves the accepted D4-v2 transport untouched. It is the trunk's temporary
+response to passage, not a detour travelled by either identity. Human review must
+decide whether its small woven event reads as an artwork within the Tree or as an
+insufficient ornamental curl. Either result is valid evidence; no iterative
+refinement or C5 work follows without a new decision.
 
 Opposed kinds of flow may retain distinct directions, lanes, colours or rhythms. A selected interpretation may illuminate one meaningful route while leaving the rest present but subdued. A disabled branch may darken recursively; a disconnected branch may remain viable outside the main structure; a changed relationship may visibly reroute subsequent flow.
 

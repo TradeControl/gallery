@@ -1,6 +1,6 @@
 # Tree — phased work plan
 
-**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1, C4d-D2 and C4d-D3 are approved; D4's technically valid v1 point-locus presentation is retained as artistically insufficient evidence; human review accepts the bounded v2 route-local head-and-wake presentation as the strongest artistic result so far and authorises this checkpoint, while the abrupt junction remains the subject of a later bounded experiment; aggregation, physical roots and environment integration remain gated
+**Status:** active experimental plan; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1, C4d-D2 and C4d-D3 are approved; D4's technically valid v1 point-locus presentation is retained as artistically insufficient evidence; human review accepts the bounded v2 route-local head-and-wake presentation as the strongest artistic result so far and authorises that checkpoint; the separately authorised exact-seed junction-knot experiment is implemented, technically verified and awaiting human artistic review; aggregation, physical roots and environment integration remain gated
 **Scope:** the Tree as an independent construction problem, followed by deliberate integration with the signed-off Casting Pit
 
 ## Decision: develop the Tree separately first
@@ -1689,7 +1689,8 @@ artistically insufficient evidence. Candidate
 `c4d-d4-route-local-subsurface-trails-v2` is implemented and technically verified
 on 2026-10-18. Human review accepts it as the strongest artistic result so far and
 authorises this checkpoint. It remains default-off and is not claimed as the final
-transducer treatment. Stop before a junction-form experiment or C5.
+transducer treatment. The checkpoint remains independently reproducible while the
+subsequently authorised junction-form experiment is reviewed. Stop before C5.
 
 D4-v1 proved that one genuine D3 identity could be disclosed at its correct
 object-space centre with shell-depth occlusion, but the result looked like a
@@ -1783,7 +1784,91 @@ cyan-to-gold handoff as the remaining visible weakness. The next bounded
 hypothesis may place an intricate, event-responsive three-dimensional form at the
 exact junction point, informed by the earlier filigree experiment but not attached
 to the trunk like a brooch. This review authorises preservation and planning only;
-it does not select that form, begin its implementation or authorise C5.
+the reviewer's subsequent explicit instruction authorised the bounded J1
+implementation below. It does not authorise C5.
+
+##### C4d-D4-J1 — exact-seed event-responsive junction knot
+
+**Status:** candidate `c4d-d4-junction-knot-v1` is implemented, technically
+verified and awaiting human artistic review. It is default-off, requires D4-v2's
+presentation switch and does not supersede the approved D4-v2 checkpoint.
+
+This block tests one proposition only: whether the abrupt but causally correct
+cyan-to-gold handoff gains artistic meaning when the monumental trunk briefly
+manifests one contained three-dimensional form at the exact D1/D2 seed. The form
+is a single slender, asymmetric double-loop filament aligned along the trunk. It
+does not reuse either displaced C4a flank coordinate, present a surface brooch,
+expose the D1 router or create a chamber. Its waist is the immutable D2 boundary
+to numerical tolerance. A longitudinally sampled conservative physical-trunk
+audit now covers the complete knot height and every generated tube vertex;
+representative control extremes retain positive wall clearance without shell
+excursion.
+
+The candidate is event-responsive rather than permanently visible. A real cyan
+source within the bounded approach interval manifests only the canopy-facing
+half. The existing D2 ledger still consumes that source and creates one distinct
+gold identity at the waist. While the matching D3 output departs, the trunk
+briefly reveals the complete woven response from cyan through Cosmos gold, then
+withdraws it. The form is the trunk's response to the audited event, not an
+additional packet path: it creates no scheduler, delay, copy, aggregation or
+transport state. Concurrent events use per-vertex maximum signal, retain every
+causal ID and continue to report `aggregation: false`.
+
+J1 shares D4-v2's five-pass front-shell, back-shell, nearest-signal-depth and
+normal-blended subsurface renderer. It moves in object space with the Tree and
+uses genuine three-dimensional occlusion under orbit. It has no bloom,
+`GreaterDepth`, camera-facing projection, additive fusion or persistent idle
+mark. Turning J1 on or off leaves the accepted graphite, canopy, D1 topology, D2
+ledger, D3 routes and D4 packet trails unchanged. The retained defaults remain
+tier `3`, frequency `0.20` and both D4 controls off.
+
+The bounded follow-up adds one experimental **Rune circumference** control. It
+ranges from `20%` to `100%` of the locally safe physical-trunk reach and retains
+`55%` as its review value. Only radial reach changes: longitudinal placement,
+strand radius, topology, timing and the exact waist remain fixed. `100%` is derived
+from the changing conservative graphite envelope over the full knot span, with
+wall margin, surface reserve and a complete vertex audit. It may pass beyond the
+smaller D1 growth envelope but cannot pass beyond the physical trunk. A slider
+change disposes only the old knot geometry and reapplies the same live packet
+manifestations; it does not rebuild the Tree or reset growth, scheduling,
+identity, provenance or transport.
+
+Focused J1 regression passes `7/7`, covering exact seed placement, containment,
+genuine cyan approach, provenance-linked gold departure, idle withdrawal, toggle
+invariance, monotonic bounded circumference, full longitudinal physical-trunk
+containment, event-preserving live resize, `11` Hz conservation and the shared
+depth/render contract. Preserved D2–D4 focused regression passes `26/26`. The
+complete Tree suite passes `79/79`. The scoped Vite production build passes at
+`785.21 kB` minified (`200.56 kB` gzip); the existing large-chunk advisory remains
+non-blocking. Browser inspection in D4 Passage, Structure, Canopy and Silhouette
+swept `20%`, `55%` and `100%` and reported no console warnings or errors. At
+review cadence the form stays fixed at the central boundary, changes visibility
+with graphite depth and disappears between events. At `11` Hz and `100%`, all
+causal balances and visual overflow remained zero and the renderer remained five
+passes.
+
+**Human review gate:** set **Internal router tiers** to `4`, **Packet frequency**
+near `1.00`, leave **Packet speed** at `1.55`, enable **D4 gold packet trails
+(experiment)** and **D4 junction knot (experiment)**, then choose **D4 Passage**.
+Watch the cyan head and wake enter the central boundary. During the handoff, a
+small woven volume should appear at that same point, carry cyan into gold and
+allow the accepted gold head and wake to continue rootward. Rotate the Tree and
+change among Structure, Canopy and Silhouette: the event must stay in one internal
+place and be hidden or revealed by real graphite, never slide onto the facing
+surface. Wait between packets and confirm that no permanent ornament remains.
+Sweep **Rune circumference** from `20%` through the retained `55%` setting to the
+audited `100%` trunk maximum. Confirm that the existing packets continue without
+a reset and that the rear loop is occluded when the Tree rotates.
+
+The artistic question is deliberately unresolved. Judge whether the brief
+double-loop event reads as a precious artwork within the artwork and gives the
+colour change a spatial act, or whether it remains too small, curly or ornamental
+to bear that meaning. The low setting reproduces restraint; the maximum makes the
+volume emphatic but may become too emblematic. Human review should locate that
+threshold rather than assume the technical maximum is the artistic answer. An
+unsuccessful result is useful evidence. Stop after this review; do not refine the
+geometry, change D4 transport, infer aggregation or begin C5 without a new
+explicit decision.
 
 #### C5 — provenance-preserving behavioural convergence
 

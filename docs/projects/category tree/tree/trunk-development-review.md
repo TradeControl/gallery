@@ -1561,3 +1561,130 @@ surface attachment must not be repeated. The new form would have to belong to th
 central cyan-to-gold handoff, preserve the accepted D4-v2 transport and graphite
 Tree, and address the transition rather than conceal it with decoration. This
 checkpoint does not implement or pre-authorise that geometry.
+
+## C4d-D4-J1 bounded experiment — exact-seed junction knot
+
+**Status:** candidate `c4d-d4-junction-knot-v1` is implemented and technically
+verified on 2026-10-18. It awaits human artistic review. D4-v2 remains preserved
+as the approved checkpoint; C5 remains unauthorised.
+
+### What was implemented
+
+The new candidate is one slender asymmetric double-loop filament aligned along
+the trunk and centred on the exact D1/D2 seed. This corrects the defining spatial
+fault in the old filigree evidence: C4a-E1 and E2 were approximately `0.752` and
+`0.614` object-space units away from the actual junction, respectively, whereas
+J1's authored waist coincides with `descriptor.seedPoint` to numerical tolerance.
+The original seed-radius audit has now been replaced by a longitudinally sampled
+physical-trunk audit over the complete knot span. Representative control extremes
+and every generated tube vertex retain positive conservative wall clearance, and
+browser orbit shows no shell excursion. The form does not touch or replace the
+graphite shell.
+
+The implementation treats the form as a temporary response of the Tree, not a
+new transport route. A genuine live cyan source approaching the authored
+`exchange → meaning` boundary illuminates only the upper half. The unchanged D2
+event consumes that source and creates one distinct provenance-linked output at
+the exact waist. While the matching D3 identity leaves, the full woven volume is
+briefly legible from cyan through Cosmos gold, after which it withdraws. There is
+no manifestation without a live approach or departure. Concurrent events use a
+per-vertex maximum, not additive semantic fusion, and the runtime explicitly
+retains `aggregation: false`.
+
+J1 is merged into the accepted D4-v2 depth-aware presentation draw. The ordinary
+scene, front and back graphite depth, nearest active signal depth and one
+normal-blended subsurface overlay remain five bounded passes. The knot receives
+the same object-space Tree deformation as the packets. It has a zero rear
+transmission floor and uses neither bloom, `GreaterDepth`, a camera-facing object
+nor a persistent guide. The diagnostic reports knot vertices separately from
+packet-trail vertices so this presentation response cannot be mistaken for extra
+transport.
+
+The candidate has its own default-off **D4 junction knot (experiment)** control
+and is additionally gated by the existing D4-v2 switch. Disabling it immediately
+withdraws the signal without replacing the geometry or changing the D1 router,
+D2 ledger, D3 transport, D4 trails, canopy or monumental exterior.
+
+### Circumference extension
+
+Human review identified the useful form as too slight to emphasise the colour
+boundary. A new **Rune circumference** slider therefore varies only the knot's
+radial reach. Its bounded range is `20%` to `100%`, with `55%` as the retained
+review value. The longitudinal span, packet-derived strand radius, vertex count,
+causal timing, cyan/gold boundary and default-off presentation state do not change.
+
+`100%` means the largest radial loop admitted by the conservative physical trunk
+envelope across the knot's complete height, including wall margin, a small surface
+reserve and a final full-vertex containment audit. It does not mean the smaller D1
+growth envelope: the maximum may extend beyond that hidden router-growth boundary
+while remaining inside the graphite. This distinction lets the artwork use the
+monumental trunk's available volume without enlarging or exposing D1.
+
+Moving the slider disposes and replaces only the junction-form geometry, then
+reapplies the manifestations already justified by the live packet state. It does
+not rebuild the Tree, restart growth, reset the packet scheduler, alter packet
+identities or revise D2-D4 transport. The old compact setting remains reproducible
+at the lower end; the maximum is available for artistic comparison rather than
+proposed as a new production default.
+
+### Technical and browser evidence
+
+- Focused J1 regression passes `7/7`: exact seed placement across representative
+  form controls and tiers; genuine cyan approach; provenance-linked gold
+  departure; idle withdrawal; toggle invariance; monotonic `20%`/`55%`/`100%`
+  sizing; longitudinal physical-trunk containment; live-event preservation during
+  resize; bounded resources; `11` Hz conservation; and shared depth, deformation
+  and colour contracts.
+- Preserved D2–D4 focused regression passes `26/26`. The complete Tree suite
+  passes `79/79`.
+- The scoped Vite production build passes at `785.21 kB` minified (`200.56 kB`
+  gzip). The existing large-chunk advisory remains non-blocking.
+- D4 Passage, Structure, Canopy and Silhouette were inspected at tier `4`, speed
+  `1.55` and frequency `1.00`, sweeping circumference through `20%`, `55%` and
+  `100%`. The manifestation stays at the same central object-space point, changes
+  visibility with real shell depth and disappears between events. Orbit at the
+  maximum concealed the rear loop behind graphite. The silhouette and accepted
+  canopy remain unchanged.
+- The browser console reported no warnings or errors. D2 handoff, D3 lifecycle
+  and visual-overflow balances remained `0`, including a maximum-circumference
+  `11` Hz stress pass. The active presentation retained five passes; the observed
+  review viewport submission remained responsive (approximately `7.5 ms` at the
+  busiest captured frame).
+
+### Resulting artistic state and review question
+
+The experiment has achieved the bounded technical aim: the colour boundary is no
+longer represented only by one cyan line ending and one gold line beginning. A
+small volumetric event briefly inhabits their exact shared point, while the
+accepted information morphology and causal ledger continue uninterrupted. It
+does not read as a brooch attached to the surface and it does not expose a finite
+inventory of machinery.
+
+The artistic result must not be overstated. In the close D4 Passage view it reads
+as a compact blue-to-gold woven curl; in the wider Structure and Canopy views it
+is deliberately subtle and can collapse to a small central sign. Human review
+must decide whether that restraint gives the Tree a precious internal act, or
+whether the form is too slight, curly or ornamental to become the intended
+artwork within the artwork. No further geometric refinement is implied by the
+technical success.
+
+The circumference sweep makes that judgment more legible. At `20%` the knot
+returns to a restrained thread. At `55%` it reads as a small internal turn in the
+information stream. At `100%` the double loop becomes emphatic and unmistakably
+volumetric, but may also become too emblematic or ornamental. The control exists
+to expose that artistic threshold; technical containment does not settle it.
+
+In plain English: set **Internal router tiers** to `4`, **Packet frequency** near
+`1.00`, leave **Packet speed** at `1.55`, enable both **D4 gold packet trails
+(experiment)** and **D4 junction knot (experiment)**, and choose **D4 Passage**.
+Watch a cyan packet arrive. The small central double loop should wake up in cyan,
+turn through gold at exactly the handoff and let the familiar gold head-and-wake
+continue downward. Rotate the Tree: it should remain inside the same place and
+pass behind graphite, not follow the camera. Between packets it should vanish.
+Sweep **Rune circumference** from `20%` through `55%` to `100%`, then inspect
+Structure, Canopy and Silhouette. Decide where the event becomes sufficiently
+legible to emphasise transformation, and where it begins to resemble an emblem or
+jewellery rather than an internal act. Confirm that resizing does not interrupt
+the packets already in motion.
+Stop after that judgment. Do not begin C5 or another refinement without a new
+explicit instruction.
