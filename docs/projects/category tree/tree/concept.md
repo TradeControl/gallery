@@ -76,12 +76,12 @@ and its containment; human review accepted that topology on 2026-10-18, with tie
 range remains useful. D2 connects every shared canopy route to that exact seed and
 establishes an auditable rune boundary. Human review accepted that alignment on
 2026-10-18 as essential causal infrastructure while explicitly withholding any
-claim that the construction diagnostic is the transducer rune. D3 now sends
-independent outputs down selected internal routes. D4, only after those
-mechanisms pass review,
-investigates how packet activity should become perceptible through or within the
-graphite. This sequence does not authorise aggregation, external roots, Casting
-Pit integration or Cosmos transport.
+claim that the construction diagnostic is the transducer rune. D3 sends
+independent outputs down selected internal routes and received human sign-off on
+2026-10-18. D4 may now investigate how packet activity should become perceptible
+through or within the graphite, but only as a separately defined bounded
+experiment. This sequence does not authorise aggregation, external roots,
+Casting Pit integration or Cosmos transport.
 
 Eventually mycelium-like roots will enter the Casting Pit gravity well. Information will continue downward through those roots into Cosmic circuitry while molten material from the physical Universe moves upward through a distinct transport to sustain the Tree. These opposed processes are causally distinct but compositionally connected. Neither may be reduced to decorative animation, and neither requires the internal C1 architecture to become audience-facing imagery.
 
@@ -101,13 +101,24 @@ only that strand can respond to the packet. Simultaneous packets may occupy the
 same or different strands without sharing identity. The resulting spatial
 plurality is transport evidence, not semantic convergence or higher-order unity.
 
-C4d-D2 now applies the one-to-one rule at the accepted router seed itself. A cyan
+C4d-D2 applies the one-to-one rule at the accepted router seed itself. A cyan
 source crossing the shared `exchange → meaning` centreline at authored progress
 `0.58` is consumed once and creates one distinct gold identity with immutable
 single-source provenance. That output is parked at the router root as an auditable
-state; it is not assigned to a branch, duplicated or resumed along the old route.
-The boundary therefore proves connection and transduction but not D3 transport,
-aggregation or higher-order unity.
+creation state; D3 does not rewrite this accepted record. The boundary therefore
+proves connection and one-to-one transduction, not aggregation or higher-order
+unity.
+
+C4d-D3 gives that same gold identity exactly one deterministic seed-first route
+through the inverted internal tree. It creates no replacement identity and no
+copy at a fork. Several packets may occupy one route, but their identities,
+timings and single-source provenance remain independent. Reaching a terminal is
+recorded as a transport arrival only; it does not yet connect the Tree to an
+external root or Cosmos. A live tier change creates a new route epoch for later
+packets while in-flight packets finish on their immutable earlier paths. This
+preserves motion and identity rather than remapping or silently clearing them.
+The epoch is a stable property of the deterministic tier topology, so returning
+to an earlier tier reuses its route identities instead of accumulating revisions.
 
 Opposed kinds of flow may retain distinct directions, lanes, colours or rhythms. A selected interpretation may illuminate one meaningful route while leaving the rest present but subdued. A disabled branch may darken recursively; a disconnected branch may remain viable outside the main structure; a changed relationship may visibly reroute subsequent flow.
 
@@ -122,21 +133,29 @@ From a distance, the Tree should read as one extraordinary object with a strong 
 The finite visible form should imply a potentially infinite recursive order. Omission and unseen depth are active parts of the work. C1's carrier architecture remains hidden causal structure and an opt-in diagnostic facility; C2's aperture, attenuation and stencil disclosures remain rejected because they exposed a countable inventory. That decision does not ban visibility through bounded causal events. A fleeting manifestation may intensify rather than diminish mystery when it belongs spatially and behaviourally to the monumental trunk while the larger mechanism remains unseen.
 
 The D2 question is resolved: the real canopy stream meets the accepted router at
-one credible point and every crossing leaves an exact one-to-one account. Its
-opt-in marks remain engineering evidence, not a proposed rune form or D4
-presentation language. The immediate D3 question is whether every distinct gold
-output can leave that point along exactly one deterministic internal route,
-including shared-route traffic, without loss, duplication or artificial
-synchronisation. Ordinary artwork mode retains the opaque graphite and hides the
-router and boundary diagnostic.
+one credible point and every crossing leaves an exact one-to-one account. D3 now
+implements the next causal interval and is human-approved. Its opt-in view uses
+a subdued centreline construction guide because a packet correctly placed inside
+the solid D1 diagnostic tube would be hidden. Gold packets move on the real
+object-space paths with ordinary depth and shared Tree motion. The D2 cyan
+approach and event-pulsed gold seed are refreshed in D3 mode and use the same
+deformation field, so the visible handoff cannot detach as the Tree sways.
+Neither that guide nor the packets are a proposed rune form or D4 presentation
+language. Ordinary artwork mode retains the opaque graphite and hides every
+D1–D3 diagnostic.
 
 The bounded D1 baseline remains a four-level tree with maximum growth tier `3`;
 the independent **Internal router tiers** control extends it through tiers `4–6`.
 Tier `4` is the current human-preferred working candidate, not a changed technical
-default. D2 owns no router path, so changing that diagnostic complexity cannot
-move, duplicate or consume a parked output. Its coordinate continuity, causal
-balance and visual relationship at the seed are now accepted; D3 is authorised
-as transport evidence only and must stop before D4 presentation.
+default. D2 owns no router path. In D3, changing the diagnostic complexity does
+not move, duplicate or consume an active output: existing route epochs drain on
+their original curves and new outputs use the rebuilt tier. During that brief
+overlap an older packet need not lie over the newest centreline guide. This is an
+explicit diagnostic limitation, not a reason to falsify its route or begin D4.
+Human review found the diagnostic most legible at tier `4` and approximately
+`1.00` packet per second; tier `5` produced a less interesting trajectory. These
+are artistic review settings, not changed technical defaults or limits. D4 has
+not begun and still requires its own bounded proposition.
 
 The structure should be materially dark and only partially knowable; dynamic colour should continually disclose its recursion. Illumination is therefore capable of manifesting broad connected regions and successive generations without pretending to be an information packet. The Tree should not need uniform visibility to prove that it exists.
 

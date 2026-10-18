@@ -1,7 +1,7 @@
 # Experiment C — monumental trunk development review
 
-**Status:** C1 approved; C2's inventory disclosures and C3a's passive passage marks artistically rejected; the C4a filigree direction is closed without artistic sign-off; immutable E1 and the last green E2 remain reproducible technical evidence only; C4b-O1 is technically valid but artistically rejected as a wrapped thread; C4c-I1 is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1 and C4d-D2 are approved; C4d-D3 is authorised as the next bounded block
-**Implementation:** C1 remains hidden architecture; E1 profile `c4a-exterior-brooch-v1`, E2 profile `c4a-longitudinal-placement-v1`, O1 profile `c4b-exterior-optical-fibre-v1` and I1 profile `c4c-internal-arborescence-v1` remain selectable evidence; D1 profile `d1-inverted-internal-router-v1` supplies a normally invisible wall-constrained router; D2 profile `c4d-d2-router-junction-v1` connects the shared canopy route to its exact seed and parks one provenance-linked output there; D3 may now add independent one-route transport, while D4 and C5 remain unauthorised
+**Status:** C1 approved; C2's inventory disclosures and C3a's passive passage marks artistically rejected; the C4a filigree direction is closed without artistic sign-off; immutable E1 and the last green E2 remain reproducible technical evidence only; C4b-O1 is technically valid but artistically rejected as a wrapped thread; C4c-I1 is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1, C4d-D2 and C4d-D3 are approved
+**Implementation:** C1 remains hidden architecture; E1 profile `c4a-exterior-brooch-v1`, E2 profile `c4a-longitudinal-placement-v1`, O1 profile `c4b-exterior-optical-fibre-v1` and I1 profile `c4c-internal-arborescence-v1` remain selectable evidence; D1 profile `d1-inverted-internal-router-v1` supplies a normally invisible wall-constrained router; D2 profile `c4d-d2-router-junction-v1` connects the shared canopy route to its exact seed and records one provenance-linked output there; D3 profile `c4d-d3-independent-router-transport-v1` dispatches that same output down one deterministic route; D4 is eligible for a separate bounded brief but has not begun, and C5 remains unauthorised
 
 ## Executive finding
 
@@ -54,8 +54,10 @@ central. Its one-to-one ledger remains authoritative, but the visible result was
 too longitudinal and subdued to establish the intended recursive root image.
 C4d-D1 is the separately bounded successor and is now human-approved. D2's exact
 canopy-to-router alignment is also approved as essential infrastructure, but its
-construction marks are not accepted as a transducer-rune design. D3 is the
-current bounded transport experiment; C5 is not implied.
+construction marks are not accepted as a transducer-rune design. D3's bounded
+transport experiment is also human-approved as causal infrastructure; its
+construction view is not accepted as the transducer rune. D4 has not begun and
+C5 is not implied.
 
 ## Established architecture
 
@@ -1329,3 +1331,105 @@ an approval of the handoff and its auditable one-to-one account, not of the smal
 gold point or neutral diagnostic as a finished transducer rune. D3 may now route
 each distinct output down one internal path. D4 presentation, aggregation,
 external roots, Casting Pit integration and Cosmos transport remain gated.
+
+## C4d-D3 bounded experiment — independent internal transport
+
+**Status:** implementation, technical verification and human sign-off complete
+on 2026-10-18. D4 has not begun.
+
+### Implemented proposition
+
+D3 retains the accepted D2 output as an immutable creation record and dispatches
+that same gold identity into a separate internal-router transport state. It does
+not add the packet to the canopy array, mint another identity or alter its frozen
+single-source provenance. A stable identity hash chooses exactly one current D1
+terminal route. The assignment freezes one seed-first edge chain, one terminal,
+one length and the D1 route epoch. Branch points therefore select nothing at run
+time and cannot duplicate a packet. Different identities may share the same
+route without merging or becoming phase-locked.
+
+Every packet is motion-anchored at the canonical D2 crossing time. The remaining
+part of a coarse update is applied immediately, so cadence cannot strand the
+packet at the seed for a frame. A speed change re-anchors distance at the update
+boundary without teleportation. Dispatches and analytically calculated arrivals
+are swept in event-time order, so fine and coarse updates report the same real
+peak concurrency rather than treating a resumed-frame batch as synchronised.
+Arriving at the selected D1 terminal completes
+only this internal interval; it does not claim an external root or Cosmos
+connection. Runtime metadata keeps both handoff and lifecycle balances at zero
+and continues to state `aggregation: false`.
+
+The tier control now has an explicit packet contract. Existing traversals keep
+their curve snapshots and finish in their original route epoch; outputs created
+after a tier change use the new descriptor. This prevents both silent packet loss
+and geometric remapping. An old-epoch packet can briefly lack a matching current
+guide after a live tier change. That honest construction-view limitation is
+reported rather than hidden by beginning presentation work. Route epochs are
+stable properties of deterministic tier topology, so returning to an earlier
+tier reuses its route keys instead of retaining a new revision-only identity.
+
+The **Inspect D3 transport** view is an engineering diagnostic, not the proposed
+rune. A correctly centred packet would be enclosed by the solid D1 diagnostic
+tube, so D3 suppresses that tube in this view and substitutes a thin low-opacity
+centreline guide derived from the same edges. One growable instanced mesh renders
+the active gold centres. Guide and packets use ordinary depth and the accepted
+Tree sway field; normal graphite mode contains neither. There are no trails,
+surface marks, branch illumination, bloom or disclosure effects. The D2 ingress,
+trace and event-pulsed seed now refresh in this view and use the same deformation
+field, keeping blue contact and gold departure coincident under sway. Recent ID
+guards and route summaries are audit-bounded, and replaced instanced meshes
+release their GPU instance resources.
+
+### Technical and browser evidence
+
+- Focused D3 regression passes `7/7`, including live D2/D3 deformation contact,
+  cadence-invariant peak concurrency, bounded audit indexes and stable tier
+  epochs.
+- Combined D1/D2/D3 regression passes `22/22`; the complete Tree suite passes
+  `66/66`.
+- Fine and coarse updates produce the same assignments, completion records and
+  active distances at the retained `0.20` default and the `11` Hz maximum.
+- Maximum-rate testing exercises more than one hundred independent outputs and
+  shared routes without lost, duplicated or merged IDs.
+- Live speed changes preserve position at the change boundary. A tier `3 → 6`
+  change retains earlier identities and paths while later outputs use tier `6`;
+  both epochs remain conserved.
+- The packet instance pool grows independently of logical transport and records
+  zero visual overflow under the supported control envelope; replacement and
+  rebuild explicitly dispose instance resources.
+- The scoped Vite build passes. Its `753.18 kB` minified chunk advisory remains
+  non-blocking.
+- Browser inspection passes at tier `4`, default and `11` Hz traffic, under
+  orbit, a live speed change, a tier `4 → 6 → 4` cycle and return to the normal
+  Silhouette view. The post-audit run exceeded five hundred arrivals with
+  handoff/lifecycle balances and visual overflow at `0`; the local one-pass
+  submission readout is approximately `0.8–1.2 ms`, and the browser console has
+  no warnings or errors. This is not GPU timing or a performance budget.
+
+### Human visual review outcome
+
+Human review on 2026-10-18 approved D3. The transport is convincing enough to
+retain as the causal basis for the next experiment, but the guide and moving
+points remain construction evidence rather than an accepted transducer rune. A
+lower diagnostic frequency of approximately `1.00` reads better than the dense
+stress setting, and tier `4` remains the preferred topology; tier `5` produces a
+less interesting trajectory. These observations do not change the `0.20` packet
+frequency or tier `3` defaults, and they do not select a D4 rendering language.
+
+The completed review used the following inspection:
+
+Select tier `4`, enable **Inspect D3 transport** and choose **D3 Transport**. A
+blue packet should meet the apex exactly and one gold point—not several—should
+continue from it down one branch. At every fork the point must choose one side and
+never split. Orbit the view and check that the gold points remain attached to the
+three-dimensional routes, including ordinary front/behind changes, rather than
+sliding with the camera.
+
+Raise **Packet frequency** to `11.00`. Several packets should be able to occupy a
+shared route as separate moving points without merging, blinking out or adopting
+one common phase. The D2 handoff and D3 lifecycle balances, and visual overflow,
+should all remain `0`. Change **Packet speed** and look for any jump in packets
+already in flight. Finally turn the diagnostic off and confirm that the opaque
+monumental Tree is unchanged. The thin guide and gold points are transport
+evidence only; D4 must preserve that validated causal motion while seeking a
+separately reviewed artistic presentation.

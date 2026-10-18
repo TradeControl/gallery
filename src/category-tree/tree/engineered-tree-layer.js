@@ -22,6 +22,11 @@ import {
     internalRouterJunctionCandidateId,
     resolveInternalRouterJunctionBoundary
 } from './internal-router-junction.js';
+import {
+    createInternalRouterRouteEpoch,
+    createInternalRouterTransport,
+    internalRouterTransportCandidateId
+} from './internal-router-transport.js';
 
 const routedTerminalId = 'process-readiness-state';
 const defaultInformationSpeed = 1.55;
@@ -32,6 +37,7 @@ const informationTrafficSamples = 64;
 const trunkRuneAuditCapacity = 4096;
 const internalRouterJunctionIngressDistance = 1.1;
 const internalRouterJunctionTraceSamples = 17;
+const internalRouterTransportInitialCapacity = 128;
 function normaliseInternalRouterTiers( value )
 {
     const numeric = Number( value );
@@ -228,6 +234,89 @@ function createInteriorSkeletonMaterial()
         );
     };
     material.customProgramCacheKey = () => 'engineered-tree-interior-skeleton-c1';
+    return { material, uniforms };
+}
+
+function createInternalRouterTransportMaterial( colour, opacity, instanced )
+{
+    const uniforms = {
+        time: { value: 0 },
+        response: { value: 0.22 },
+        offset: { value: new THREE.Vector3() },
+        colour: { value: new THREE.Color( colour ) },
+        opacity: { value: opacity }
+    };
+    const instanceTransform = instanced
+        ? `#ifdef USE_INSTANCING
+                transformed = ( instanceMatrix * vec4( transformed, 1.0 ) ).xyz;
+            #endif`
+        : '';
+    const material = new THREE.ShaderMaterial( {
+        uniforms: {
+            treeTime: uniforms.time,
+            treeResponse: uniforms.response,
+            diagnosticOffset: uniforms.offset,
+            diagnosticColour: uniforms.colour,
+            diagnosticOpacity: uniforms.opacity
+        },
+        vertexShader: `
+            uniform float treeTime;
+            uniform float treeResponse;
+            uniform vec3 diagnosticOffset;
+
+            void main()
+            {
+                vec3 transformed = position;
+                ${instanceTransform}
+                transformed += diagnosticOffset;
+                float motionReach = smoothstep(
+                    0.25,
+                    5.6,
+                    max( transformed.y, 0.0 )
+                );
+                float swayX = sin(
+                    treeTime * 0.72
+                    + transformed.y * 0.38
+                    + transformed.z * 0.12
+                );
+                float swayZ = sin(
+                    treeTime * 0.56
+                    + transformed.y * 0.31
+                    + transformed.x * 0.10
+                    + 1.7
+                );
+                float flutter = sin(
+                    treeTime * 1.17
+                    + transformed.y * 0.81
+                    + transformed.z * 0.19
+                );
+                transformed.x += ( swayX * 0.25 + flutter * 0.035 )
+                    * treeResponse * motionReach;
+                transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
+                    * treeResponse * motionReach;
+                gl_Position = projectionMatrix * modelViewMatrix
+                    * vec4( transformed, 1.0 );
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 diagnosticColour;
+            uniform float diagnosticOpacity;
+
+            void main()
+            {
+                gl_FragColor = vec4( diagnosticColour, diagnosticOpacity );
+            }
+        `,
+        transparent: true,
+        depthTest: true,
+        depthWrite: instanced,
+        toneMapped: false
+    } );
+    material.userData.deformationFieldId = 'engineered-tree-shared-sway-v1';
+    material.userData.deformationUniforms = Object.freeze( {
+        time: uniforms.time,
+        response: uniforms.response
+    } );
     return { material, uniforms };
 }
 
@@ -1951,6 +2040,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     group.name = 'engineered-tree-body';
     const internalRouterJunctionEnabled =
         initialParameters.internalRouterJunctionEnabled === true;
+    const internalRouterTransportEnabled = internalRouterJunctionEnabled
+        && initialParameters.internalRouterTransportEnabled === true;
     const trunkRuneCandidateId = initialParameters.trunkRuneCandidateId
         ?? defaultTrunkRuneCandidateId;
     const trunk = createMaterial( 0x160f0c, 0.38, 0.62 );
@@ -1960,33 +2051,44 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     const interiorSkeleton = createInteriorSkeletonMaterial();
     const internalRouterDiagnostic = createMaterial( 0xd8dfdc, 0.76, 0.08 );
     internalRouterDiagnostic.material.name = 'D1 internal router neutral diagnostic';
-    const internalRouterJunctionIngressMaterial = new THREE.MeshBasicMaterial( {
-        color: 0x00c9ff,
-        transparent: true,
-        opacity: 0.92,
-        depthTest: true,
-        depthWrite: false,
-        toneMapped: false
-    } );
+    const internalRouterJunctionIngress = createInternalRouterTransportMaterial(
+        0x00c9ff,
+        0.92,
+        false
+    );
+    const internalRouterJunctionIngressMaterial =
+        internalRouterJunctionIngress.material;
     internalRouterJunctionIngressMaterial.name = 'D2 cyan ingress diagnostic';
-    const internalRouterJunctionTraceMaterial = new THREE.LineBasicMaterial( {
-        color: 0x00c9ff,
-        transparent: true,
-        opacity: 0.5,
-        depthTest: true,
-        depthWrite: false,
-        toneMapped: false
-    } );
+    const internalRouterJunctionTrace = createInternalRouterTransportMaterial(
+        0x00c9ff,
+        0.5,
+        false
+    );
+    const internalRouterJunctionTraceMaterial =
+        internalRouterJunctionTrace.material;
     internalRouterJunctionTraceMaterial.name = 'D2 cyan ingress trace diagnostic';
-    const internalRouterJunctionOutputMaterial = new THREE.MeshBasicMaterial( {
-        color: 0xffd36b,
-        transparent: true,
-        opacity: 0.94,
-        depthTest: true,
-        depthWrite: false,
-        toneMapped: false
-    } );
+    const internalRouterJunctionOutput = createInternalRouterTransportMaterial(
+        0xffd36b,
+        0.94,
+        false
+    );
+    const internalRouterJunctionOutputMaterial =
+        internalRouterJunctionOutput.material;
     internalRouterJunctionOutputMaterial.name = 'D2 parked gold output diagnostic';
+    const internalRouterTransportPacket = createInternalRouterTransportMaterial(
+        0xffd36b,
+        0.96,
+        true
+    );
+    internalRouterTransportPacket.material.name =
+        'D3 gold transport packet diagnostic';
+    const internalRouterTransportGuide = createInternalRouterTransportMaterial(
+        0x9aa7a5,
+        0.27,
+        false
+    );
+    internalRouterTransportGuide.material.name =
+        'D3 internal router centreline guide';
     const trunkRuneMaterial = createTrunkRuneMaterial(
         trunk.uniforms,
         trunkRuneCandidateId
@@ -2007,6 +2109,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     let interiorDiagnosticVisible = false;
     let internalRouterDiagnosticVisible = false;
     let internalRouterJunctionDiagnosticVisible = false;
+    let internalRouterTransportDiagnosticVisible = false;
     let trunkVisibilityMode = 'off';
     let trunkMesh = null;
     let apertureTrunkMesh = null;
@@ -2030,6 +2133,12 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
     let internalRouterJunctionResourceRevision = 0;
     let internalRouterJunctionLastEventAt = null;
     const internalRouterJunctionLedger = createInternalRouterJunctionLedger();
+    const internalRouterTransport = createInternalRouterTransport();
+    let internalRouterTransportDiagnosticGroup = null;
+    let internalRouterTransportGuideLine = null;
+    let internalRouterTransportPacketMesh = null;
+    let internalRouterTransportPacketCapacity = 0;
+    let internalRouterTransportResourceRevision = 0;
     let informationRoute = null;
     let informationRoutes = [];
     let informationTraffic = null;
@@ -2093,8 +2202,11 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             internalRouterMesh.userData.internalRouterTree = true;
             group.add( internalRouterMesh );
         }
-        internalRouterMesh.visible = internalRouterDiagnosticVisible;
+        internalRouterMesh.visible = internalRouterDiagnosticVisible
+            && !internalRouterTransportDiagnosticVisible;
         internalRouterResourceRevision += 1;
+        replaceInternalRouterTransportGuide( descriptor );
+        updateInternalRouterTransportMetadata();
         updateInternalRouterJunctionMetadata();
         return true;
     }
@@ -2126,7 +2238,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         );
         ingress.name = 'D2 cyan ingress packet';
         ingress.userData.internalRouterJunctionIngress = true;
-        ingress.position.copy( rootPoint );
+        internalRouterJunctionIngress.uniforms.offset.value.copy( rootPoint );
         ingress.visible = false;
         diagnostic.add( ingress );
 
@@ -2153,7 +2265,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         );
         output.name = 'D2 gold output parked at router root';
         output.userData.internalRouterJunctionOutput = true;
-        output.position.copy( rootPoint );
+        internalRouterJunctionOutput.uniforms.offset.value.copy( rootPoint );
         output.visible = false;
         diagnostic.add( output );
 
@@ -2166,6 +2278,242 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         internalRouterJunctionResourceRevision += 1;
     }
 
+    function createInternalRouterTransportGuideGeometry( descriptor )
+    {
+        const positions = [];
+        for ( const edge of descriptor.edges )
+        {
+            const points = edge.audit.centrelinePoints;
+            for ( let index = 0; index < edge.audit.sampleCount - 1; index += 1 )
+            {
+                const left = index * 3;
+                const right = ( index + 1 ) * 3;
+                positions.push(
+                    points[left],
+                    points[left + 1],
+                    points[left + 2],
+                    points[right],
+                    points[right + 1],
+                    points[right + 2]
+                );
+            }
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute( positions, 3 )
+        );
+        geometry.computeBoundingBox();
+        geometry.computeBoundingSphere();
+        geometry.userData.internalRouterTransportGuide = {
+            candidateId: internalRouterTransportCandidateId,
+            maximumTier: descriptor.maximumTier,
+            edgeCount: descriptor.edgeCount,
+            segmentCount: positions.length / 6,
+            objectSpace: true,
+            cameraFacing: false
+        };
+        return geometry;
+    }
+
+    function replaceInternalRouterTransportGuide( descriptor )
+    {
+        if ( !internalRouterTransportGuideLine ) return;
+        const previous = internalRouterTransportGuideLine.geometry;
+        internalRouterTransportGuideLine.geometry =
+            createInternalRouterTransportGuideGeometry( descriptor );
+        previous.dispose();
+    }
+
+    function ensureInternalRouterTransportPacketCapacity( required )
+    {
+        if ( !internalRouterTransportDiagnosticGroup ) return;
+        if ( internalRouterTransportPacketMesh
+            && internalRouterTransportPacketCapacity >= required )
+        {
+            return;
+        }
+        let nextCapacity = Math.max(
+            internalRouterTransportInitialCapacity,
+            internalRouterTransportPacketCapacity
+        );
+        while ( nextCapacity < required ) nextCapacity *= 2;
+
+        const replacement = new THREE.InstancedMesh(
+            new THREE.SphereGeometry( 0.028, 12, 8 ),
+            internalRouterTransportPacket.material,
+            nextCapacity
+        );
+        replacement.name = 'D3 independent gold router packets';
+        replacement.userData.internalRouterTransportPackets = true;
+        replacement.instanceMatrix.setUsage( THREE.DynamicDrawUsage );
+        replacement.count = 0;
+        replacement.frustumCulled = false;
+        replacement.visible = internalRouterTransportDiagnosticVisible;
+        if ( internalRouterTransportPacketMesh )
+        {
+            internalRouterTransportDiagnosticGroup.remove(
+                internalRouterTransportPacketMesh
+            );
+            internalRouterTransportPacketMesh.dispose();
+            internalRouterTransportPacketMesh.geometry.dispose();
+        }
+        internalRouterTransportDiagnosticGroup.add( replacement );
+        internalRouterTransportPacketMesh = replacement;
+        internalRouterTransportPacketCapacity = nextCapacity;
+        internalRouterTransportResourceRevision += 1;
+    }
+
+    function createInternalRouterTransportDiagnostic()
+    {
+        internalRouterTransportDiagnosticGroup = null;
+        internalRouterTransportGuideLine = null;
+        internalRouterTransportPacketMesh = null;
+        internalRouterTransportPacketCapacity = 0;
+        if ( !internalRouterTransportEnabled ) return;
+
+        const descriptor = getInternalRouterDescriptor();
+        if ( !descriptor ) return;
+        const diagnostic = new THREE.Group();
+        diagnostic.name = 'D3 internal router transport diagnostic';
+        diagnostic.userData.internalRouterTransportDiagnostic = true;
+
+        const guide = new THREE.LineSegments(
+            createInternalRouterTransportGuideGeometry( descriptor ),
+            internalRouterTransportGuide.material
+        );
+        guide.name = 'D3 internal router centreline guide';
+        guide.userData.internalRouterTransportGuide = true;
+        guide.visible = false;
+        diagnostic.add( guide );
+
+        diagnostic.visible = false;
+        group.add( diagnostic );
+        internalRouterTransportDiagnosticGroup = diagnostic;
+        internalRouterTransportGuideLine = guide;
+        ensureInternalRouterTransportPacketCapacity(
+            internalRouterTransportInitialCapacity
+        );
+        internalRouterTransportResourceRevision += 1;
+    }
+
+    function updateInternalRouterTransportMetadata()
+    {
+        if ( !internalRouterTransportEnabled )
+        {
+            delete group.userData.internalRouterTransport;
+            return;
+        }
+        const descriptor = getInternalRouterDescriptor();
+        const junction = internalRouterJunctionLedger.snapshot();
+        const transport = internalRouterTransport.snapshot();
+        const pendingAtRootCount = junction.outputCount
+            - transport.dispatchCount;
+        const currentRouteEpoch = descriptor
+            ? createInternalRouterRouteEpoch( descriptor )
+            : null;
+        const staleEpochActiveCount = transport.activePackets.filter(
+            ( packet ) => packet.routeAssignment.routeEpoch !== currentRouteEpoch
+        ).length;
+        const currentEpochRoutes = transport.routeDispatchCounts.filter(
+            ( route ) => route.routeEpoch === currentRouteEpoch
+        );
+        const visualPacketCount = internalRouterTransportPacketMesh?.count ?? 0;
+        group.userData.internalRouterTransport = {
+            ...transport,
+            enabled: true,
+            diagnosticOnly: true,
+            diagnosticVisible: internalRouterTransportDiagnosticVisible,
+            productionVisible: false,
+            packetConnected: true,
+            junctionImplemented: true,
+            transportImplemented: true,
+            presentationImplemented: false,
+            currentRouterEpoch: currentRouteEpoch,
+            currentMaximumTier: descriptor?.maximumTier ?? null,
+            currentRouteCapacity: descriptor?.routeCount ?? 0,
+            currentSelectedRouteCount: currentEpochRoutes.length,
+            currentSharedRouteCount: currentEpochRoutes.filter( ( route ) =>
+                route.count > 1
+            ).length,
+            producedOutputCount: junction.outputCount,
+            pendingAtRootCount,
+            arrivalCount: transport.completionCount,
+            staleEpochActiveCount,
+            routeEpochPolicy: 'in-flight-snapshots-finish;new-packets-use-current',
+            conservation: Object.freeze( {
+                produced: junction.outputCount,
+                dispatched: transport.dispatchCount,
+                pendingAtRoot: pendingAtRootCount,
+                active: transport.activePacketCount,
+                arrived: transport.completionCount,
+                handoffBalance: junction.outputCount
+                    - transport.dispatchCount - pendingAtRootCount,
+                lifecycleBalance: transport.dispatchCount
+                    - transport.activePacketCount - transport.completionCount,
+                retainedOutputIdsUnique:
+                    transport.conservation.retainedOutputIdsUnique
+            } ),
+            visualPacketCapacity: internalRouterTransportPacketCapacity,
+            visualPacketCount,
+            visualOverflowCount: Math.max(
+                0,
+                transport.activePacketCount - internalRouterTransportPacketCapacity
+            ),
+            meshCount: 2,
+            maximumDrawCalls: 2,
+            activeDrawCalls: internalRouterTransportDiagnosticVisible
+                ? 1 + ( transport.activePacketCount > 0 ? 1 : 0 )
+                : 0,
+            resourceRevision: internalRouterTransportResourceRevision
+        };
+    }
+
+    function refreshInternalRouterTransportDiagnostic(
+        elapsed = 0,
+        parameters = {}
+    )
+    {
+        if ( !internalRouterTransportDiagnosticGroup )
+        {
+            updateInternalRouterTransportMetadata();
+            return;
+        }
+        const transport = internalRouterTransport.snapshot();
+        ensureInternalRouterTransportPacketCapacity(
+            transport.activePacketCount
+        );
+        const transform = new THREE.Matrix4();
+        for ( let index = 0; index < transport.activePackets.length; index += 1 )
+        {
+            transform.makeTranslation( ...transport.activePackets[index].position );
+            internalRouterTransportPacketMesh.setMatrixAt( index, transform );
+        }
+        internalRouterTransportPacketMesh.count = transport.activePacketCount;
+        internalRouterTransportPacketMesh.instanceMatrix.needsUpdate = true;
+
+        const response = parameters.motionFrozen
+            ? 0
+            : ( parameters.structuralResponse ?? 0.22 );
+        for ( const entry of [
+            internalRouterTransportPacket,
+            internalRouterTransportGuide
+        ] )
+        {
+            entry.uniforms.time.value = elapsed;
+            entry.uniforms.response.value = response;
+        }
+        internalRouterTransportGuideLine.visible =
+            internalRouterTransportDiagnosticVisible;
+        internalRouterTransportPacketMesh.visible =
+            internalRouterTransportDiagnosticVisible
+            && transport.activePacketCount > 0;
+        internalRouterTransportDiagnosticGroup.visible =
+            internalRouterTransportDiagnosticVisible;
+        updateInternalRouterTransportMetadata();
+        updateInternalRouterJunctionMetadata();
+    }
+
     function updateInternalRouterJunctionMetadata()
     {
         if ( !internalRouterJunctionEnabled )
@@ -2175,6 +2523,11 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         }
         const descriptor = getInternalRouterDescriptor();
         const ledger = internalRouterJunctionLedger.snapshot();
+        const transport = internalRouterTransport.snapshot();
+        const releasedOutputCount = internalRouterTransportEnabled
+            ? transport.dispatchCount
+            : 0;
+        const parkedOutputCount = ledger.outputCount - releasedOutputCount;
         const routerRootPoint = descriptor
             ? Object.freeze( Array.from( descriptor.seedPoint, Number ) )
             : null;
@@ -2184,7 +2537,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             enabled: true,
             packetConnected: true,
             junctionImplemented: true,
-            transportImplemented: false,
+            transportImplemented: internalRouterTransportEnabled,
             semanticClaim: 'transduction',
             mode: 'one-to-one',
             aggregation: false,
@@ -2199,13 +2552,25 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 node.parentId === null
             )?.id ?? null,
             routerRootPoint,
-            outputState: 'parked-at-router-root',
-            assignedRouteCount: 0,
-            selectedRouterRouteIds: Object.freeze( [] ),
+            outputState: internalRouterTransportEnabled
+                ? 'created-at-root-then-dispatched'
+                : 'parked-at-router-root',
+            assignedRouteCount: releasedOutputCount,
+            selectedRouterRouteIds: internalRouterTransportEnabled
+                ? transport.selectedRouterRouteIds
+                : Object.freeze( [] ),
             entryCount: ledger.entryCount,
             consumptionCount: ledger.consumptionCount,
             outputCount: ledger.outputCount,
-            parkedOutputCount: ledger.parkedOutputCount,
+            parkedOutputCount,
+            createdAtRouterRootCount: ledger.outputCount,
+            releasedOutputCount,
+            activeRouterPacketCount: internalRouterTransportEnabled
+                ? transport.activePacketCount
+                : 0,
+            arrivedRouterPacketCount: internalRouterTransportEnabled
+                ? transport.completionCount
+                : 0,
             retainedEntryRecordCount: ledger.retainedEntryRecordCount,
             retainedTransductionRecordCount:
                 ledger.retainedTransductionRecordCount,
@@ -2216,7 +2581,28 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             provenanceCardinality: 1,
             auditCapacity: ledger.auditCapacity,
             auditTruncated: ledger.auditTruncated,
-            conservation: ledger.conservation,
+            conservation: internalRouterTransportEnabled
+                ? Object.freeze( {
+                    entered: ledger.entryCount,
+                    consumed: ledger.consumptionCount,
+                    produced: ledger.outputCount,
+                    parked: parkedOutputCount,
+                    released: transport.dispatchCount,
+                    active: transport.activePacketCount,
+                    arrived: transport.completionCount,
+                    sourceBalance: ledger.entryCount
+                        - ledger.consumptionCount,
+                    handoffBalance: ledger.outputCount
+                        - parkedOutputCount - transport.dispatchCount,
+                    transportBalance: transport.dispatchCount
+                        - transport.activePacketCount
+                        - transport.completionCount,
+                    retainedSourceIdsUnique:
+                        ledger.conservation.retainedSourceIdsUnique,
+                    retainedOutputIdsUnique:
+                        transport.conservation.retainedOutputIdsUnique
+                } )
+                : ledger.conservation,
             diagnosticVisible: internalRouterJunctionDiagnosticVisible,
             productionVisible: false,
             meshCount: 3,
@@ -2242,10 +2628,12 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             productionVisible: false,
             packetConnected: internalRouterJunctionEnabled,
             junctionImplemented: internalRouterJunctionEnabled,
-            transportImplemented: false,
+            transportImplemented: internalRouterTransportEnabled,
             junctionCandidateId: junction?.candidateId ?? null,
             junctionEventCount: junction?.outputCount ?? 0,
             parkedOutputCount: junction?.parkedOutputCount ?? 0,
+            activeTransportPacketCount:
+                group.userData.internalRouterTransport?.activePacketCount ?? 0,
             meshCount: 1,
             maximumDrawCalls: 1,
             activeDrawCalls: internalRouterDiagnosticVisible ? 1 : 0,
@@ -2253,7 +2641,10 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         };
     }
 
-    function refreshInternalRouterJunctionDiagnostic( elapsed = 0 )
+    function refreshInternalRouterJunctionDiagnostic(
+        elapsed = 0,
+        parameters = {}
+    )
     {
         if ( !internalRouterJunctionDiagnosticGroup )
         {
@@ -2262,6 +2653,24 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         }
         const descriptor = getInternalRouterDescriptor();
         const site = descriptor?.seedSite;
+        const response = parameters.motionFrozen
+            ? 0
+            : ( parameters.structuralResponse ?? 0.22 );
+        for ( const entry of [
+            internalRouterJunctionIngress,
+            internalRouterJunctionTrace,
+            internalRouterJunctionOutput
+        ] )
+        {
+            entry.uniforms.time.value = elapsed;
+            entry.uniforms.response.value = response;
+        }
+        if ( descriptor )
+        {
+            internalRouterJunctionOutput.uniforms.offset.value.fromArray(
+                descriptor.seedPoint
+            );
+        }
         let ingressSample = null;
         if ( site )
         {
@@ -2311,10 +2720,14 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             ? Number.POSITIVE_INFINITY
             : Math.max( 0, elapsed - internalRouterJunctionLastEventAt );
         const ingressActive = ingressSample !== null;
-        const outputActive = ledger.parkedOutputCount > 0;
+        const outputActive = internalRouterTransportEnabled
+            ? eventAge <= 0.42
+            : ledger.parkedOutputCount > 0;
         if ( ingressSample )
         {
-            internalRouterJunctionIngressMesh.position.copy( ingressSample.point );
+            internalRouterJunctionIngress.uniforms.offset.value.copy(
+                ingressSample.point
+            );
             const tracePosition = internalRouterJunctionIngressTrace.geometry
                 .getAttribute( 'position' );
             for ( let index = 0; index < internalRouterJunctionTraceSamples; index += 1 )
@@ -3015,6 +3428,17 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             boundary,
             occurredAt
         );
+        if ( internalRouterTransportEnabled )
+        {
+            internalRouterTransport.dispatch(
+                event.output,
+                descriptor,
+                occurredAt,
+                packetSpeed,
+                internalRouterResourceRevision
+            );
+            updateInternalRouterTransportMetadata();
+        }
         internalRouterJunctionLastEventAt = occurredAt;
         updateInternalRouterJunctionMetadata();
         return {
@@ -3524,6 +3948,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             const child = group.children.at( -1 );
             group.remove( child );
             child.traverse( ( descendant ) => {
+                if ( descendant.isInstancedMesh ) descendant.dispose();
                 descendant.geometry?.dispose();
             } );
         }
@@ -3541,11 +3966,16 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         trunkRuneResumeCount = 0;
         inRunePackets = [];
         internalRouterJunctionLedger.reset();
+        internalRouterTransport.reset();
         internalRouterJunctionLastEventAt = null;
         internalRouterJunctionDiagnosticGroup = null;
         internalRouterJunctionIngressMesh = null;
         internalRouterJunctionIngressTrace = null;
         internalRouterJunctionOutputMesh = null;
+        internalRouterTransportDiagnosticGroup = null;
+        internalRouterTransportGuideLine = null;
+        internalRouterTransportPacketMesh = null;
+        internalRouterTransportPacketCapacity = 0;
         delete group.userData.internalRouterJunction;
         delete group.userData.internalRouterTree;
 
@@ -3668,7 +4098,9 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             replaceInternalRouterTree( internalRouterMaximumTier );
         }
         createInternalRouterJunctionDiagnostic();
+        createInternalRouterTransportDiagnostic();
         refreshInternalRouterJunctionDiagnostic( 0 );
+        refreshInternalRouterTransportDiagnostic( 0, parameters );
         replaceTrunkVisibilityGeometry( trunkGeometry, trunkNodes );
         attachApertureCandidates( trunkVisibilityMode === 'aperture' );
 
@@ -3735,6 +4167,13 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         const apertureActive = trunkVisibilityMode === 'aperture';
         for ( const mesh of group.children )
         {
+            if ( mesh.userData.internalRouterTransportDiagnostic )
+            {
+                refreshInternalRouterTransportDiagnostic(
+                    informationLastElapsed ?? 0
+                );
+                continue;
+            }
             if ( mesh.userData.internalRouterJunctionDiagnostic )
             {
                 refreshInternalRouterJunctionDiagnostic(
@@ -3744,7 +4183,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
             }
             if ( mesh.userData.internalRouterTree )
             {
-                mesh.visible = internalRouterDiagnosticVisible;
+                mesh.visible = internalRouterDiagnosticVisible
+                    && !internalRouterTransportDiagnosticVisible;
                 continue;
             }
             if ( mesh.userData.trunkInteriorSkeleton )
@@ -3870,7 +4310,8 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         group.visible = surfaceVisible
             || trunkVisibilityMode !== 'off'
             || internalRouterDiagnosticVisible
-            || internalRouterJunctionDiagnosticVisible;
+            || internalRouterJunctionDiagnosticVisible
+            || internalRouterTransportDiagnosticVisible;
         if ( internalRouterMesh )
         {
             updateInternalRouterTreeRuntimeMetadata();
@@ -3990,6 +4431,14 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 rephaseEmitters( elapsed, packetFrequency );
             }
             emitDuePackets( elapsed, packetSpeed, packetFrequency );
+            if ( internalRouterTransportEnabled )
+            {
+                internalRouterTransport.advance(
+                    intervalStart,
+                    elapsed,
+                    packetSpeed
+                );
+            }
 
             for ( const entry of materialEntries )
             {
@@ -4003,8 +4452,16 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 : ( parameters.structuralResponse ?? 0.22 );
             const trafficState = stampInformationTraffic();
             updateTrunkRuneTraversals();
-            refreshInternalRouterJunctionDiagnostic( elapsed );
+            refreshInternalRouterJunctionDiagnostic( elapsed, parameters );
+            if ( internalRouterTransportEnabled )
+            {
+                refreshInternalRouterTransportDiagnostic(
+                    elapsed,
+                    parameters
+                );
+            }
             const manifestedRoutes = informationRoutes.filter( routeIsManifested );
+            const routerTransportState = internalRouterTransport.snapshot();
             const packetDiagnostics = activePackets.map( ( packet ) => {
                 const activeSegment = packet.route.segments.find( ( segment ) =>
                     packet.headDistance >= segment.childDistance
@@ -4037,14 +4494,17 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 packetCount: activePackets.length,
                 activeTransportPacketCount: activePackets.length,
                 inRunePacketCount: inRunePackets.length,
-                activeEventCount: activePackets.length + inRunePackets.length,
+                activeEventCount: activePackets.length + inRunePackets.length
+                    + routerTransportState.activePacketCount,
                 emittedPacketCount,
                 sourcePacketCount: activePackets.filter( ( packet ) =>
                     packet.kind === 'source'
                 ).length,
                 transducedOutputPacketCount: activePackets.filter( ( packet ) =>
                     packet.kind === 'transduced-output'
-                ).length,
+                ).length + routerTransportState.activePacketCount,
+                internalRouterPacketCount: routerTransportState.activePacketCount,
+                internalRouterPackets: routerTransportState.activePackets,
                 activePackets: packetDiagnostics,
                 packetSpeed,
                 packetFrequency,
@@ -4154,6 +4614,33 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
                 transductionRecords: ledger.transductionRecords,
                 parkedOutputs: ledger.parkedOutputs,
                 diagnostics: group.userData.internalRouterJunction ?? null
+            };
+        },
+        setInternalRouterTransportDiagnosticVisible( visible ) {
+            internalRouterTransportDiagnosticVisible =
+                internalRouterTransportEnabled && Boolean( visible );
+            applyGrowthProgress();
+            return internalRouterTransportDiagnosticVisible;
+        },
+        getInternalRouterTransportResources() {
+            const transport = internalRouterTransport.snapshot();
+            return {
+                enabled: internalRouterTransportEnabled,
+                diagnosticVisible: internalRouterTransportDiagnosticVisible,
+                revision: internalRouterTransportResourceRevision,
+                group: internalRouterTransportDiagnosticGroup,
+                guide: internalRouterTransportGuideLine,
+                packetMesh: internalRouterTransportPacketMesh,
+                packetCapacity: internalRouterTransportPacketCapacity,
+                materials: [
+                    internalRouterTransportGuide.material,
+                    internalRouterTransportPacket.material
+                ],
+                transport,
+                activePackets: transport.activePackets,
+                dispatchRecords: transport.dispatchRecords,
+                completionRecords: transport.completionRecords,
+                diagnostics: group.userData.internalRouterTransport ?? null
             };
         },
         setTrunkRunesVisible( visible ) {

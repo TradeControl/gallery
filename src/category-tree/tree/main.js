@@ -58,6 +58,7 @@ const formDefaults = {
     growthTiers: 3,
     internalRouterTiers: 3,
     internalRouterJunctionEnabled: true,
+    internalRouterTransportEnabled: true,
     motionFrozen: false
 };
 const form = { ...formDefaults };
@@ -205,6 +206,10 @@ const cameraViews = {
     junction: {
         position: new THREE.Vector3( 4.1, 5.4, 7.1 ),
         target: new THREE.Vector3( 0, 4.2, 0 )
+    },
+    transport: {
+        position: new THREE.Vector3( 5.2, 3.7, 8.2 ),
+        target: new THREE.Vector3( 0, 2.55, 0 )
     }
 };
 
@@ -230,6 +235,7 @@ const surfaceControl = document.querySelector( '#show-surface' );
 const interiorInspectionControl = document.querySelector( '#inspect-trunk-interior' );
 const routerInspectionControl = document.querySelector( '#inspect-internal-router' );
 const junctionInspectionControl = document.querySelector( '#inspect-router-junction' );
+const transportInspectionControl = document.querySelector( '#inspect-router-transport' );
 const trunkVisibilityControl = document.querySelector( '#trunk-visibility-mode' );
 let surfaceVisibleBeforeInspection = surfaceControl.checked;
 function applyEngineeredVisibility()
@@ -238,7 +244,10 @@ function applyEngineeredVisibility()
     const inspectingInterior = mode === 'isolated';
     const inspectingRouter = routerInspectionControl.checked;
     const inspectingJunction = junctionInspectionControl.checked;
-    const inspectingInternal = inspectingRouter || inspectingJunction;
+    const inspectingTransport = transportInspectionControl.checked;
+    const inspectingInternal = inspectingRouter
+        || inspectingJunction
+        || inspectingTransport;
     interiorInspectionControl.checked = inspectingInterior;
     surfaceControl.disabled = inspectingInterior || inspectingInternal;
     engineeredTree.setVisible(
@@ -246,7 +255,16 @@ function applyEngineeredVisibility()
     );
     engineeredTree.setTrunkVisibilityMode( mode );
     engineeredTree.setInternalRouterDiagnosticVisible( inspectingInternal );
-    engineeredTree.setInternalRouterJunctionDiagnosticVisible( inspectingJunction );
+    engineeredTree.setInternalRouterJunctionDiagnosticVisible(
+        inspectingJunction
+    );
+    if ( inspectingTransport )
+    {
+        engineeredTree.setInternalRouterJunctionDiagnosticVisible( true );
+    }
+    engineeredTree.setInternalRouterTransportDiagnosticVisible(
+        inspectingTransport
+    );
 }
 surfaceControl.addEventListener( 'change', () => {
     surfaceVisibleBeforeInspection = surfaceControl.checked;
@@ -256,12 +274,14 @@ interiorInspectionControl.addEventListener( 'change', () => {
     if ( interiorInspectionControl.checked )
     {
         if ( !routerInspectionControl.checked
-            && !junctionInspectionControl.checked )
+            && !junctionInspectionControl.checked
+            && !transportInspectionControl.checked )
         {
             surfaceVisibleBeforeInspection = surfaceControl.checked;
         }
         routerInspectionControl.checked = false;
         junctionInspectionControl.checked = false;
+        transportInspectionControl.checked = false;
         surfaceControl.checked = false;
         trunkVisibilityControl.value = 'isolated';
     }
@@ -276,11 +296,13 @@ routerInspectionControl.addEventListener( 'change', () => {
     if ( routerInspectionControl.checked )
     {
         if ( trunkVisibilityControl.value !== 'isolated'
-            && !junctionInspectionControl.checked )
+            && !junctionInspectionControl.checked
+            && !transportInspectionControl.checked )
         {
             surfaceVisibleBeforeInspection = surfaceControl.checked;
         }
         junctionInspectionControl.checked = false;
+        transportInspectionControl.checked = false;
         surfaceControl.checked = false;
         interiorInspectionControl.checked = false;
         trunkVisibilityControl.value = 'off';
@@ -295,11 +317,34 @@ junctionInspectionControl.addEventListener( 'change', () => {
     if ( junctionInspectionControl.checked )
     {
         if ( trunkVisibilityControl.value !== 'isolated'
-            && !routerInspectionControl.checked )
+            && !routerInspectionControl.checked
+            && !transportInspectionControl.checked )
         {
             surfaceVisibleBeforeInspection = surfaceControl.checked;
         }
         routerInspectionControl.checked = false;
+        transportInspectionControl.checked = false;
+        surfaceControl.checked = false;
+        interiorInspectionControl.checked = false;
+        trunkVisibilityControl.value = 'off';
+    }
+    else
+    {
+        surfaceControl.checked = surfaceVisibleBeforeInspection;
+    }
+    applyEngineeredVisibility();
+} );
+transportInspectionControl.addEventListener( 'change', () => {
+    if ( transportInspectionControl.checked )
+    {
+        if ( trunkVisibilityControl.value !== 'isolated'
+            && !routerInspectionControl.checked
+            && !junctionInspectionControl.checked )
+        {
+            surfaceVisibleBeforeInspection = surfaceControl.checked;
+        }
+        routerInspectionControl.checked = false;
+        junctionInspectionControl.checked = false;
         surfaceControl.checked = false;
         interiorInspectionControl.checked = false;
         trunkVisibilityControl.value = 'off';
@@ -318,6 +363,10 @@ trunkVisibilityControl.addEventListener( 'change', () => {
     if ( junctionInspectionControl.checked )
     {
         junctionInspectionControl.checked = false;
+    }
+    if ( transportInspectionControl.checked )
+    {
+        transportInspectionControl.checked = false;
     }
     if ( trunkVisibilityControl.value === 'isolated' )
     {
@@ -387,7 +436,7 @@ function animate( now )
         const runes = engineeredTree.group.userData.trunkRunes;
         if ( runes?.causalProfileActive === false )
         {
-            runeActivity.value = 'preserved evidence · inactive in D2';
+            runeActivity.value = 'preserved evidence · inactive in D2/D3';
         }
         else if ( !runes?.enabled ) runeActivity.value = 'off';
         else if ( runes.visibilityMode !== 'off' ) runeActivity.value = 'hidden for diagnostic';
@@ -412,11 +461,40 @@ function animate( now )
         if ( !junction?.enabled ) junctionActivity.value = 'inactive';
         else if ( junction.outputCount > 0 )
         {
-            const balance = junction.consumptionCount - junction.outputCount;
-            junctionActivity.value = `${junction.consumptionCount} cyan consumed`
-                + ` · ${junction.outputCount} gold parked · balance ${balance}`;
+            if ( junction.transportImplemented )
+            {
+                junctionActivity.value = `${junction.consumptionCount} cyan consumed`
+                    + ` · ${junction.releasedOutputCount} gold routed`
+                    + ` · pending ${junction.parkedOutputCount}`
+                    + ` · balance ${junction.conservation.handoffBalance}`;
+            }
+            else
+            {
+                const balance = junction.consumptionCount - junction.outputCount;
+                junctionActivity.value = `${junction.consumptionCount} cyan consumed`
+                    + ` · ${junction.outputCount} gold parked · balance ${balance}`;
+            }
         }
         else junctionActivity.value = 'waiting for cyan input';
+    }
+    const transportActivity = document.querySelector(
+        '#internal-router-transport-activity'
+    );
+    if ( transportActivity )
+    {
+        const transport = engineeredTree.group.userData.internalRouterTransport;
+        if ( !transport?.enabled ) transportActivity.value = 'inactive';
+        else if ( transport.dispatchCount > 0 )
+        {
+            transportActivity.value = `${transport.activePacketCount} active`
+                + ` · ${transport.arrivalCount} arrived`
+                + ` · ${transport.currentSelectedRouteCount}`
+                    + `/${transport.currentRouteCapacity} routes`
+                + ` · peak ${transport.maximumConcurrentPacketCount}`
+                + ` · overflow ${transport.visualOverflowCount}`
+                + ` · balance ${transport.conservation.lifecycleBalance}`;
+        }
+        else transportActivity.value = 'waiting for gold output';
     }
     const visibilityCost = document.querySelector( '#trunk-visibility-cost' );
     if ( visibilityCost )

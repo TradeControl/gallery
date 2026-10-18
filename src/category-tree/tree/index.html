@@ -31,8 +31,9 @@
       <label class="control" for="packet-speed"><span>Packet speed</span><output id="packet-speed-value">1.55</output><input id="packet-speed" type="range" min="0.50" max="3.00" step="0.05" value="1.55"></label>
       <label class="control" for="packet-frequency"><span>Packet frequency (/s)</span><output id="packet-frequency-value">0.20</output><input id="packet-frequency" type="range" min="0.05" max="11.00" step="0.01" value="0.20"></label>
       <label class="switch" for="show-trunk-runes"><span>Legacy C4c presentation</span><input id="show-trunk-runes" type="checkbox" checked></label>
-      <div class="growth-readout"><span>Legacy C4c path</span><output id="trunk-rune-activity">inactive in D2</output></div>
+      <div class="growth-readout"><span>Legacy C4c path</span><output id="trunk-rune-activity">inactive in D2/D3</output></div>
       <div class="growth-readout"><span>D2 junction boundary</span><output id="internal-router-junction-activity">waiting for input</output></div>
+      <div class="growth-readout"><span>D3 router transport</span><output id="internal-router-transport-activity">waiting for gold output</output></div>
 
       <div class="section-label">Structural growth</div>
       <label class="control" for="growth-tiers"><span>Growth tiers</span><output id="growth-tiers-value">3</output><input id="growth-tiers" type="range" min="0" max="8" step="1" value="3"></label>
@@ -53,6 +54,7 @@
       <label class="switch" for="inspect-trunk-interior"><span>Isolate trunk carriers</span><input id="inspect-trunk-interior" type="checkbox"></label>
       <label class="switch" for="inspect-internal-router"><span>Isolate D1 internal router</span><input id="inspect-internal-router" type="checkbox"></label>
       <label class="switch" for="inspect-router-junction"><span>Inspect D2 junction</span><input id="inspect-router-junction" type="checkbox"></label>
+      <label class="switch" for="inspect-router-transport"><span>Inspect D3 transport</span><input id="inspect-router-transport" type="checkbox"></label>
       <label class="select-control" for="trunk-visibility-mode">
         <span>Carrier visibility study</span>
         <select id="trunk-visibility-mode">
@@ -72,6 +74,7 @@
         <button type="button" data-view="structure">Structure</button>
         <button type="button" data-view="router">D1 Router</button>
         <button type="button" data-view="junction">D2 Junction</button>
+        <button type="button" data-view="transport">D3 Transport</button>
       </fieldset>
 
       <div class="section-label">Validated topology</div>
