@@ -27,6 +27,8 @@ P1 proved that the three systems can share a world and render correctly. It did 
 
 ## P2 — planting and contact contract
 
+**Progress:** [P2a terrain ownership for the D4 subsurface presentation](./p2a-terrain-occlusion-outcome.md) is implemented and technically verified. The broader planting/contact envelope remains open.
+
 ### Question
 
 Where is the actual interface among trunk, terrain and buried space, beyond the single mathematical anchor proved by P1?

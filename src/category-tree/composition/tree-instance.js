@@ -81,7 +81,8 @@ export function createCompositionTree( {
     scene,
     renderer,
     camera,
-    membrane
+    membrane,
+    externalOccluders = []
 } )
 {
     const establishedHierarchy = createHierarchy( representativeHierarchy );
@@ -120,7 +121,8 @@ export function createCompositionTree( {
         renderer,
         scene,
         camera,
-        layer
+        layer,
+        { externalOccluders }
     );
 
     function rebuild()

@@ -166,7 +166,8 @@ class RecordingRenderer
             participants: scene.children.map( ( child ) => ( {
                 name: child.name,
                 geometry: child.geometry,
-                material: child.material
+                material: child.material,
+                matrix: child.matrix.clone()
             } ) )
         } );
     }
@@ -687,4 +688,139 @@ test( 'renderer rebinds bounded proxies when switching between active roots and 
     );
 
     comparison.dispose();
+} );
+
+test( 'composition terrain owns D4 pixels in front of the lower trunk', () => {
+    const { layer, parameters } = createMatureLayer( {
+        packetFrequency: 11,
+        packetSpeed: 1.55,
+        internalRouterTiers: 4,
+        internalRouterJunctionEnabled: true,
+        internalRouterTransportEnabled: true,
+        internalRouterPresentationEnabled: true,
+        internalRouterJunctionFormEnabled: true,
+        internalRouterJunctionFormCircumference: 0.55
+    } );
+    let elapsed = 0;
+    layer.update( elapsed, parameters );
+    while ( layer.getInternalRouterPresentationResources().packetTrails.length === 0
+        && elapsed < 30 )
+    {
+        elapsed += 0.25;
+        layer.update( elapsed, parameters );
+    }
+    assert.ok(
+        layer.getInternalRouterPresentationResources().packetTrails.length > 0,
+        'the regression requires an active D4 gold packet trail'
+    );
+
+    const scene = new THREE.Scene();
+    scene.add( layer.group );
+    const terrainGeometry = new THREE.PlaneGeometry( 20, 20, 2, 2 );
+    const terrainMaterial = new THREE.MeshStandardMaterial( {
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1
+    } );
+    const terrain = new THREE.Mesh( terrainGeometry, terrainMaterial );
+    terrain.name = 'Casting Pit membrane test occluder';
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.position.set( 0.4, -0.3, -0.6 );
+    scene.add( terrain );
+    scene.updateMatrixWorld( true );
+
+    const camera = new THREE.PerspectiveCamera( 48, 640 / 360, 0.1, 80 );
+    camera.position.set( 7.5, 8.2, 11.5 );
+    camera.lookAt( -0.6, 1.5, 0 );
+    camera.updateMatrixWorld();
+    const renderer = new RecordingRenderer();
+    const comparison = createTrunkVisibilityRenderer(
+        renderer,
+        scene,
+        camera,
+        layer,
+        { externalOccluders: [ terrain ] }
+    );
+
+    comparison.render();
+    const diagnostics = comparison.getDiagnostics();
+    assert.equal( diagnostics.mode, 'd4-packet-subsurface' );
+    assert.equal( diagnostics.passCount, 6 );
+    assert.equal( diagnostics.ownershipPasses, 0 );
+    assert.equal( diagnostics.externalOccluderCount, 1 );
+    assert.equal( diagnostics.externalOcclusionPasses, 1 );
+    assert.equal( renderer.renders.length, 6 );
+    const occluderPass = renderer.renders[4];
+    assert.equal( occluderPass.target, null );
+    assert.equal( occluderPass.participants.length, 1 );
+    assert.equal( occluderPass.participants[0].geometry, terrainGeometry );
+    assert.deepEqual(
+        occluderPass.participants[0].matrix.elements,
+        terrain.matrixWorld.elements
+    );
+    const occluderMaterial = occluderPass.participants[0].material;
+    assert.equal( occluderMaterial.name,
+        'external Tree occluder ownership mask' );
+    assert.equal( occluderMaterial.colorWrite, false );
+    assert.equal( occluderMaterial.depthWrite, false );
+    assert.equal( occluderMaterial.depthFunc, THREE.LessEqualDepth );
+    assert.equal( occluderMaterial.stencilWrite, true );
+    assert.equal( occluderMaterial.stencilRef, 2 );
+    assert.equal( occluderMaterial.stencilZPass, THREE.ReplaceStencilOp );
+    const overlayMaterial = renderer.renders[5].participants[0].material;
+    assert.equal( overlayMaterial.name,
+        'D4 route-local gold head-and-wake transmission' );
+    assert.equal( overlayMaterial.stencilWrite, true );
+    assert.equal( overlayMaterial.stencilFunc, THREE.NotEqualStencilFunc );
+    assert.equal( overlayMaterial.stencilRef, 2 );
+    assert.ok( renderer.clears.some( ( clear ) => clear.target === null
+        && clear.colour === false
+        && clear.depth === false
+        && clear.stencil === true ) );
+
+    terrain.visible = false;
+    renderer.resetRecording();
+    comparison.render();
+    const hiddenDiagnostics = comparison.getDiagnostics();
+    assert.equal( hiddenDiagnostics.passCount, 5 );
+    assert.equal( hiddenDiagnostics.externalOccluderCount, 0 );
+    assert.equal( hiddenDiagnostics.externalOcclusionPasses, 0 );
+    assert.equal( renderer.renders.length, 5 );
+    assert.equal(
+        renderer.renders[4].participants[0].material.stencilWrite,
+        false
+    );
+
+    comparison.dispose();
+    terrainGeometry.dispose();
+    terrainMaterial.dispose();
+} );
+
+test( 'external Tree occluders require a stencil buffer', () => {
+    const { layer } = createMatureLayer();
+    const scene = new THREE.Scene();
+    scene.add( layer.group );
+    const terrainGeometry = new THREE.PlaneGeometry( 4, 4 );
+    const terrainMaterial = new THREE.MeshBasicMaterial();
+    const terrain = new THREE.Mesh( terrainGeometry, terrainMaterial );
+    scene.add( terrain );
+    const renderer = new RecordingRenderer();
+    renderer.getContext = () => ( {
+        getContextAttributes: () => ( { stencil: false } )
+    } );
+    const camera = new THREE.PerspectiveCamera();
+
+    assert.throws(
+        () => createTrunkVisibilityRenderer(
+            renderer,
+            scene,
+            camera,
+            layer,
+            { externalOccluders: [ terrain ] }
+        ),
+        /require a stencil-enabled renderer/
+    );
+
+    terrainGeometry.dispose();
+    terrainMaterial.dispose();
 } );

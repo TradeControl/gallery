@@ -24,7 +24,7 @@ The focused composition tests passed when P1 was recorded. No aggregation, physi
 
 ## What P1 did not establish
 
-Placing a transform at the mathematical centre proved co-location, not physical planting. The Tree still ends in the short planted extension and flat closure inherited from the standalone study; the Universe simulation has no knowledge of a trunk or roots; and the Cosmos still uses the visual language developed for its isolated reference. The Tree's gold multipass presentation also compares against trunk-shell depth, not the Casting Pit terrain depth, so a low camera can disclose subsurface activity through the ground incorrectly.
+Placing a transform at the mathematical centre proved co-location, not physical planting. The Tree still ends in the short planted extension and flat closure inherited from the standalone study; the Universe simulation has no knowledge of a trunk or roots; and the Cosmos still uses the visual language developed for its isolated reference. The Tree's gold multipass presentation also compared against trunk-shell depth, not the Casting Pit terrain depth, so a low camera could disclose subsurface activity through the ground incorrectly. That bounded renderer defect is now addressed by the [P2a terrain-occlusion correction](./p2a-terrain-occlusion-outcome.md); it does not supply physical roots or complete the planting contract.
 
 The first visual review identified the following unresolved composition problems:
 

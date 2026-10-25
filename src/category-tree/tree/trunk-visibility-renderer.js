@@ -539,7 +539,12 @@ function createPacketTrailSubsurfaceMaterial()
         side: THREE.DoubleSide,
         blending: THREE.NormalBlending,
         toneMapped: false,
-        stencilWrite: false
+        stencilWrite: false,
+        stencilRef: 2,
+        stencilFunc: THREE.NotEqualStencilFunc,
+        stencilFail: THREE.KeepStencilOp,
+        stencilZFail: THREE.KeepStencilOp,
+        stencilZPass: THREE.KeepStencilOp
     } );
     material.name = 'D4 route-local gold head-and-wake transmission';
     material.userData.presentationCandidateId =
@@ -734,18 +739,66 @@ function createPackedDepthTarget()
     return target;
 }
 
+function createExternalOccluderMaterial( source )
+{
+    const sourceMaterial = Array.isArray( source.material )
+        ? source.material[0]
+        : source.material;
+    const material = new THREE.MeshBasicMaterial( {
+        side: THREE.DoubleSide,
+        depthTest: true,
+        depthWrite: false,
+        depthFunc: THREE.LessEqualDepth,
+        colorWrite: false,
+        polygonOffset: sourceMaterial?.polygonOffset ?? false,
+        polygonOffsetFactor: sourceMaterial?.polygonOffsetFactor ?? 0,
+        polygonOffsetUnits: sourceMaterial?.polygonOffsetUnits ?? 0,
+        toneMapped: false,
+        blending: THREE.NoBlending,
+        stencilWrite: true,
+        stencilRef: 2,
+        stencilFunc: THREE.AlwaysStencilFunc,
+        stencilFail: THREE.KeepStencilOp,
+        stencilZFail: THREE.KeepStencilOp,
+        stencilZPass: THREE.ReplaceStencilOp
+    } );
+    material.name = 'external Tree occluder ownership mask';
+    return material;
+}
+
 export function createTrunkVisibilityRenderer(
     renderer,
     scene,
     camera,
-    engineeredTree
+    engineeredTree,
+    { externalOccluders = [] } = {}
 )
 {
+    if ( !Array.isArray( externalOccluders ) )
+    {
+        throw new TypeError( 'External Tree occluders must be an array.' );
+    }
+    for ( const occluder of externalOccluders )
+    {
+        if ( !occluder?.isMesh )
+        {
+            throw new TypeError( 'Every external Tree occluder must be a mesh.' );
+        }
+    }
+    const stencilAvailable = renderer.getContext()
+        .getContextAttributes().stencil;
+    if ( externalOccluders.length > 0 && !stencilAvailable )
+    {
+        throw new Error(
+            'External Tree occluders require a stencil-enabled renderer.'
+        );
+    }
     const proxyScene = new THREE.Scene();
     const ownershipScene = new THREE.Scene();
     const carrierScene = new THREE.Scene();
     const runeScene = new THREE.Scene();
     const packetLocusScene = new THREE.Scene();
+    const externalOccluderScene = new THREE.Scene();
     const placeholder = new THREE.BufferGeometry();
     const packetTrailPlaceholder = new THREE.BufferGeometry();
     const frontDepthMaterial = createProxyMaterial( THREE.FrontSide, true );
@@ -783,6 +836,19 @@ export function createTrunkVisibilityRenderer(
     carrierScene.add( carrierMesh );
     runeScene.add( runeMesh );
     packetLocusScene.add( packetLocusMesh );
+    const externalOccluderProxies = externalOccluders.map(
+        ( source, index ) => {
+            const proxy = new THREE.Mesh(
+                source.geometry,
+                createExternalOccluderMaterial( source )
+            );
+            proxy.name = `External Tree occluder ${index + 1}`;
+            proxy.matrixAutoUpdate = false;
+            proxy.frustumCulled = source.frustumCulled;
+            externalOccluderScene.add( proxy );
+            return { source, proxy };
+        }
+    );
     const frontDepthTarget = createPackedDepthTarget();
     const backDepthTarget = createPackedDepthTarget();
     const runeDepthTarget = createPackedDepthTarget();
@@ -801,13 +867,15 @@ export function createTrunkVisibilityRenderer(
         runeOverlayPasses: 0,
         packetLocusDepthPasses: 0,
         packetLocusOverlayPasses: 0,
+        externalOccluderCount: 0,
+        externalOcclusionPasses: 0,
         subsurfaceActive: false,
         renderTargetPixels: 0,
         renderTargetWidth: 0,
         renderTargetHeight: 0,
         estimatedRenderTargetBytes: 0,
         cpuSubmissionEmaMs: 0,
-        stencilAvailable: renderer.getContext().getContextAttributes().stencil
+        stencilAvailable
     };
 
     function resize( scale = 0.5 )
@@ -820,6 +888,31 @@ export function createTrunkVisibilityRenderer(
         frontDepthTarget.setSize( width, height );
         backDepthTarget.setSize( width, height );
         runeDepthTarget.setSize( width, height );
+    }
+
+    function isHierarchyVisible( object )
+    {
+        let current = object;
+        while ( current )
+        {
+            if ( !current.visible ) return false;
+            current = current.parent;
+        }
+        return true;
+    }
+
+    function updateExternalOccluders()
+    {
+        let visibleCount = 0;
+        for ( const { source, proxy } of externalOccluderProxies )
+        {
+            source.updateWorldMatrix( true, false );
+            proxy.geometry = source.geometry;
+            proxy.matrix.copy( source.matrixWorld );
+            proxy.visible = isHierarchyVisible( source );
+            if ( proxy.visible ) visibleCount += 1;
+        }
+        return visibleCount;
     }
 
     function updateResources( resources )
@@ -979,6 +1072,16 @@ export function createTrunkVisibilityRenderer(
         renderer.render( ownershipScene, camera );
     }
 
+    function renderExternalOcclusionMask()
+    {
+        const visibleCount = updateExternalOccluders();
+        if ( visibleCount === 0 ) return { visibleCount, passCount: 0 };
+        renderer.setRenderTarget( null );
+        renderer.clear( false, false, true );
+        renderer.render( externalOccluderScene, camera );
+        return { visibleCount, passCount: 1 };
+    }
+
     function renderRuneDepth()
     {
         renderer.setRenderTarget( runeDepthTarget );
@@ -1069,6 +1172,8 @@ export function createTrunkVisibilityRenderer(
                 runeOverlayPasses: 0,
                 packetLocusDepthPasses: 0,
                 packetLocusOverlayPasses: 0,
+                externalOccluderCount: 0,
+                externalOcclusionPasses: 0,
                 subsurfaceActive: false,
                 activeTraversalCount: 0,
                 activePacketTrailCount: 0,
@@ -1121,6 +1226,9 @@ export function createTrunkVisibilityRenderer(
             renderPackedDepth( frontDepthTarget, frontDepthMaterial );
             renderPackedDepth( backDepthTarget, backDepthMaterial );
             renderPacketLocusDepth();
+            const externalOcclusion = renderExternalOcclusionMask();
+            packetLocusSubsurfaceMaterial.stencilWrite =
+                externalOcclusion.passCount > 0;
             packetLocusSubsurfaceMaterial.uniforms.frontDepth.value =
                 frontDepthTarget.texture;
             packetLocusSubsurfaceMaterial.uniforms.backDepth.value =
@@ -1143,7 +1251,7 @@ export function createTrunkVisibilityRenderer(
                 ...diagnostics,
                 mode: 'd4-packet-subsurface',
                 requestedMode: mode,
-                passCount: 5,
+                passCount: 5 + externalOcclusion.passCount,
                 cpuSubmissionMs,
                 cpuSubmissionEmaMs,
                 packedDepthPasses: 2,
@@ -1153,6 +1261,8 @@ export function createTrunkVisibilityRenderer(
                 runeOverlayPasses: 0,
                 packetLocusDepthPasses: 1,
                 packetLocusOverlayPasses: 1,
+                externalOccluderCount: externalOcclusion.visibleCount,
+                externalOcclusionPasses: externalOcclusion.passCount,
                 subsurfaceActive: true,
                 activeTraversalCount: 0,
                 activePacketTrailCount:
@@ -1187,6 +1297,8 @@ export function createTrunkVisibilityRenderer(
                 shellDepthPasses: 2,
                 nearestSignalDepthPasses: 1,
                 ownershipPasses: 0,
+                externalOcclusionPasses: externalOcclusion.passCount,
+                externalOccluderCount: externalOcclusion.visibleCount,
                 overlayPasses: 1,
                 burialDependent: true,
                 rearTransmissionFloor: 0,
@@ -1288,6 +1400,8 @@ export function createTrunkVisibilityRenderer(
                 runeOverlayPasses: 1,
                 packetLocusDepthPasses: 0,
                 packetLocusOverlayPasses: 0,
+                externalOccluderCount: 0,
+                externalOcclusionPasses: 0,
                 subsurfaceActive: true,
                 activePacketTrailCount: 0,
                 activePacketTrailSampleCount: 0,
@@ -1380,6 +1494,8 @@ export function createTrunkVisibilityRenderer(
             runeOverlayPasses: 0,
             packetLocusDepthPasses: 0,
             packetLocusOverlayPasses: 0,
+            externalOccluderCount: 0,
+            externalOcclusionPasses: 0,
             subsurfaceActive: false,
             activeTraversalCount: 0,
             activePacketTrailCount: 0,
@@ -1440,6 +1556,10 @@ export function createTrunkVisibilityRenderer(
             runeSubsurfaceMaterial.dispose();
             packetLocusDepthMaterial.dispose();
             packetLocusSubsurfaceMaterial.dispose();
+            for ( const { proxy } of externalOccluderProxies )
+            {
+                proxy.material.dispose();
+            }
             if ( packetLocusMesh.geometry !== packetTrailPlaceholder )
             {
                 packetLocusMesh.geometry.dispose();

@@ -52,7 +52,8 @@ const tree = createCompositionTree( {
     scene: world.scene,
     renderer: world.renderer,
     camera: world.camera,
-    membrane
+    membrane,
+    externalOccluders: [ universe.environment.membraneSurface ]
 } );
 
 const cameraViews = {

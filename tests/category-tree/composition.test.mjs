@@ -15,6 +15,13 @@ const compositionMain = readFileSync(
     new URL( '../../src/category-tree/composition/main.js', import.meta.url ),
     'utf8'
 );
+const compositionTreeInstance = readFileSync(
+    new URL(
+        '../../src/category-tree/composition/tree-instance.js',
+        import.meta.url
+    ),
+    'utf8'
+);
 const treeHtml = readFileSync(
     new URL( '../../src/category-tree/tree/index.html', import.meta.url ),
     'utf8'
@@ -165,4 +172,13 @@ test( 'the Casting Pit render delegate preserves its old default and enables D4'
     assert.match( worldSource, /start\( render = null \)/ );
     assert.match( compositionMain,
         /background:\s*0x050607,\s*stencil:\s*true/ );
+} );
+
+test( 'the composition gives terrain ownership over subsurface Tree overlays', () => {
+    assert.match( compositionMain,
+        /externalOccluders:\s*\[\s*universe\.environment\.membraneSurface\s*\]/ );
+    assert.match( compositionTreeInstance,
+        /externalOccluders\s*=\s*\[\]/ );
+    assert.match( compositionTreeInstance,
+        /createTrunkVisibilityRenderer\([\s\S]*?\{\s*externalOccluders\s*\}/ );
 } );
