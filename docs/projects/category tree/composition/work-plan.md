@@ -1,7 +1,7 @@
 # Category Tree composition — phased work plan
 
 **Date:** 2026-10-25  
-**Status:** active provisional plan; P1 retained as the diagnostic baseline; no visual remedy is yet accepted  
+**Status:** active provisional plan; P1 retained as the diagnostic baseline; P4 accepted as a sufficient contact study; composition-bound P5 paused while its material language is developed independently in the standalone substrate study
 **Scope:** compose the signed-off Tree, Universe and Cosmos as one causal world while preserving their standalone reference endpoints
 
 ## Starting evidence
@@ -27,7 +27,7 @@ P1 proved that the three systems can share a world and render correctly. It did 
 
 ## P2 — planting and contact contract
 
-**Progress:** [P2a terrain ownership for the D4 subsurface presentation](./p2a-terrain-occlusion-outcome.md) is implemented and technically verified. The broader planting/contact envelope remains open.
+**Progress:** [P2a terrain ownership for the D4 subsurface presentation](./p2a-terrain-occlusion-outcome.md) and the [P2b planting-envelope contract](./p2b-planting-envelope-outcome.md) are implemented, technically verified and reviewed sufficiently to support P3. The P2b placement controls exclude buried miniature states while preserving the accepted load defaults.
 
 ### Question
 
@@ -43,7 +43,7 @@ Where is the actual interface among trunk, terrain and buried space, beyond the 
    - explicit terrain, contact, buried and deep-medium bands.
 2. Make the Casting Pit terrain an occluder for every Tree pass, including the gold internal multipass presentation, while preserving the trunk-shell depth logic it already needs.
 3. Add diagnostic views for the envelope, contact line and depth bands plus fixed comparison cameras. Keep them out of artwork mode.
-4. Exercise the contract under well depth/width, Tree scale, embed depth and orientation changes before any new root or contact material depends on it.
+4. Exercise the contract under well depth/width, Tree scale, root settlement and orientation changes before any new root or contact material depends on it.
 5. Record the chosen setup values, but retain the controls until physical planting has passed review.
 
 ### Acceptance gate
@@ -56,6 +56,8 @@ Where is the actual interface among trunk, terrain and buried space, beyond the 
 
 ## P3 — root system and physical planting
 
+**Progress:** the [P3a physical-root prototype](./p3a-physical-root-prototype-outcome.md) is implemented, technically verified and accepted sufficiently to provide P4's measured collar. Further artistic refinement remains possible without making its mesh the molten collider.
+
 ### Question
 
 Can the Tree emerge from the physical world with a believable buried extent rather than merely intersecting it?
@@ -66,11 +68,11 @@ Can the Tree emerge from the physical world with a believable buried extent rath
 2. Constrain root paths by the P2 well and signed-depth contract:
    - the root collar may meet the terrain;
    - principal roots remain below the membrane and within the well's meaningful influence;
-   - finer mycelial continuation may disappear into the dark-matter sea rather than terminate visibly;
+   - finer continuation may disappear into the dark-matter sea rather than terminate visibly;
    - no root should float above an unseen part of the landscape.
-3. Replace the standalone trunk's `0.18`-unit planted extension, in composition only, with a continuous root flare / trunk shoulder derived from the same centreline and material family.
-4. Make the physical terrain own occlusion. Use cutaway diagnostics to inspect buried geometry; do not make buried roots visible by weakening depth testing.
-5. Test scale and embed depth again only after the new collar exists, then retire those values as setup parameters once defaults are approved.
+3. Visually supersede the standalone trunk's `0.18`-unit planted extension for P3a with a continuous root flare / trunk shoulder derived from the same centreline and material family; replace or weld it before any later mesh-based collision if the sculpture is accepted.
+4. Make the physical terrain own occlusion. Use subterrain cameras and depth-tested guides to inspect buried geometry; do not make buried roots visible by weakening depth testing.
+5. Test scale and root settlement again only after the new collar exists, then retire those values as setup parameters once defaults are approved.
 
 ### Acceptance gate
 
@@ -81,6 +83,8 @@ Can the Tree emerge from the physical world with a believable buried extent rath
 - The standalone Tree remains pixel- and behaviour-equivalent to its retained reference within existing tolerances.
 
 ## P4 — live molten contact
+
+**Progress:** the [P4 live molten-contact prototype](./p4-live-molten-contact-outcome.md) is implemented and technically verified. Its current two-gate, reduced-meniscus treatment is accepted as sufficient to continue; flowing the physical layer up the trunk remains a possible later study rather than part of P4 acceptance.
 
 ### Question
 
@@ -102,6 +106,8 @@ Can arriving molten material meet and lap against the planted Tree as a conseque
 - The trunk stays materially dark; contact light does not turn it into a torch or revive a fiery central object.
 
 ## P5 — dark-matter substrate
+
+**Progress:** the [first composition-bound P5 prototype](./p5-dark-matter-substrate-outcome.md) remains technically valid evidence, but live review found it too calm and visually subordinate to judge the material proposition. Artistic development has therefore moved to the disconnected [`substrate` study](../substrate/work-plan.md), where the surface can be made compelling without the gravity well, terrain, Tree or planting collar. Integration is deliberately deferred until that independent gate passes.
 
 ### Question
 
@@ -158,7 +164,7 @@ What motion makes the Tree alive without weakening its mass or breaking the phys
 
 1. Retain the current shared deformation field as evidence: it already keeps the shell, information core and diagnostics together and weights motion by local height.
 2. Replace raw height alone with a structural stiffness profile where useful:
-   - zero displacement through roots and the collar;
+   - zero sway below contact and through the roots, with a controlled continuity handoff across the exposed collar into the lower trunk;
    - very low, coherent flex through the monumental lower trunk;
    - increasing response through limb order and thinner branches;
    - restrained high-frequency motion only at the lightest extremities.
@@ -220,4 +226,4 @@ Every bounded phase should include:
 - the focused Category Tree test suite and a production build;
 - a brief outcome record separating technical result from human artistic judgement.
 
-The next implementation should be **P2 only**. Its purpose is to replace point anchoring with a testable planting/contact envelope and to make terrain occlusion truthful in every Tree render pass. It should stop for visual review before root geometry or molten contact is added to an unproved boundary.
+The current review boundary is the standalone **S1 substrate study**. The surface should first be accepted, revised or rejected as an independent material proposition; only then should a separate composition adapter reconcile it with the P2 boundary and allow Cosmos to use it in P6.

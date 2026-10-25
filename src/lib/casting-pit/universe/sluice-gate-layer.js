@@ -23,6 +23,125 @@ export const sluiceGateDefaults = {
     threshold: 0.1
 };
 
+export function resolveMoltenBoundaryContact( {
+    parcel,
+    previousX,
+    previousZ,
+    boundary,
+    timeStep,
+    minimumResidence = 0.65,
+    minimumTangentialTravel = 0.25,
+    maximumResidence = 2.4
+} )
+{
+    if ( !boundary || typeof boundary.sample !== 'function' ) return null;
+    const clearance = 0.055 + parcel.footprint * 0.14;
+    const current = boundary.sample( parcel.x, parcel.z );
+    if ( current.signedDistance >= clearance )
+    {
+        if ( parcel.contactResidence === undefined ) return null;
+        parcel.contactResidence += timeStep;
+        parcel.contactTangentialTravel = ( parcel.contactTangentialTravel ?? 0 )
+            + Math.hypot( parcel.vx, parcel.vz ) * timeStep;
+        const settled = (
+            parcel.contactResidence >= minimumResidence
+                && parcel.contactTangentialTravel >= minimumTangentialTravel
+                && current.drainEligible === true
+        ) || parcel.contactResidence >= maximumResidence;
+        if ( !settled ) return null;
+        parcel.settledAtContact = true;
+        return Object.freeze( {
+            settled: true,
+            inwardImpulse: 0,
+            residence: parcel.contactResidence,
+            tangentialTravel: parcel.contactTangentialTravel,
+            x: parcel.x,
+            z: parcel.z,
+            normalX: current.normalX,
+            normalZ: current.normalZ
+        } );
+    }
+
+    const previous = boundary.sample( previousX, previousZ );
+    let resolvedX = parcel.x;
+    let resolvedZ = parcel.z;
+    let resolved = current;
+    if ( previous.signedDistance >= clearance )
+    {
+        let outside = 0;
+        let inside = 1;
+        for ( let attempt = 0; attempt < 24; attempt += 1 )
+        {
+            const progress = ( outside + inside ) * 0.5;
+            const x = THREE.MathUtils.lerp( previousX, parcel.x, progress );
+            const z = THREE.MathUtils.lerp( previousZ, parcel.z, progress );
+            const sample = boundary.sample( x, z );
+            if ( sample.signedDistance >= clearance ) outside = progress;
+            else inside = progress;
+        }
+        resolvedX = THREE.MathUtils.lerp( previousX, parcel.x, outside );
+        resolvedZ = THREE.MathUtils.lerp( previousZ, parcel.z, outside );
+        resolved = boundary.sample( resolvedX, resolvedZ );
+    }
+    parcel.x = resolved.closestX + resolved.normalX * clearance;
+    parcel.z = resolved.closestZ + resolved.normalZ * clearance;
+
+    const incomingSpeed = Math.hypot( parcel.vx, parcel.vz );
+    const inwardVelocity = parcel.vx * resolved.normalX
+        + parcel.vz * resolved.normalZ;
+    if ( inwardVelocity < 0 )
+    {
+        parcel.vx -= resolved.normalX * inwardVelocity;
+        parcel.vz -= resolved.normalZ * inwardVelocity;
+    }
+    const tangentX = -resolved.normalZ;
+    const tangentZ = resolved.normalX;
+    const tangentVelocity = parcel.vx * tangentX + parcel.vz * tangentZ;
+    const side = Math.abs( tangentVelocity ) > 0.08
+        ? Math.sign( tangentVelocity )
+        : ( Math.sin(
+            ( parcel.sourceIndex + 1 ) * 12.9898
+                + resolvedX * 3.17
+                - resolvedZ * 2.31
+        ) >= 0 ? 1 : -1 );
+    const diversion = Math.min(
+        0.42,
+        0.14 + Math.max( 0, -inwardVelocity ) * 0.32
+    );
+    parcel.vx += tangentX * side * diversion;
+    parcel.vz += tangentZ * side * diversion;
+    const divertedSpeed = Math.hypot( parcel.vx, parcel.vz );
+    if ( divertedSpeed > incomingSpeed && divertedSpeed > 0 )
+    {
+        const scale = incomingSpeed / divertedSpeed;
+        parcel.vx *= scale;
+        parcel.vz *= scale;
+    }
+    parcel.contactResidence = ( parcel.contactResidence ?? 0 )
+        + timeStep * ( 1 + Math.max( 0, -inwardVelocity ) * 0.28 );
+    const tangentialSpeed = Math.abs(
+        parcel.vx * tangentX + parcel.vz * tangentZ
+    );
+    parcel.contactTangentialTravel = ( parcel.contactTangentialTravel ?? 0 )
+        + tangentialSpeed * timeStep;
+    const settled = (
+        parcel.contactResidence >= minimumResidence
+            && parcel.contactTangentialTravel >= minimumTangentialTravel
+            && resolved.drainEligible === true
+    ) || parcel.contactResidence >= maximumResidence;
+    if ( settled ) parcel.settledAtContact = true;
+    return Object.freeze( {
+        settled,
+        inwardImpulse: Math.max( 0, -inwardVelocity ) * parcel.mass,
+        residence: parcel.contactResidence,
+        tangentialTravel: parcel.contactTangentialTravel,
+        x: parcel.x,
+        z: parcel.z,
+        normalX: resolved.normalX,
+        normalZ: resolved.normalZ
+    } );
+}
+
 export function createSluiceGateLayer( {
     world,
     membrane,
@@ -31,7 +150,8 @@ export function createSluiceGateLayer( {
     includeEnvironment = true,
     controlPrefix = '',
     moltenRenderOrder = 2,
-    onGateLayoutChange = null
+    onGateLayoutChange = null,
+    moltenContactBoundary: initialMoltenContactBoundary = null
 } )
 {
 const { scene, renderer } = world;
@@ -103,7 +223,21 @@ const field = {
     heatScratch: new Float32Array( 224 * 224 ),
     flowXScratch: new Float32Array( 224 * 224 ),
     flowZScratch: new Float32Array( 224 * 224 ),
-    textureData: new Float32Array( 224 * 224 * 4 )
+    textureData: new Float32Array( 224 * 224 * 4 ),
+    contactMask: new Uint8Array( 224 * 224 ),
+    contactNormalX: new Float32Array( 224 * 224 ),
+    contactNormalZ: new Float32Array( 224 * 224 ),
+    contactDistance: new Float32Array( 224 * 224 ),
+    contactBoundaryRevision: Number.NaN,
+    revision: 0
+};
+let moltenContactBoundary = initialMoltenContactBoundary;
+const contactDiagnostics = {
+    divertedParcelCount: 0,
+    contactStepCount: 0,
+    settledParcelCount: 0,
+    settledMass: 0,
+    divertedImpulse: 0
 };
 
 field.brushes = new Map();
@@ -230,7 +364,8 @@ const moltenMaterial = new THREE.ShaderMaterial( {
         void main()
         {
             ${hasOpening ? 'if ( texture2D( surfaceMask, vUv ).r < 0.5 ) discard;' : ''}
-            vec2 material = texture2D( moltenField, vUv ).rg;
+            vec3 material = texture2D( moltenField, vUv ).rgb;
+            if ( material.b > 0.5 ) discard;
             float density = material.r;
             float heat = clamp( material.g / max( density, 0.001 ), 0.0, 1.0 );
             float edgeNoise = noise( vUv * 92.0 + vec2( 4.3, 11.7 ) ) * 0.65
@@ -886,6 +1021,7 @@ function depositAt( x, z, amount, temperature, velocityX, velocityZ, footprint )
         if ( pixelX < 0 || pixelX >= field.resolution ) continue;
 
         const index = pixelY * field.resolution + pixelX;
+        if ( field.contactMask[index] ) continue;
         const contribution = amount * sample.weight * 6.15;
         field.density[index] = Math.min( 3, field.density[index] + contribution );
         field.heat[index] = Math.min( 3, field.heat[index] + contribution * temperature );
@@ -932,9 +1068,139 @@ function sampleField( values, x, y )
     return THREE.MathUtils.lerp( lower, upper, fractionY );
 }
 
+function writeMoltenTexture()
+{
+    for ( let index = 0; index < field.density.length; index += 1 )
+    {
+        const textureOffset = index * 4;
+        field.textureData[textureOffset] = field.density[index];
+        field.textureData[textureOffset + 1] = field.heat[index];
+        field.textureData[textureOffset + 2] = field.contactMask[index];
+        field.textureData[textureOffset + 3] = 1;
+    }
+    field.texture.needsUpdate = true;
+}
+
+function refreshContactMask( force = false )
+{
+    const boundaryRevision = moltenContactBoundary?.revision ?? -1;
+    if ( !force && Object.is( boundaryRevision, field.contactBoundaryRevision ) ) return;
+    field.contactBoundaryRevision = boundaryRevision;
+    field.contactMask.fill( 0 );
+    field.contactNormalX.fill( 0 );
+    field.contactNormalZ.fill( 0 );
+    field.contactDistance.fill( Number.POSITIVE_INFINITY );
+    if ( moltenContactBoundary && typeof moltenContactBoundary.sample === 'function' )
+    {
+        const maximum = field.resolution - 1;
+        const bounds = moltenContactBoundary.bounds;
+        if ( bounds === null )
+        {
+            writeMoltenTexture();
+            return;
+        }
+        const margin = 3;
+        const minimumX = bounds
+            ? THREE.MathUtils.clamp(
+                Math.floor( ( bounds.minX + 12 ) / 24 * maximum ) - margin,
+                0,
+                maximum
+            )
+            : 0;
+        const maximumX = bounds
+            ? THREE.MathUtils.clamp(
+                Math.ceil( ( bounds.maxX + 12 ) / 24 * maximum ) + margin,
+                0,
+                maximum
+            )
+            : maximum;
+        const minimumY = bounds
+            ? THREE.MathUtils.clamp(
+                Math.floor( ( 12 - bounds.maxZ ) / 24 * maximum ) - margin,
+                0,
+                maximum
+            )
+            : 0;
+        const maximumY = bounds
+            ? THREE.MathUtils.clamp(
+                Math.ceil( ( 12 - bounds.minZ ) / 24 * maximum ) + margin,
+                0,
+                maximum
+            )
+            : maximum;
+        for ( let y = minimumY; y <= maximumY; y += 1 )
+        {
+            const z = 12 - y / maximum * 24;
+            for ( let x = minimumX; x <= maximumX; x += 1 )
+            {
+                const worldX = x / maximum * 24 - 12;
+                const index = y * field.resolution + x;
+                const sample = moltenContactBoundary.sample( worldX, z );
+                if ( !Number.isFinite( sample?.signedDistance ) ) continue;
+                field.contactDistance[index] = sample.signedDistance;
+                field.contactNormalX[index] = sample.normalX;
+                field.contactNormalZ[index] = sample.normalZ;
+                field.contactMask[index] = sample.signedDistance <= 0 ? 1 : 0;
+            }
+        }
+    }
+    writeMoltenTexture();
+}
+
+function isContactBlockedAt( x, y )
+{
+    const maximum = field.resolution - 1;
+    const column = Math.round( THREE.MathUtils.clamp( x, 0, maximum ) );
+    const row = Math.round( THREE.MathUtils.clamp( y, 0, maximum ) );
+    return field.contactMask[row * field.resolution + column] === 1;
+}
+
+function neighbouringAverage( values, first, second, third, fourth, fallback )
+{
+    let total = 0;
+    let count = 0;
+    if ( !field.contactMask[first] )
+    {
+        total += values[first];
+        count += 1;
+    }
+    if ( !field.contactMask[second] )
+    {
+        total += values[second];
+        count += 1;
+    }
+    if ( !field.contactMask[third] )
+    {
+        total += values[third];
+        count += 1;
+    }
+    if ( !field.contactMask[fourth] )
+    {
+        total += values[fourth];
+        count += 1;
+    }
+    return count > 0 ? total / count : fallback;
+}
+
+function sampleMoltenState( x, z )
+{
+    const fieldX = ( x + 12 ) / 24 * ( field.resolution - 1 );
+    const fieldY = ( 12 - z ) / 24 * ( field.resolution - 1 );
+    const density = sampleField( field.density, fieldX, fieldY );
+    const heatMass = sampleField( field.heat, fieldX, fieldY );
+    return Object.freeze( {
+        density,
+        heat: THREE.MathUtils.clamp( heatMass / Math.max( density, 0.001 ), 0, 1 ),
+        flowX: sampleField( field.flowX, fieldX, fieldY ) / Math.max( density, 0.03 ),
+        flowZ: sampleField( field.flowZ, fieldX, fieldY ) / Math.max( density, 0.03 ),
+        revision: field.revision
+    } );
+}
+
 function updateMoltenField( timeStep )
 {
     const start = performance.now();
+    refreshContactMask();
     const resolution = field.resolution;
     const densityDecay = Math.exp( -timeStep / parameters.persistence );
     const heatDecay = Math.exp( -timeStep / ( parameters.persistence * 0.62 ) );
@@ -945,6 +1211,14 @@ function updateMoltenField( timeStep )
         for ( let x = 0; x < resolution; x += 1 )
         {
             const index = y * resolution + x;
+            if ( field.contactMask[index] )
+            {
+                field.densityScratch[index] = 0;
+                field.heatScratch[index] = 0;
+                field.flowXScratch[index] = 0;
+                field.flowZScratch[index] = 0;
+                continue;
+            }
             const left = x > 0 ? index - 1 : index;
             const right = x < resolution - 1 ? index + 1 : index;
             const below = y > 0 ? index - resolution : index;
@@ -955,16 +1229,41 @@ function updateMoltenField( timeStep )
             const pixelScale = resolution / 24;
             const backtraceX = x - velocityX * timeStep * pixelScale * 0.58;
             const backtraceY = y + velocityZ * timeStep * pixelScale * 0.58;
-            const advectedDensity = sampleField( field.density, backtraceX, backtraceY );
-            const advectedHeat = sampleField( field.heat, backtraceX, backtraceY );
-            const densityAverage = ( field.density[left] + field.density[right] + field.density[below] + field.density[above] ) * 0.25;
-            const heatAverage = ( field.heat[left] + field.heat[right] + field.heat[below] + field.heat[above] ) * 0.25;
-            const flowXAverage = ( field.flowX[left] + field.flowX[right] + field.flowX[below] + field.flowX[above] ) * 0.25;
-            const flowZAverage = ( field.flowZ[left] + field.flowZ[right] + field.flowZ[below] + field.flowZ[above] ) * 0.25;
+            const blockedBacktrace = isContactBlockedAt( backtraceX, backtraceY );
+            const advectedDensity = blockedBacktrace
+                ? density
+                : sampleField( field.density, backtraceX, backtraceY );
+            const advectedHeat = blockedBacktrace
+                ? field.heat[index]
+                : sampleField( field.heat, backtraceX, backtraceY );
+            const densityAverage = neighbouringAverage(
+                field.density, left, right, below, above, density
+            );
+            const heatAverage = neighbouringAverage(
+                field.heat, left, right, below, above, field.heat[index]
+            );
+            const flowXAverage = neighbouringAverage(
+                field.flowX, left, right, below, above, field.flowX[index]
+            );
+            const flowZAverage = neighbouringAverage(
+                field.flowZ, left, right, below, above, field.flowZ[index]
+            );
             field.densityScratch[index] = THREE.MathUtils.lerp( advectedDensity, densityAverage, spread ) * densityDecay;
             field.heatScratch[index] = THREE.MathUtils.lerp( advectedHeat, heatAverage, spread * 1.25 ) * heatDecay;
-            field.flowXScratch[index] = THREE.MathUtils.lerp( field.flowX[index], flowXAverage, spread ) * densityDecay * 0.92;
-            field.flowZScratch[index] = THREE.MathUtils.lerp( field.flowZ[index], flowZAverage, spread ) * densityDecay * 0.92;
+            let nextFlowX = THREE.MathUtils.lerp( field.flowX[index], flowXAverage, spread ) * densityDecay * 0.92;
+            let nextFlowZ = THREE.MathUtils.lerp( field.flowZ[index], flowZAverage, spread ) * densityDecay * 0.92;
+            if ( field.contactDistance[index] < 24 / resolution * 2.5 )
+            {
+                const inward = nextFlowX * field.contactNormalX[index]
+                    + nextFlowZ * field.contactNormalZ[index];
+                if ( inward < 0 )
+                {
+                    nextFlowX -= field.contactNormalX[index] * inward;
+                    nextFlowZ -= field.contactNormalZ[index] * inward;
+                }
+            }
+            field.flowXScratch[index] = nextFlowX;
+            field.flowZScratch[index] = nextFlowZ;
         }
     }
 
@@ -973,16 +1272,8 @@ function updateMoltenField( timeStep )
     [ field.flowX, field.flowXScratch ] = [ field.flowXScratch, field.flowX ];
     [ field.flowZ, field.flowZScratch ] = [ field.flowZScratch, field.flowZ ];
 
-    for ( let index = 0; index < field.density.length; index += 1 )
-    {
-        const textureOffset = index * 4;
-        field.textureData[textureOffset] = field.density[index];
-        field.textureData[textureOffset + 1] = field.heat[index];
-        field.textureData[textureOffset + 2] = 0;
-        field.textureData[textureOffset + 3] = 1;
-    }
-
-    field.texture.needsUpdate = true;
+    field.revision += 1;
+    writeMoltenTexture();
     simulation.lastReconstructionMilliseconds = performance.now() - start;
 }
 
@@ -996,8 +1287,8 @@ function clearMoltenField()
     field.flowZ.fill( 0 );
     field.flowXScratch.fill( 0 );
     field.flowZScratch.fill( 0 );
-    field.textureData.fill( 0 );
-    field.texture.needsUpdate = true;
+    field.revision += 1;
+    writeMoltenTexture();
     simulation.reconstructionAccumulator = 0;
 }
 
@@ -1032,6 +1323,29 @@ function integrateParcels( timeStep )
         parcel.z += parcel.vz * timeStep;
         parcel.temperature = Math.max( 0, parcel.temperature - timeStep * 0.012 );
         parcel.age += timeStep;
+        const contact = resolveMoltenBoundaryContact( {
+            parcel,
+            previousX,
+            previousZ,
+            boundary: moltenContactBoundary,
+            timeStep
+        } );
+        if ( contact )
+        {
+            contactDiagnostics.contactStepCount += 1;
+            contactDiagnostics.divertedImpulse += contact.inwardImpulse;
+            if ( !parcel.hasContactedBoundary )
+            {
+                parcel.hasContactedBoundary = true;
+                contactDiagnostics.divertedParcelCount += 1;
+            }
+            if ( contact.settled && !parcel.contactSettlementCounted )
+            {
+                parcel.contactSettlementCounted = true;
+                contactDiagnostics.settledParcelCount += 1;
+                contactDiagnostics.settledMass += parcel.mass;
+            }
+        }
         tryCaptureAtReservoir( parcel, radiusBeforeIntegration );
         depositTrail( parcel, previousX, previousZ, timeStep );
         if ( parcel.heldByGate === -1 && hasOpening )
@@ -1045,7 +1359,11 @@ function integrateParcels( timeStep )
         const radius = Math.hypot( parcel.x, parcel.z );
         const source = sourceDefinitions[parcel.sourceIndex];
 
-        if ( parcel.enteredOpening || ( !hasOpening && radius <= simulation.receiverRadius ) )
+        if (
+            parcel.settledAtContact
+                || parcel.enteredOpening
+                || ( !hasOpening && radius <= simulation.receiverRadius )
+        )
         {
             source.captured += 1;
             return false;
@@ -1064,6 +1382,7 @@ function integrateParcels( timeStep )
 function stepSimulation( timeStep )
 {
     const start = performance.now();
+    refreshContactMask();
     simulation.lastInteractionCount = 0;
     simulation.lastCrossSourceInteractionCount = 0;
     simulation.elapsed += timeStep;
@@ -1128,6 +1447,11 @@ function resetParcels()
     rimReservoir = [];
     simulation.accumulator = 0;
     simulation.elapsed = 0;
+    contactDiagnostics.divertedParcelCount = 0;
+    contactDiagnostics.contactStepCount = 0;
+    contactDiagnostics.settledParcelCount = 0;
+    contactDiagnostics.settledMass = 0;
+    contactDiagnostics.divertedImpulse = 0;
     simulation.randomState = ( 0x2f6e2b1 ^ parameters.sourceSeed ^ parameters.streamCount ^ ( parameters.gateCount << 8 ) ) >>> 0;
     sourceDefinitions.forEach( ( source ) => {
         source.emissionAccumulator = random();
@@ -1299,6 +1623,24 @@ resetParcels();
 updateSurface();
 world.addFrameCallback( animate );
 
+function setMoltenContactBoundary( boundary )
+{
+    moltenContactBoundary = boundary ?? null;
+    field.contactBoundaryRevision = Number.NaN;
+    refreshContactMask( true );
+}
+
+function getMoltenContactDiagnostics()
+{
+    return Object.freeze( {
+        ...contactDiagnostics,
+        activeContactParcelCount: simulation.parcels.filter(
+            ( parcel ) => parcel.hasContactedBoundary
+        ).length,
+        boundaryRevision: field.contactBoundaryRevision
+    } );
+}
+
 return {
     parameters,
     simulation,
@@ -1314,6 +1656,12 @@ return {
         rimLight,
         receiver
     },
+    moltenField: Object.freeze( {
+        sample: sampleMoltenState,
+        get revision() { return field.revision; }
+    } ),
+    setMoltenContactBoundary,
+    getMoltenContactDiagnostics,
     updateSurface,
     setVisible( visible ) {
         layerVisible = visible;

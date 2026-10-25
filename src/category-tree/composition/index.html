@@ -11,17 +11,21 @@
 
     <aside class="controls" aria-label="Category Tree composition controls">
       <header>
-        <p>Phase 5 · planting study</p>
+        <p>P5 · dark-matter substrate</p>
         <h1>Category Tree <span>shared causal world</span></h1>
       </header>
-      <p class="statement">The accepted Tree is planted at the Gaussian well centre without redesigning either foundational artwork.</p>
+      <p class="statement">A gravity-depressed dark-matter sea now receives the buried roots beneath the finite terrain. Its mass and light response are fully procedural; it uses no texture inputs.</p>
 
       <fieldset class="mode-switch">
         <legend>Inspection mode</legend>
+        <button type="button" data-layer-mode="substrate" aria-pressed="false">Dark matter</button>
+        <button type="button" data-layer-mode="terrain-substrate" aria-pressed="false">Terrain + sea</button>
         <button type="button" data-layer-mode="pit" aria-pressed="false">Pit</button>
-        <button type="button" data-layer-mode="tree" aria-pressed="false">Tree</button>
+        <button type="button" data-layer-mode="tree" aria-pressed="false">Tree baseline</button>
+        <button type="button" data-layer-mode="tree-substrate" aria-pressed="false">Tree + sea</button>
         <button type="button" data-layer-mode="universe-tree" aria-pressed="false">Universe + Tree</button>
         <button type="button" data-layer-mode="cosmos-tree" aria-pressed="false">Cosmos + Tree</button>
+        <button type="button" data-layer-mode="complete-baseline" aria-pressed="false">Pre-P5 complete</button>
         <button type="button" data-layer-mode="complete" aria-pressed="true">Complete</button>
       </fieldset>
       <p class="mode-readout">Showing <output id="active-mode">Complete composition</output></p>
@@ -29,15 +33,40 @@
       <details open>
         <summary>Composition · planting</summary>
         <div class="section-label">Tree transform</div>
-        <label class="control" for="tree-scale"><span>Tree scale</span><output id="tree-scale-value">1.00</output><input id="tree-scale" type="range" min="0.45" max="1.15" step="0.01" value="1.00"></label>
-        <label class="control" for="tree-root-depth"><span>Root embed depth</span><output id="tree-root-depth-value">0.00</output><input id="tree-root-depth" type="range" min="0" max="3" step="0.05" value="0"></label>
+        <label class="control" for="tree-scale"><span>Tree scale</span><output id="tree-scale-value">1.00</output><input id="tree-scale" type="range" min="0.90" max="1.30" step="0.01" value="1.00"></label>
+        <label class="control" for="tree-root-depth"><span>Root settlement</span><output id="tree-root-depth-value">0.00</output><input id="tree-root-depth" type="range" min="0" max="1" step="0.05" value="0"></label>
         <label class="control" for="tree-orientation"><span>Tree orientation</span><output id="tree-orientation-value">0°</output><input id="tree-orientation" type="range" min="-180" max="180" step="1" value="0"></label>
+        <label class="switch" for="tree-planting-envelope"><span>Planting envelope diagnostic</span><input id="tree-planting-envelope" type="checkbox"></label>
+        <label class="switch" for="tree-root-guides"><span>Physical root guides</span><input id="tree-root-guides" type="checkbox"></label>
         <dl class="stats" aria-label="Tree planting statistics">
           <div><dt>Root anchor</dt><dd><output id="tree-root-anchor">0.00, -5.50, 0.00</output></dd></div>
+          <div><dt>Terrain contact</dt><dd><output id="tree-contact-state">measuring</output></dd></div>
+          <div><dt>Contact elevation</dt><dd><output id="tree-contact-relief">—</output></dd></div>
+          <div><dt>Physical roots</dt><dd><output id="tree-root-system">measuring</output></dd></div>
+          <div><dt>Root evidence</dt><dd><output id="tree-root-containment">measuring</output></dd></div>
+          <div><dt>Molten contact</dt><dd><output id="molten-contact-state">dry · 0 arcs · +0.00</output></dd></div>
+          <div><dt>Contact accounting</dt><dd><output id="molten-contact-accounting">0 diverted · 0 settled · 0 resident</output></dd></div>
           <div><dt>Tree state</dt><dd><output id="tree-state">mature</output></dd></div>
           <div><dt>Tree packets</dt><dd><output id="tree-packet-state">waiting</output></dd></div>
           <div><dt>Junction</dt><dd><output id="tree-junction-state">waiting for cyan input</output></dd></div>
           <div><dt>Tree render</dt><dd><output id="tree-render-state">1 pass</output></dd></div>
+        </dl>
+      </details>
+
+      <details open>
+        <summary>Substrate · dark-matter sea</summary>
+        <div class="section-label">Procedural pressure field</div>
+        <label class="control" for="dark-matter-level"><span>Outer sea depth</span><output id="dark-matter-level-value">1.55</output><input id="dark-matter-level" type="range" min="1.2" max="2.4" step="0.05" value="1.55"></label>
+        <label class="control" for="dark-matter-relief"><span>Material relief</span><output id="dark-matter-relief-value">0.06</output><input id="dark-matter-relief" type="range" min="0" max="0.14" step="0.01" value="0.06"></label>
+        <label class="control" for="dark-matter-drift"><span>Pressure current</span><output id="dark-matter-drift-value">0.12</output><input id="dark-matter-drift" type="range" min="0" max="0.35" step="0.01" value="0.12"></label>
+        <label class="control" for="dark-matter-reveal"><span>Grazing reveal</span><output id="dark-matter-reveal-value">0.70</output><input id="dark-matter-reveal" type="range" min="0" max="1.2" step="0.05" value="0.70"></label>
+        <div class="button-row single-action">
+          <button id="dark-matter-reset" type="button">Reset substrate</button>
+        </div>
+        <dl class="stats" aria-label="Dark-matter substrate statistics">
+          <div><dt>Deep boundary</dt><dd><output id="dark-matter-boundary">measuring</output></dd></div>
+          <div><dt>Hidden extent</dt><dd><output id="dark-matter-extent">measuring</output></dd></div>
+          <div><dt>Construction</dt><dd><output id="dark-matter-construction">procedural</output></dd></div>
         </dl>
       </details>
 
@@ -157,8 +186,11 @@
         <button type="button" data-view="composition">Composition</button>
         <button type="button" data-view="elevated">Elevated</button>
         <button type="button" data-view="root">Well / root</button>
+        <button type="button" data-view="contact">Contact</button>
+        <button type="button" data-view="substrate">Substrate</button>
+        <button type="button" data-view="subterrain">Subterrain</button>
       </fieldset>
-      <p class="hint">One world · one membrane · three independent layers</p>
+      <p class="hint">One world · one membrane · one buried medium · three causal layers</p>
     </aside>
 
     <script type="module" src="./main.js"></script>

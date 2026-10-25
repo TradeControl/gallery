@@ -4,7 +4,8 @@ import test from 'node:test';
 import {
     resolvePlantingTransform,
     treeBaselineDefaults,
-    treePlacementDefaults
+    treePlacementDefaults,
+    treePlacementRanges
 } from '../../src/category-tree/composition/tree-instance.js';
 
 const compositionHtml = readFileSync(
@@ -58,7 +59,7 @@ function rangeContract( html, id )
     ) );
 }
 
-test( 'the composition plants the unchanged local root at the Gaussian centre', () => {
+test( 'the composition plants the unchanged local root within a bounded placement envelope', () => {
     assert.deepEqual( treePlacementDefaults, {
         scale: 1,
         embedDepth: 0,
@@ -68,23 +69,59 @@ test( 'the composition plants the unchanged local root at the Gaussian centre', 
     assert.deepEqual( baseline.position, [ 0, -5.5, 0 ] );
     assert.equal( baseline.scale, 1 );
     assert.equal( baseline.rotationY, 0 );
+    const placementInputs = {
+        scale: 'tree-scale',
+        embedDepth: 'tree-root-depth',
+        rotationDegrees: 'tree-orientation'
+    };
+    for ( const [ property, id ] of Object.entries( placementInputs ) )
+    {
+        const htmlRange = Object.fromEntries( Object.entries(
+            rangeContract( compositionHtml, id )
+        ).map( ( [ key, value ] ) => [ key, Number( value ) ] ) );
+        assert.deepEqual( htmlRange, {
+            ...treePlacementRanges[property],
+            value: treePlacementDefaults[property]
+        } );
+        assert.ok(
+            treePlacementDefaults[property] >= treePlacementRanges[property].min
+            && treePlacementDefaults[property] <= treePlacementRanges[property].max
+        );
+        const defaultStep = (
+            treePlacementDefaults[property] - treePlacementRanges[property].min
+        ) / treePlacementRanges[property].step;
+        assert.ok(
+            Math.abs( defaultStep - Math.round( defaultStep ) ) < 1e-9,
+            `${property} default must align with its declared step`
+        );
+    }
 
     const embedded = resolvePlantingTransform( -5.5, {
-        scale: 0.8,
-        embedDepth: 1.25,
+        scale: 0.9,
+        embedDepth: 0.75,
         rotationDegrees: 180
     } );
-    assert.deepEqual( embedded.position, [ 0, -6.75, 0 ] );
-    assert.equal( embedded.scale, 0.8 );
+    assert.deepEqual( embedded.position, [ 0, -6.25, 0 ] );
+    assert.equal( embedded.scale, 0.9 );
     assert.ok( Math.abs( embedded.rotationY - Math.PI ) < 1e-12 );
     assert.throws(
-        () => resolvePlantingTransform( -5.5, { scale: 0 } ),
-        /scale must be positive/
+        () => resolvePlantingTransform( -5.5, { scale: 0.89 } ),
+        /scale must be between 0\.9 and 1\.3/
     );
     assert.throws(
         () => resolvePlantingTransform( -5.5, { embedDepth: -0.1 } ),
-        /embed depth must be non-negative/
+        /root settlement must be between 0 and 1/
     );
+    assert.throws(
+        () => resolvePlantingTransform( -5.5, { embedDepth: 1.05 } ),
+        /root settlement must be between 0 and 1/
+    );
+    assert.throws(
+        () => resolvePlantingTransform( -5.5, { rotationDegrees: 181 } ),
+        /orientation must be between -180 and 180/
+    );
+    assert.match( compositionHtml, />Root settlement</ );
+    assert.match( compositionMain, /treePlacementRanges/ );
 } );
 
 test( 'the composition carries the committed Tree baseline without importing its app', () => {
@@ -181,4 +218,31 @@ test( 'the composition gives terrain ownership over subsurface Tree overlays', (
         /externalOccluders\s*=\s*\[\]/ );
     assert.match( compositionTreeInstance,
         /createTrunkVisibilityRenderer\([\s\S]*?\{\s*externalOccluders\s*\}/ );
+} );
+
+test( 'the P2 planting envelope is live, inspectable and off by default', () => {
+    const diagnostic = inputTag( compositionHtml, 'tree-planting-envelope' );
+    assert.match( diagnostic, /\btype="checkbox"/ );
+    assert.doesNotMatch( diagnostic, /\bchecked\b/ );
+    assert.match( compositionHtml, /data-view="contact"/ );
+    assert.match( compositionHtml, /data-view="subterrain"/ );
+    assert.match( compositionHtml, /id="tree-contact-state"/ );
+    assert.match( compositionHtml, /id="tree-contact-relief"/ );
+    assert.match( compositionTreeInstance,
+        /createPlantingEnvelope\(\s*\{\s*scene,\s*membrane\s*\}\s*\)/ );
+    assert.match( compositionTreeInstance,
+        /refreshPlantingEnvelope\(\s*true\s*\)/ );
+    assert.match( compositionMain,
+        /setPlantingEnvelopeDiagnosticVisible/ );
+} );
+
+test( 'the physical root prototype is inspectable and off by default', () => {
+    const diagnostic = inputTag( compositionHtml, 'tree-root-guides' );
+    assert.match( diagnostic, /\btype="checkbox"/ );
+    assert.doesNotMatch( diagnostic, /\bchecked\b/ );
+    assert.match( compositionHtml, /id="tree-root-system"/ );
+    assert.match( compositionHtml, /id="tree-root-containment"/ );
+    assert.match( compositionTreeInstance,
+        /createCompositionRootSystem\(\s*\{/ );
+    assert.match( compositionMain, /setPhysicalRootDiagnosticVisible/ );
 } );

@@ -11,7 +11,8 @@ h1 span { color: #c89d52; font-size: .7rem; }
 .statement { margin: 0 0 .65rem; color: #aaa49a; font-size: .7rem; line-height: 1.45; }
 .mode-switch, .camera-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: .35rem; margin: .7rem 0 .35rem; padding: 0; border: 0; }
 .mode-switch button:last-child { grid-column: 1 / -1; }
-.camera-controls { grid-template-columns: repeat(3, 1fr); }
+.camera-controls { grid-template-columns: repeat(2, 1fr); }
+.camera-controls button:last-child { grid-column: 1 / -1; }
 legend { grid-column: 1 / -1; margin-bottom: .15rem; color: #9b8d77; font-size: .64rem; letter-spacing: .1em; text-transform: uppercase; }
 .mode-readout { margin: .2rem 0 .75rem; color: #8d8980; font-size: .68rem; }
 .mode-readout output { color: #e7b85e; }
@@ -24,6 +25,7 @@ summary { padding: .65rem 0 .35rem; color: #d6b978; cursor: pointer; font-size: 
 .switch { display: flex; align-items: center; justify-content: space-between; padding: .45rem 0; border-top: 1px solid rgb(255 210 142 / 8%); font-size: .74rem; }
 .switch input { accent-color: #bd873d; }
 .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-top: .55rem; }
+.button-row.single-action button { grid-column: 1 / -1; }
 button { padding: .43rem .45rem; color: #ddd8cf; background: #20201d; border: 1px solid #40382c; border-radius: .25rem; cursor: pointer; font: inherit; font-size: .68rem; }
 button:hover, button:focus-visible { background: #353027; border-color: #bd873d; }
 button.active { color: #fff5d5; background: #59401e; border-color: #d49b45; box-shadow: inset 0 0 .7rem rgb(255 147 39 / 18%); }

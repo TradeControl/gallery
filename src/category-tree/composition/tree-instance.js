@@ -8,6 +8,8 @@ import { createUnfoldingLayout } from '../tree/layout.js';
 import { createEngineeredTreeLayer } from '../tree/engineered-tree-layer.js';
 import { createGrowthCycle } from '../tree/growth-cycle.js';
 import { createTrunkVisibilityRenderer } from '../tree/trunk-visibility-renderer.js';
+import { createPlantingEnvelope } from './planting-envelope.js';
+import { createCompositionRootSystem } from './root-system.js';
 
 export const treeBaselineDefaults = Object.freeze( {
     crownSpread: 1.14,
@@ -36,6 +38,34 @@ export const treePlacementDefaults = Object.freeze( {
     rotationDegrees: 0
 } );
 
+export const treePlacementRanges = Object.freeze( {
+    scale: Object.freeze( { min: 0.9, max: 1.3, step: 0.01 } ),
+    embedDepth: Object.freeze( { min: 0, max: 1, step: 0.05 } ),
+    rotationDegrees: Object.freeze( { min: -180, max: 180, step: 1 } )
+} );
+
+const placementRangeLabels = Object.freeze( {
+    scale: 'scale',
+    embedDepth: 'root settlement',
+    rotationDegrees: 'orientation'
+} );
+
+function assertPlacementRange( property, value )
+{
+    const range = treePlacementRanges[property];
+    const label = placementRangeLabels[property];
+    if ( !Number.isFinite( value ) )
+    {
+        throw new TypeError( `Tree ${label} must be finite.` );
+    }
+    if ( value < range.min || value > range.max )
+    {
+        throw new RangeError(
+            `Tree ${label} must be between ${range.min} and ${range.max}.`
+        );
+    }
+}
+
 const layoutProperties = new Set( [
     'crownSpread',
     'verticalRise',
@@ -58,18 +88,9 @@ export function resolvePlantingTransform( membraneHeight, placement = {} )
     {
         throw new TypeError( 'Tree planting height must be finite.' );
     }
-    if ( !Number.isFinite( scale ) || scale <= 0 )
-    {
-        throw new RangeError( 'Tree planting scale must be positive.' );
-    }
-    if ( !Number.isFinite( embedDepth ) || embedDepth < 0 )
-    {
-        throw new RangeError( 'Tree embed depth must be non-negative.' );
-    }
-    if ( !Number.isFinite( rotationDegrees ) )
-    {
-        throw new TypeError( 'Tree orientation must be finite.' );
-    }
+    assertPlacementRange( 'scale', scale );
+    assertPlacementRange( 'embedDepth', embedDepth );
+    assertPlacementRange( 'rotationDegrees', rotationDegrees );
     return Object.freeze( {
         position: Object.freeze( [ 0, membraneHeight - embedDepth, 0 ] ),
         scale,
@@ -124,12 +145,54 @@ export function createCompositionTree( {
         layer,
         { externalOccluders }
     );
+    const plantingEnvelope = createPlantingEnvelope( { scene, membrane } );
+    const physicalRootSystem = createCompositionRootSystem( {
+        plantingGroup,
+        membrane,
+        plantingEnvelope,
+        hierarchy
+    } );
+    let plantingEnvelopeResourceRevision = -1;
+    let plantingEnvelopeDiagnosticRequested = false;
+    let physicalRootDiagnosticRequested = false;
+    let treeVisible = true;
+
+    function refreshPlantingEnvelope( force = false )
+    {
+        const resources = layer.getTrunkVisibilityResources();
+        if ( !resources.trunkMesh ) return plantingEnvelope.getSnapshot();
+        if ( !force
+            && resources.revision === plantingEnvelopeResourceRevision )
+        {
+            return plantingEnvelope.getSnapshot();
+        }
+        plantingGroup.updateWorldMatrix( true, true );
+        const snapshot = plantingEnvelope.update( resources.trunkMesh );
+        physicalRootSystem.update( resources.trunkMesh, snapshot );
+        plantingEnvelopeResourceRevision = resources.revision;
+        return snapshot;
+    }
+
+    function applyPlantingEnvelopeDiagnosticVisibility()
+    {
+        return plantingEnvelope.setDiagnosticVisible(
+            treeVisible && plantingEnvelopeDiagnosticRequested
+        );
+    }
+
+    function applyPhysicalRootDiagnosticVisibility()
+    {
+        return physicalRootSystem.setDiagnosticVisible(
+            treeVisible && physicalRootDiagnosticRequested
+        );
+    }
 
     function rebuild()
     {
         positions = createPositions();
         layer.rebuild( positions, form );
         layer.setGrowthProgress( growthState.progress );
+        refreshPlantingEnvelope();
     }
 
     function setMature()
@@ -138,6 +201,7 @@ export function createCompositionTree( {
         growthElapsed = 0;
         unfoldingActive = false;
         layer.setGrowthProgress( growthState.progress );
+        refreshPlantingEnvelope();
     }
 
     function replayGrowth()
@@ -146,6 +210,7 @@ export function createCompositionTree( {
         unfoldingActive = true;
         growthState = growthCycle.reset();
         layer.setGrowthProgress( growthState.progress );
+        refreshPlantingEnvelope();
     }
 
     function setFormValue( property, value )
@@ -181,27 +246,40 @@ export function createCompositionTree( {
         setMature();
     }
 
-    function updatePlacement()
+    function applyPlacementTransform( transform )
     {
-        const transform = resolvePlantingTransform(
-            membrane.height( 0, 0 ),
-            placement
-        );
         plantingGroup.position.fromArray( transform.position );
         plantingGroup.rotation.set( 0, transform.rotationY, 0 );
         plantingGroup.scale.setScalar( transform.scale );
         plantingGroup.updateWorldMatrix( true, true );
+        refreshPlantingEnvelope( true );
         return transform;
+    }
+
+    function updatePlacement()
+    {
+        return applyPlacementTransform( resolvePlantingTransform(
+            membrane.height( 0, 0 ),
+            placement
+        ) );
     }
 
     function setPlacementValue( property, value )
     {
-        if ( !( property in treePlacementDefaults ) )
+        if ( !Object.hasOwn( treePlacementDefaults, property ) )
         {
             throw new Error( `Unknown Tree placement parameter '${property}'.` );
         }
-        placement[property] = Number( value );
-        return updatePlacement();
+        const candidate = {
+            ...placement,
+            [property]: Number( value )
+        };
+        const transform = resolvePlantingTransform(
+            membrane.height( 0, 0 ),
+            candidate
+        );
+        placement[property] = candidate[property];
+        return applyPlacementTransform( transform );
     }
 
     function update( time )
@@ -219,6 +297,7 @@ export function createCompositionTree( {
             growthElapsed += frameDelta;
             growthState = growthCycle.sample( growthElapsed, 0.42 );
             layer.setGrowthProgress( growthState.progress );
+            refreshPlantingEnvelope();
             if ( growthState.complete ) unfoldingActive = false;
         }
         layer.update( elapsed, form );
@@ -232,6 +311,8 @@ export function createCompositionTree( {
         group: plantingGroup,
         layer,
         visibilityRenderer,
+        plantingEnvelope,
+        physicalRootSystem,
         update,
         render: visibilityRenderer.render,
         resize: visibilityRenderer.resize,
@@ -240,15 +321,30 @@ export function createCompositionTree( {
         setFormValue,
         setPlacementValue,
         updatePlacement,
+        setPlantingEnvelopeDiagnosticVisible( visible ) {
+            plantingEnvelopeDiagnosticRequested = Boolean( visible );
+            return applyPlantingEnvelopeDiagnosticVisibility();
+        },
+        setPhysicalRootDiagnosticVisible( visible ) {
+            physicalRootDiagnosticRequested = Boolean( visible );
+            return applyPhysicalRootDiagnosticVisibility();
+        },
         setVisible( visible ) {
-            layer.setVisible( Boolean( visible ) );
+            treeVisible = Boolean( visible );
+            layer.setVisible( treeVisible );
+            physicalRootSystem.setVisible( treeVisible );
+            applyPlantingEnvelopeDiagnosticVisibility();
+            applyPhysicalRootDiagnosticVisibility();
         },
         getState() {
+            const envelope = plantingEnvelope.getSnapshot();
             return {
                 growthViability: growthState.viability,
                 growthComplete: growthState.complete,
                 unfoldingActive,
-                anchor: plantingGroup.position.toArray(),
+                anchor: envelope
+                    ? envelope.anchor.slice()
+                    : plantingGroup.position.toArray(),
                 scale: plantingGroup.scale.x,
                 rotationY: plantingGroup.rotation.y
             };

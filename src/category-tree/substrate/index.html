@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Category Tree — Energetic Substrate Study</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="Disconnected energetic substrate study"></main>
+
+    <aside class="controls" aria-label="Energetic substrate controls">
+      <header>
+        <p>S1 · disconnected substrate</p>
+        <h1>Dark-matter sea <span>energetic surface study</span></h1>
+      </header>
+      <p class="statement">A self-contained pressure sea with no gravity well, terrain, roots or composition constraints. First make the medium compelling; integrate it later.</p>
+
+      <div class="section-label">Physical energy</div>
+      <label class="control" for="swell-height"><span>Swell height</span><output id="swell-height-value">1.10</output><input id="swell-height" type="range" min="0.2" max="1.6" step="0.05" value="1.1"></label>
+      <label class="control" for="energy"><span>Pressure energy</span><output id="energy-value">1.25</output><input id="energy" type="range" min="0.25" max="2" step="0.05" value="1.25"></label>
+      <label class="control" for="crest-tension"><span>Crest tension</span><output id="crest-tension-value">0.70</output><input id="crest-tension" type="range" min="0" max="1" step="0.05" value="0.7"></label>
+      <label class="control" for="cross-current"><span>Cross-current</span><output id="cross-current-value">1.00</output><input id="cross-current" type="range" min="0" max="1.5" step="0.05" value="1"></label>
+
+      <div class="section-label">Optical surface</div>
+      <label class="control" for="fine-activity"><span>Fine activity</span><output id="fine-activity-value">0.90</output><input id="fine-activity" type="range" min="0" max="2" step="0.05" value="0.9"></label>
+      <label class="control" for="reflection"><span>Pressure reflection</span><output id="reflection-value">1.15</output><input id="reflection" type="range" min="0" max="2" step="0.05" value="1.15"></label>
+
+      <div class="section-label">Motion</div>
+      <label class="control" for="current-speed"><span>Current speed</span><output id="current-speed-value">1.10</output><input id="current-speed" type="range" min="0" max="2.5" step="0.05" value="1.1"></label>
+      <label class="switch" for="freeze-motion"><span>Freeze motion</span><input id="freeze-motion" type="checkbox"></label>
+      <label class="switch" for="wireframe"><span>Geometry diagnostic</span><input id="wireframe" type="checkbox"></label>
+
+      <fieldset class="camera-controls">
+        <legend>Camera</legend>
+        <button type="button" data-view="horizon" aria-pressed="true">Horizon</button>
+        <button type="button" data-view="elevated" aria-pressed="false">Elevated</button>
+        <button type="button" data-view="close" aria-pressed="false">Close waterline</button>
+      </fieldset>
+
+      <button id="reset" class="wide-button" type="button">Reset energetic study</button>
+
+      <dl class="stats" aria-label="Energetic substrate statistics">
+        <div><dt>Surface</dt><dd><output id="surface-stats">measuring</output></dd></div>
+        <div><dt>Energy system</dt><dd><output id="energy-stats">measuring</output></dd></div>
+        <div><dt>Phase</dt><dd><output id="phase-value">0.00</output></dd></div>
+        <div><dt>Construction</dt><dd>procedural · 0 textures</dd></div>
+      </dl>
+      <p class="hint">Independent reference study · no gravity well · no integration adapter</p>
+    </aside>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
