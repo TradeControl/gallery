@@ -1,7 +1,7 @@
 # P5 dark-matter substrate outcome
 
 **Date:** 2026-10-25  
-**Status:** technically complete composition experiment; artistically superseded by a disconnected substrate study
+**Status:** technically complete but artistically rejected; removed from the active composition after reference commit `7cffc2b`
 
 ## Artistic proposition
 
@@ -28,16 +28,16 @@ The new layer is not a literal ocean and it is not a star-field plane. It is a d
 
 ## Review controls and comparisons
 
-P5 exposes four bounded study controls:
+P5 exposed four bounded study controls:
 
 - Outer depth
 - Field relief
 - Pressure current
 - Grazing reveal
 
-The inspection modes now include `Dark matter`, `Terrain + sea` and `Tree + sea`. The pre-P5 `Pit`, `Tree`, `Universe + Tree`, `Cosmos + Tree` and `Pre-P5 complete` comparisons remain substrate-free, so P3 and P4 have not been silently redefined.
+The inspection modes included `Dark matter`, `Terrain + sea` and `Tree + sea`. The pre-P5 `Pit`, `Tree`, `Universe + Tree`, `Cosmos + Tree` and `Pre-P5 complete` comparisons remained substrate-free, so P3 and P4 were not silently redefined.
 
-The substrate runs inside the existing composition animation loop. It creates no new animation loop and does not rebuild geometry or material while moving or changing parameters.
+The substrate ran inside the existing composition animation loop. It created no new animation loop and did not rebuild geometry or material while moving or changing parameters.
 
 ## Verification
 
@@ -50,16 +50,16 @@ The substrate runs inside the existing composition animation loop. It creates no
 
 The finite square edge of the existing casting terrain becomes visible in the `Terrain + sea` diagnostic because the new substrate finally gives that edge something continuous to stand above. P5 does not redesign the accepted P2 terrain; any terrain-shape extension should be judged as its own composition change.
 
-The open artistic questions are therefore focused:
+The artistic review asked:
 
 1. Does the revised surface read as a cohesive dark medium under pressure rather than black sand, conventional water or a shader demonstration?
 2. Is its grazing reveal strong enough to establish a continuous sea without stealing hierarchy from the Tree?
 3. Is the exposed finite terrain edge useful as a casting plate, or should a later pass dissolve it into the surrounding field?
 
-Cosmos integration remains P6. P5 establishes the physical substrate and its depth contract without using stars, nebulae or atmosphere to disguise it.
+Cosmos integration remained outside this rejected experiment. P5 established useful technical evidence for the physical substrate and its depth contract without using stars, nebulae or atmosphere to disguise it.
 
 ## Review decision and next experiment
 
 Live review rejected this composition-bound prototype as the place to continue material development. Even after the visibility correction it remained a calm, low-energy sea, while simultaneous gravity-well, terrain, planting and occlusion constraints made every artistic change an integration change as well.
 
-The prototype remains useful technical evidence and has not been removed. Further artistic work now belongs to `src/category-tree/substrate/`, backed by the independent `src/lib/substrate/` engine. That study intentionally has no well, membrane, terrain, Tree, planting envelope or composition adapter. Re-integration is a later bounded phase, after the surface itself earns acceptance.
+The prototype remains useful technical evidence in this outcome record and at reference commit `7cffc2b`, but its implementation, controls and inspection modes have been removed from the active composition. Further artistic work now belongs to `src/category-tree/substrate/`, backed by the independent `src/lib/substrate/` engine. That study intentionally has no well, membrane, terrain, Tree, planting envelope or composition adapter. Re-integration is a later bounded phase, after the surface itself earns acceptance.

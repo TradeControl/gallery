@@ -275,7 +275,7 @@ function createMaterial( uniforms )
         dithering: true
     } );
     material.name = 'Energetic substrate pressure material';
-    material.customProgramCacheKey = () => 'energetic-substrate-sea-v2';
+    material.customProgramCacheKey = () => 'energetic-substrate-sea-v3-local-light';
     material.onBeforeCompile = ( shader ) => {
         Object.assign( shader.uniforms, uniforms );
         shader.vertexShader = shader.vertexShader
@@ -396,8 +396,64 @@ function createMaterial( uniforms )
             ` )
             .replace( '#include <lights_fragment_end>', `
                 #include <lights_fragment_end>
+                reflectedLight.directDiffuse = vec3( 0.0 );
+                reflectedLight.directSpecular = vec3( 0.0 );
+                reflectedLight.indirectDiffuse = vec3( 0.0 );
+                reflectedLight.indirectSpecular = vec3( 0.0 );
+
+                vec3 substrateViewDirection = geometryViewDir;
+                vec3 substrateKeyDirection = normalize(
+                    mat3( viewMatrix ) * normalize( vec3( -13.0, 18.0, 9.0 ) )
+                );
+                vec3 substrateCrossDirection = normalize(
+                    mat3( viewMatrix ) * normalize( vec3( 15.0, 7.0, -12.0 ) )
+                );
+                vec3 substrateWarmDirection = normalize(
+                    mat3( viewMatrix ) * normalize( vec3( -9.0, 5.0, -18.0 ) )
+                );
+                vec3 substrateKeyColour = vec3( 0.807, 0.905, 1.0 ) * 4.03;
+                vec3 substrateCrossColour = vec3( 0.266, 0.497, 0.658 ) * 2.35;
+                vec3 substrateWarmColour = vec3( 0.680, 0.254, 0.098 ) * 1.29;
+                directLight.visible = true;
+                directLight.direction = substrateKeyDirection;
+                directLight.color = substrateKeyColour;
+                RE_Direct(
+                    directLight,
+                    geometryPosition,
+                    geometryNormal,
+                    geometryViewDir,
+                    geometryClearcoatNormal,
+                    material,
+                    reflectedLight
+                );
+                directLight.direction = substrateCrossDirection;
+                directLight.color = substrateCrossColour;
+                RE_Direct(
+                    directLight,
+                    geometryPosition,
+                    geometryNormal,
+                    geometryViewDir,
+                    geometryClearcoatNormal,
+                    material,
+                    reflectedLight
+                );
+                directLight.direction = substrateWarmDirection;
+                directLight.color = substrateWarmColour;
+                RE_Direct(
+                    directLight,
+                    geometryPosition,
+                    geometryNormal,
+                    geometryViewDir,
+                    geometryClearcoatNormal,
+                    material,
+                    reflectedLight
+                );
+                reflectedLight.indirectDiffuse += material.diffuseColor
+                    * vec3( 0.267, 0.461, 0.580 )
+                    * 1.18;
+
                 float substrateFacing = clamp(
-                    abs( dot( normal, normalize( vViewPosition ) ) ),
+                    abs( dot( normal, substrateViewDirection ) ),
                     0.0,
                     1.0
                 );
@@ -435,6 +491,8 @@ function createMaterial( uniforms )
         geometricBandCount: 2,
         opticalBandCount: 3,
         packetCount: 2,
+        lightingModel: 'material-local',
+        sceneLightDependencyCount: 0,
         phaseRateScale
     } );
     return material;
@@ -505,6 +563,8 @@ export function createEnergeticSeaLayer( {
             geometricBandCount: 2,
             opticalBandCount: 3,
             packetCount: 2,
+            lightingModel: 'material-local',
+            sceneLightDependencyCount: 0,
             phaseRateScale,
             geometryUuid: geometry.uuid,
             materialUuid: material.uuid

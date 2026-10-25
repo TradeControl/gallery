@@ -6,20 +6,20 @@ import {
     createHierarchy,
     representativeHierarchy,
     unfoldingHierarchy
-} from '../../src/category-tree/tree/hierarchy.js';
-import { createUnfoldingLayout } from '../../src/category-tree/tree/layout.js';
+} from '../../src/lib/tree/hierarchy.js';
+import { createUnfoldingLayout } from '../../src/lib/tree/layout.js';
 import {
     createEngineeredTreeLayer,
     createInformationRoute,
     selectInformationTrafficTerminals
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 import {
     defaultTrunkRuneCandidateId,
     getTrunkRuneCandidateProfile,
     getTrunkRuneRouteDistances,
     trunkRuneCandidateIds,
     trunkRuneTransducerSite
-} from '../../src/category-tree/tree/trunk-rune-layer.js';
+} from '../../src/lib/tree/trunk-rune-layer.js';
 
 function createFixture( overrides = {} )
 {
@@ -683,12 +683,12 @@ test( 'C4c rendering is packet-gated and renderer-owned without changing the Tre
     }
 
     const runeSource = readFileSync(
-        new URL( '../../src/category-tree/tree/trunk-rune-layer.js', import.meta.url ),
+        new URL( '../../src/lib/tree/trunk-rune-layer.js', import.meta.url ),
         'utf8'
     );
     const rendererSource = readFileSync(
         new URL(
-            '../../src/category-tree/tree/trunk-visibility-renderer.js',
+            '../../src/lib/tree/trunk-visibility-renderer.js',
             import.meta.url
         ),
         'utf8'

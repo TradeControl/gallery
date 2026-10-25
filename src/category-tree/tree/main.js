@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { createHierarchy, representativeHierarchy, unfoldingHierarchy } from './hierarchy.js';
-import { createUnfoldingLayout } from './layout.js';
-import { createTreeLayer } from './tree-layer.js';
-import { createEngineeredTreeLayer } from './engineered-tree-layer.js';
-import { createGrowthCycle } from './growth-cycle.js';
-import { createTrunkVisibilityRenderer } from './trunk-visibility-renderer.js';
+import {
+    createEngineeredTreeLayer,
+    createGrowthCycle,
+    createHierarchy,
+    createTreeLayer,
+    createTrunkVisibilityRenderer,
+    createUnfoldingLayout,
+    representativeHierarchy,
+    unfoldingHierarchy
+} from '../../lib/tree/index.js';
 
 const sceneElement = document.querySelector( '#scene' );
 const scene = new THREE.Scene();

@@ -1,7 +1,7 @@
 # Category Tree composition — P2a terrain occlusion outcome
 
 **Implemented:** 2026-10-25  
-**Status:** technically verified; live root-view inspection passed; awaiting human visual review  
+**Status:** technically verified; Tree-local terrain ownership restored after the P7/F3 regression review
 **Scope:** stop the Tree's gold internal presentation from compositing over nearer Casting Pit terrain
 
 ## Diagnosis
@@ -12,7 +12,7 @@ D4 already constrained those trails between private front and back depths for th
 
 ## Bounded correction
 
-`createTrunkVisibilityRenderer` now accepts an optional list of external occluder meshes. The composition supplies only the Universe layer's real `membraneSurface`; the standalone Tree supplies nothing and retains its accepted five-pass renderer unchanged.
+`createTrunkVisibilityRenderer` accepts an optional list of external occluder meshes. The composition supplies only the Universe layer's real `membraneSurface`; the standalone Tree supplies nothing and retains its accepted five-pass renderer unchanged. The mesh does not need to be scene-mounted or visibly rendered: the Tree renderer reads its geometry and transform into a private ownership proxy.
 
 When D4 is active in the composition:
 
@@ -35,3 +35,9 @@ This adds one composition-only draw and no render target. It does not use a came
 ## Boundary
 
 P2a resolves the erroneous disclosure identified in the first P1 review image. It does not claim that a physical root system now exists or that the trunk is physically planted. The remaining P2 planting/contact envelope and P3 root geometry are still required.
+
+## Regression review — 2026-10-25
+
+P7/F3 correctly removed the visible brown membrane, but it also temporarily removed this Tree-local ownership input. The resulting review image repeated the original failure: D4's yellow rootward packet trails appeared to hang through the well and were understandably read as a root system unaware of its surroundings.
+
+The colourless ownership input is now restored while the membrane presentation stays absent. The detached proxy writes neither colour nor depth and participates only in the Tree's D4 stencil pass, so it cannot become a hidden brown bowl or occlude molten flow and Cosmos. A focused regression now proves that this pass still works when the source membrane mesh has no scene parent.

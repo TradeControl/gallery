@@ -6,15 +6,15 @@ import {
     createHierarchy,
     representativeHierarchy,
     unfoldingHierarchy
-} from '../../src/category-tree/tree/hierarchy.js';
-import { createUnfoldingLayout } from '../../src/category-tree/tree/layout.js';
+} from '../../src/lib/tree/hierarchy.js';
+import { createUnfoldingLayout } from '../../src/lib/tree/layout.js';
 import {
     createEngineeredTreeLayer,
     createInformationRoute,
     createTrunkEnvelopeDescriptor,
     getInformationPacketRadius,
     informationPacketVisualProfile
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 import {
     createInternalRouterJunctionFormGeometry,
     internalRouterJunctionFormCandidateId,
@@ -22,11 +22,11 @@ import {
     internalRouterJunctionFormStyle,
     normaliseInternalRouterJunctionFormCircumference,
     setInternalRouterJunctionFormManifestations
-} from '../../src/category-tree/tree/internal-router-junction-form.js';
-import { internalRouterSeedSite } from '../../src/category-tree/tree/internal-router-tree.js';
+} from '../../src/lib/tree/internal-router-junction-form.js';
+import { internalRouterSeedSite } from '../../src/lib/tree/internal-router-tree.js';
 import {
     createInternalRouterPacketTrailGeometry
-} from '../../src/category-tree/tree/trunk-visibility-renderer.js';
+} from '../../src/lib/tree/trunk-visibility-renderer.js';
 
 function createFixture( overrides = {} )
 {
@@ -747,7 +747,7 @@ test( 'the form shares D4 depth, deformation and colour without camera projectio
 
     const source = readFileSync(
         new URL(
-            '../../src/category-tree/tree/trunk-visibility-renderer.js',
+            '../../src/lib/tree/trunk-visibility-renderer.js',
             import.meta.url
         ),
         'utf8'

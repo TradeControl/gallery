@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
     resolvePlantingTransform,
@@ -201,6 +201,34 @@ test( 'the first planting block exposes all five bounded inspection modes', () =
     assert.match( compositionMain, /tree\.setVisible\( mode\.tree \)/ );
 } );
 
+test( 'the rejected composition-bound P5 experiment is absent', () => {
+    const rejectedModule = new URL(
+        '../../src/category-tree/composition/dark-matter-sea.js',
+        import.meta.url
+    );
+    assert.equal( existsSync( rejectedModule ), false );
+    assert.doesNotMatch(
+        compositionMain,
+        /darkMatterSea|dark-matter-sea|mode\.substrate/
+    );
+    assert.doesNotMatch(
+        compositionHtml,
+        /id="dark-matter-|data-view="substrate"/
+    );
+    for ( const rejectedMode of [
+        'substrate',
+        'terrain-substrate',
+        'tree-substrate',
+        'complete-baseline'
+    ] )
+    {
+        assert.doesNotMatch(
+            compositionHtml,
+            new RegExp( `data-layer-mode="${rejectedMode}"` )
+        );
+    }
+} );
+
 test( 'the Casting Pit render delegate preserves its old default and enables D4', () => {
     assert.match( worldSource,
         /stencil:\s*options\.stencil\s*\?\?\s*false/ );
@@ -211,13 +239,21 @@ test( 'the Casting Pit render delegate preserves its old default and enables D4'
         /background:\s*0x050607,\s*stencil:\s*true/ );
 } );
 
-test( 'the composition gives terrain ownership over subsurface Tree overlays', () => {
+test( 'the detached membrane preserves D4 terrain ownership without basin presentation', () => {
     assert.match( compositionMain,
-        /externalOccluders:\s*\[\s*universe\.environment\.membraneSurface\s*\]/ );
+        /createSluiceGateLayer\([\s\S]*?includeEnvironment:\s*false/ );
+    assert.match( compositionMain,
+        /world\.scene\.add\([\s\S]*?universe\.environment\.diagnostic,[\s\S]*?hemisphereLight,[\s\S]*?keyLight,[\s\S]*?rimLight/ );
+    assert.match( compositionMain,
+        /externalOccluders:\s*\[\s*universe\.environment\.membraneSurface/ );
+    assert.doesNotMatch( compositionMain,
+        /membraneSurface\.visible|terrainApron\.visible|receiver\.visible|mode\.terrain/ );
     assert.match( compositionTreeInstance,
         /externalOccluders\s*=\s*\[\]/ );
     assert.match( compositionTreeInstance,
         /createTrunkVisibilityRenderer\([\s\S]*?\{\s*externalOccluders\s*\}/ );
+    const membraneDiagnostic = inputTag( compositionHtml, 'u-diagnostic' );
+    assert.doesNotMatch( membraneDiagnostic, /\bchecked\b/ );
 } );
 
 test( 'the P2 planting envelope is live, inspectable and off by default', () => {

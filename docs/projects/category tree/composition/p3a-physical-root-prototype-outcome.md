@@ -1,7 +1,7 @@
 # Category Tree composition — P3a physical-root prototype outcome
 
 **Implemented:** 2026-10-25
-**Status:** technically verified; live normal and guide inspection passed; awaiting human artistic review
+**Status:** technical evidence retained; active visual acceptance suspended after the 2026-10-25 regression review
 **Scope:** give the accepted Tree a composition-owned collar and buried load path without changing the standalone Tree
 
 ## Proposition
@@ -21,7 +21,7 @@ This is designed to avoid a botanical starburst and does not reuse the internal 
 
 The root generator submits actual surface vertices—not merely centre-lines—to the P2 contract. Every principal and fine-root surface remains below the live membrane. Shoulder geometry above the protected terrain-surface band is classified as collar and restricted to the measured trunk–terrain contact footprint; triangulated edges that remain inside that band are treated as terrain contact. The measured contact footprint is authoritative for above-surface collar containment; the planting-root footprint remains a construction and diagnostic boundary. Endpoint reach is reduced when necessary to retain meaningful Gaussian-well influence.
 
-The physical terrain continues to own occlusion with ordinary depth testing. Buried roots are therefore not exposed in artwork mode. Separate `Physical root guides` show neutral depth-tested centre-lines and are off by default.
+At the P3a review boundary, the physical terrain owned occlusion with ordinary depth testing and buried roots were not exposed in artwork mode. P7/F3 later removed that opaque basin presentation from the active composition; root placement still follows the mathematical membrane, and separate `Physical root guides` plus the optional membrane wireframe remain available for diagnosis. The detached Tree-local D4 ownership proxy prevents internal gold trails from showing through the well, but it does not provide ordinary scene-depth burial for the graphite physical-root mesh.
 
 ## Preservation
 
@@ -54,3 +54,9 @@ P3a supplies a technically coherent physical planting proposition; it is not yet
 The collar is a visually continuous overlapping surface, not yet a welded, watertight lower-trunk occupancy. The original buried base cap remains enclosed. P4 must therefore use an explicit analytical occupancy boundary or a later welded composition clone rather than treating this presentation mesh as a collision solid.
 
 No molten collision, lava meniscus, dark-matter substrate or Cosmos restyling is introduced here. P3 adds only the composition-local shoulder-to-static-root sway handoff, not a broader crown-motion redesign. P4 should not bind live molten behaviour to this collar until the P3 shape is accepted or revised.
+
+## Active review reopened — 2026-10-25
+
+The latest composition image showed yellow strands apparently hanging in front of the well. Those strands were D4 rootward packet trails, not the P3 physical-root geometry: their Tree-local terrain ownership mask had been removed while the brown basin was retired. The mask has been restored without restoring any visible basin.
+
+That correction does not close P3. The physical-root calculations still derive from the live planting transform, mathematical membrane and envelope, and the automated scale, settlement, orientation and width sweeps remain valid. However, removing the opaque terrain also removed ordinary depth ownership for the dark buried root mesh. Active artistic acceptance is therefore suspended until the root and subterrain cameras confirm a deliberate burial solution that does not mask lava or Cosmos and does not reintroduce the brown basin as camouflage.

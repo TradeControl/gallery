@@ -2,6 +2,23 @@ import * as THREE from 'three';
 import { bindRangeControl } from '../controls.js';
 import { seededGenerator } from '../random.js';
 
+export const sluiceSourceRadiusRange = Object.freeze( {
+    min: 9,
+    max: 16,
+    step: 0.25,
+    variation: 0.75
+} );
+
+export const sluiceMoltenDomainDefaults = Object.freeze( {
+    radius: 18,
+    size: 36,
+    resolution: 256,
+    geometrySegments: 240,
+    maskLimitMin: 0.99,
+    maskLimitMax: 0.995,
+    maskFadeWidth: 0.055
+} );
+
 export const sluiceGateDefaults = {
     depth: 5.5,
     width: 3.8,
@@ -13,6 +30,7 @@ export const sluiceGateDefaults = {
     drag: 0.32,
     interaction: 1.4,
     sourceSeed: 1,
+    sourceRadius: 13,
     gateCycle: 11,
     phaseSpread: 0.78,
     openingDuration: 2.5,
@@ -22,6 +40,163 @@ export const sluiceGateDefaults = {
     moltenIntensity: 0.85,
     threshold: 0.1
 };
+
+export function snapshotSluiceSourceLayout( {
+    sources,
+    sourceSeed,
+    streamCount,
+    sourceRadius = null
+} )
+{
+    const sourceSnapshots = sources.map( ( source, sourceIndex ) =>
+        Object.freeze( {
+            sourceIndex,
+            label: source.label,
+            position: Object.freeze( [ ...source.position ] ),
+            direction: Object.freeze( [ ...source.direction ] ),
+            speedFactor: source.speedFactor,
+            cadence: source.cadence,
+            mass: source.mass,
+            color: Object.freeze( [
+                source.color.r,
+                source.color.g,
+                source.color.b
+            ] ),
+            colorHex: source.color.getHex()
+        } )
+    );
+    return Object.freeze( {
+        sourceSeed,
+        streamCount,
+        sourceRadius,
+        sources: Object.freeze( sourceSnapshots )
+    } );
+}
+
+export function generateSluiceSourceLayout( {
+    gateCount = sluiceGateDefaults.gateCount,
+    streamCount = sluiceGateDefaults.streamCount,
+    sourceSeed = sluiceGateDefaults.sourceSeed,
+    sourceRadius = sluiceGateDefaults.sourceRadius
+} = {} )
+{
+    if ( !Number.isFinite( sourceRadius )
+        || sourceRadius < sluiceSourceRadiusRange.min
+        || sourceRadius > sluiceSourceRadiusRange.max )
+    {
+        throw new RangeError(
+            `Sluice source radius must be between ${sluiceSourceRadiusRange.min} and ${sluiceSourceRadiusRange.max}.`
+        );
+    }
+    const generated = generateGateSystem(
+        gateCount,
+        streamCount,
+        sourceSeed,
+        sourceRadius
+    );
+    return snapshotSluiceSourceLayout( {
+        sources: generated.sources,
+        sourceSeed,
+        streamCount,
+        sourceRadius
+    } );
+}
+
+export function snapshotSluiceSourceEmission( {
+    source,
+    sourceIndex,
+    parcel,
+    simulationTime
+} )
+{
+    return Object.freeze( {
+        sourceIndex,
+        sourceLabel: source.label,
+        sourcePosition: Object.freeze( [ ...source.position ] ),
+        sourceDirection: Object.freeze( [ ...source.direction ] ),
+        position: Object.freeze( [ parcel.x, parcel.z ] ),
+        velocity: Object.freeze( [ parcel.vx, parcel.vz ] ),
+        mass: parcel.mass,
+        footprint: parcel.footprint,
+        temperature: parcel.temperature,
+        color: Object.freeze( [
+            source.color.r,
+            source.color.g,
+            source.color.b
+        ] ),
+        colorHex: source.color.getHex(),
+        simulationTime
+    } );
+}
+
+function generateGateSystem(
+    gateCount,
+    streamCount,
+    seed,
+    nominalSourceRadius = sluiceGateDefaults.sourceRadius
+)
+{
+    const generatedRandom = seededGenerator( 0x9e3779b9 ^ seed ^ ( gateCount * 0x85ebca6b ) ^ streamCount );
+    const startAngle = generatedRandom() * Math.PI * 2;
+    const sources = [];
+    const generatedGates = [];
+
+    for ( let index = 0; index < gateCount; index += 1 )
+    {
+        const sector = Math.PI * 2 / gateCount;
+        const angle = startAngle + index * sector + ( generatedRandom() - 0.5 ) * sector * 0.62;
+        const radius = THREE.MathUtils.lerp( 5.35, 6.15, generatedRandom() );
+        const color = new THREE.Color().setHSL( ( index / gateCount + generatedRandom() * 0.035 ) % 1, 0.55, 0.64 );
+
+        generatedGates.push( {
+            label: `Gate ${index + 1}`,
+            angle,
+            radius,
+            phaseBase: index / gateCount + THREE.MathUtils.lerp( -0.08, 0.08, generatedRandom() ),
+            outletBias: THREE.MathUtils.lerp( -0.34, 0.34, generatedRandom() ),
+            releaseAccumulator: 0,
+            state: 'filling',
+            latchedOpen: false,
+            color
+        } );
+    }
+
+    for ( let index = 0; index < streamCount; index += 1 )
+    {
+        const sector = Math.PI * 2 / streamCount;
+        const sourceAngle = startAngle + index * sector + THREE.MathUtils.lerp( -0.32, 0.32, generatedRandom() ) * sector;
+        const targetAngle = startAngle + ( ( index * 0.61803398875 + 0.21 ) % 1 ) * Math.PI * 2
+            + THREE.MathUtils.lerp( -0.09, 0.09, generatedRandom() );
+        const sourceRadius = nominalSourceRadius + THREE.MathUtils.lerp(
+            -sluiceSourceRadiusRange.variation,
+            sluiceSourceRadiusRange.variation,
+            generatedRandom()
+        );
+        const catchmentRadius = THREE.MathUtils.lerp( 6.25, 6.65, generatedRandom() );
+        const catchmentX = Math.cos( targetAngle ) * catchmentRadius;
+        const catchmentZ = Math.sin( targetAngle ) * catchmentRadius;
+        const sourceX = Math.cos( sourceAngle ) * sourceRadius;
+        const sourceZ = Math.sin( sourceAngle ) * sourceRadius;
+        const approachAngle = Math.atan2( catchmentZ - sourceZ, catchmentX - sourceX )
+            + THREE.MathUtils.lerp( -0.12, 0.12, generatedRandom() );
+        const speedFactor = THREE.MathUtils.lerp( 0.9, 1.1, generatedRandom() );
+        const color = new THREE.Color().setHSL( ( index / streamCount + generatedRandom() * 0.025 ) % 1, 0.5, 0.62 );
+
+        sources.push( {
+            label: `Feed ${index + 1}`,
+            position: [ sourceX, sourceZ ],
+            direction: [ Math.cos( approachAngle ), Math.sin( approachAngle ) ],
+            speedFactor,
+            cadence: THREE.MathUtils.lerp( 0.84, 1.16, generatedRandom() ),
+            mass: THREE.MathUtils.lerp( 0.72, 0.94, generatedRandom() ),
+            color
+        } );
+    }
+
+    const cadenceTotal = sources.reduce( ( total, source ) => total + source.cadence, 0 );
+    sources.forEach( ( source ) => { source.cadence *= streamCount / cadenceTotal; } );
+    return { sources, generatedGates };
+}
 
 export function resolveMoltenBoundaryContact( {
     parcel,
@@ -151,6 +326,9 @@ export function createSluiceGateLayer( {
     controlPrefix = '',
     moltenRenderOrder = 2,
     onGateLayoutChange = null,
+    onSourceLayoutChange = null,
+    onSourceEmission = null,
+    getSourceHeatState = null,
     moltenContactBoundary: initialMoltenContactBoundary = null
 } )
 {
@@ -163,6 +341,10 @@ const membraneGradient = membrane.gradient;
 const createMembraneGeometry = membrane.createGeometry;
 const deformMembrane = membrane.deform;
 const hasOpening = typeof membrane.isInsideOpening === 'function';
+if ( getSourceHeatState !== null && typeof getSourceHeatState !== 'function' )
+{
+    throw new TypeError( 'Source heat state must be supplied by a function.' );
+}
 
 const parcelCountElement = control( 'parcel-count' );
 const interactionCountElement = control( 'interaction-count' );
@@ -200,7 +382,8 @@ function random()
     return ( simulation.randomState >>> 0 ) / 4294967296;
 }
 
-const membraneGeometry = createMembraneGeometry( 180 );
+const membraneGeometry = membrane.createTerrainCoreGeometry?.()
+    ?? createMembraneGeometry( 180 );
 const membraneMaterial = new THREE.MeshStandardMaterial( {
     color: 0x313538,
     metalness: 0.2,
@@ -211,23 +394,37 @@ const membraneMaterial = new THREE.MeshStandardMaterial( {
     polygonOffsetUnits: 1
 } );
 const membraneSurface = new THREE.Mesh( membraneGeometry, membraneMaterial );
-if ( includeEnvironment ) scene.add( membraneSurface );
+membraneSurface.name = 'Casting pit membrane surface';
+const terrainApronGeometry = membrane.createTerrainApronGeometry?.() ?? null;
+const terrainApron = terrainApronGeometry
+    ? new THREE.Mesh( terrainApronGeometry, membraneMaterial )
+    : null;
+if ( terrainApron ) terrainApron.name = 'Casting terrain perimeter apron';
+if ( includeEnvironment )
+{
+    if ( terrainApron ) scene.add( terrainApron );
+    scene.add( membraneSurface );
+}
 
+const fieldCellCount = sluiceMoltenDomainDefaults.resolution
+    * sluiceMoltenDomainDefaults.resolution;
 const field = {
-    resolution: 224,
-    density: new Float32Array( 224 * 224 ),
-    heat: new Float32Array( 224 * 224 ),
-    flowX: new Float32Array( 224 * 224 ),
-    flowZ: new Float32Array( 224 * 224 ),
-    densityScratch: new Float32Array( 224 * 224 ),
-    heatScratch: new Float32Array( 224 * 224 ),
-    flowXScratch: new Float32Array( 224 * 224 ),
-    flowZScratch: new Float32Array( 224 * 224 ),
-    textureData: new Float32Array( 224 * 224 * 4 ),
-    contactMask: new Uint8Array( 224 * 224 ),
-    contactNormalX: new Float32Array( 224 * 224 ),
-    contactNormalZ: new Float32Array( 224 * 224 ),
-    contactDistance: new Float32Array( 224 * 224 ),
+    resolution: sluiceMoltenDomainDefaults.resolution,
+    radius: sluiceMoltenDomainDefaults.radius,
+    size: sluiceMoltenDomainDefaults.size,
+    density: new Float32Array( fieldCellCount ),
+    heat: new Float32Array( fieldCellCount ),
+    flowX: new Float32Array( fieldCellCount ),
+    flowZ: new Float32Array( fieldCellCount ),
+    densityScratch: new Float32Array( fieldCellCount ),
+    heatScratch: new Float32Array( fieldCellCount ),
+    flowXScratch: new Float32Array( fieldCellCount ),
+    flowZScratch: new Float32Array( fieldCellCount ),
+    textureData: new Float32Array( fieldCellCount * 4 ),
+    contactMask: new Uint8Array( fieldCellCount ),
+    contactNormalX: new Float32Array( fieldCellCount ),
+    contactNormalZ: new Float32Array( fieldCellCount ),
+    contactDistance: new Float32Array( fieldCellCount ),
     contactBoundaryRevision: Number.NaN,
     revision: 0
 };
@@ -299,10 +496,12 @@ function updateSurfaceMask()
     }
     for ( let y = 0; y < field.resolution; y += 1 )
     {
-        const z = 12 - y / ( field.resolution - 1 ) * 24;
+        const z = field.radius
+            - y / ( field.resolution - 1 ) * field.size;
         for ( let x = 0; x < field.resolution; x += 1 )
         {
-            const worldX = x / ( field.resolution - 1 ) * 24 - 12;
+            const worldX = x / ( field.resolution - 1 ) * field.size
+                - field.radius;
             surfaceMaskData[y * field.resolution + x] = hasOpening && membrane.isInsideOpening( worldX, z ) ? 0 : 255;
         }
     }
@@ -311,10 +510,13 @@ function updateSurfaceMask()
 
 updateSurfaceMask();
 
-const moltenGeometry = createMembraneGeometry( 180 );
+const moltenGeometry = createMembraneGeometry(
+    sluiceMoltenDomainDefaults.geometrySegments,
+    { size: field.size }
+);
 const moltenMaterial = new THREE.ShaderMaterial( {
     transparent: true,
-    depthWrite: false,
+    depthWrite: true,
     side: THREE.DoubleSide,
     uniforms: {
         moltenField: { value: field.texture },
@@ -326,13 +528,19 @@ const moltenMaterial = new THREE.ShaderMaterial( {
         uniform sampler2D moltenField;
         varying vec2 vUv;
         varying float vDensity;
+        varying float vForgeEnergy;
 
         void main()
         {
             vUv = uv;
-            vDensity = texture2D( moltenField, uv ).r;
+            vec4 molten = texture2D( moltenField, uv );
+            vDensity = molten.r;
+            float heatRatio = molten.g / max( molten.r, 0.001 );
+            vForgeEnergy = smoothstep( 1.01, 1.32, heatRatio );
             vec3 displaced = position;
-            displaced.y += 0.035 + min( vDensity, 1.5 ) * 0.055;
+            displaced.y += 0.035
+                + min( vDensity, 1.5 ) * 0.055
+                + vForgeEnergy * 0.015;
             gl_Position = projectionMatrix * modelViewMatrix * vec4( displaced, 1.0 );
         }
     `,
@@ -343,6 +551,7 @@ const moltenMaterial = new THREE.ShaderMaterial( {
         uniform float threshold;
         varying vec2 vUv;
         varying float vDensity;
+        varying float vForgeEnergy;
 
         float hash( vec2 point )
         {
@@ -367,23 +576,49 @@ const moltenMaterial = new THREE.ShaderMaterial( {
             vec3 material = texture2D( moltenField, vUv ).rgb;
             if ( material.b > 0.5 ) discard;
             float density = material.r;
-            float heat = clamp( material.g / max( density, 0.001 ), 0.0, 1.0 );
+            float heat = clamp( material.g / max( density, 0.001 ), 0.0, 1.4 );
+            float materialHeat = min( heat, 1.0 );
             float edgeNoise = noise( vUv * 92.0 + vec2( 4.3, 11.7 ) ) * 0.65
                 + noise( vUv * 31.0 ) * 0.35;
             float localThreshold = threshold * mix( 0.72, 1.32, edgeNoise );
             float coverage = smoothstep( localThreshold, localThreshold + 0.16, density );
+            vec2 perimeterPoint = vUv * 2.0 - 1.0;
+            float perimeterAngle = atan( perimeterPoint.y, perimeterPoint.x );
+            float perimeterNoise = noise( vec2(
+                perimeterAngle * 1.7 + 8.2,
+                perimeterAngle * 0.63 + 3.4
+            ) );
+            float perimeterLimit = mix(
+                ${sluiceMoltenDomainDefaults.maskLimitMin.toFixed( 3 )},
+                ${sluiceMoltenDomainDefaults.maskLimitMax.toFixed( 3 )},
+                perimeterNoise
+            );
+            float perimeterCoverage = 1.0 - smoothstep(
+                perimeterLimit - ${sluiceMoltenDomainDefaults.maskFadeWidth.toFixed( 3 )},
+                perimeterLimit,
+                length( perimeterPoint )
+            );
+            coverage *= perimeterCoverage;
             if ( coverage < 0.015 ) discard;
 
             float body = smoothstep( threshold, 0.85, density );
             float breakup = noise( vUv * 135.0 ) * 0.65 + noise( vUv * 48.0 + 9.7 ) * 0.35;
-            float crust = smoothstep( 0.48, 0.82, breakup ) * ( 1.0 - heat * 0.55 );
-            float core = smoothstep( 0.48, 1.5, density ) * smoothstep( 0.42, 0.95, heat );
+            float crust = smoothstep( 0.48, 0.82, breakup )
+                * ( 1.0 - materialHeat * 0.55 )
+                * ( 1.0 - vForgeEnergy * 0.2 );
+            float core = smoothstep( 0.48, 1.5, density ) * smoothstep( 0.42, 0.95, materialHeat );
             float edge = clamp( length( vec2( dFdx( density ), dFdy( density ) ) ) * 2.5, 0.0, 1.0 );
             vec3 cooled = vec3( 0.055, 0.009, 0.004 );
             vec3 warm = vec3( 0.46, 0.038, 0.006 );
             vec3 hot = vec3( 0.95, 0.25, 0.018 );
-            vec3 color = mix( cooled, warm, body * ( 0.32 + heat * 0.48 ) );
+            vec3 color = mix( cooled, warm, body * ( 0.32 + materialHeat * 0.48 ) );
             color = mix( color, hot, core * ( 0.48 + breakup * 0.2 ) );
+            color = mix(
+                color,
+                hot * 1.06,
+                vForgeEnergy * ( 0.06 + breakup * 0.08 )
+            );
+            color *= 1.0 + vForgeEnergy * ( 0.06 + breakup * 0.08 );
             color *= mix( 1.0, 0.36, crust );
             color *= mix( 1.0, 0.55, edge );
             color *= intensity * ( 0.72 + min( density, 1.4 ) * 0.2 );
@@ -481,66 +716,6 @@ let gates = [];
 const gateGroup = new THREE.Group();
 gateGroup.visible = false;
 scene.add( gateGroup );
-
-function generateGateSystem( gateCount, streamCount, seed )
-{
-    const generatedRandom = seededGenerator( 0x9e3779b9 ^ seed ^ ( gateCount * 0x85ebca6b ) ^ streamCount );
-    const startAngle = generatedRandom() * Math.PI * 2;
-    const sources = [];
-    const generatedGates = [];
-
-    for ( let index = 0; index < gateCount; index += 1 )
-    {
-        const sector = Math.PI * 2 / gateCount;
-        const angle = startAngle + index * sector + ( generatedRandom() - 0.5 ) * sector * 0.62;
-        const radius = THREE.MathUtils.lerp( 5.35, 6.15, generatedRandom() );
-        const color = new THREE.Color().setHSL( ( index / gateCount + generatedRandom() * 0.035 ) % 1, 0.55, 0.64 );
-
-        generatedGates.push( {
-            label: `Gate ${index + 1}`,
-            angle,
-            radius,
-            phaseBase: index / gateCount + THREE.MathUtils.lerp( -0.08, 0.08, generatedRandom() ),
-            outletBias: THREE.MathUtils.lerp( -0.34, 0.34, generatedRandom() ),
-            releaseAccumulator: 0,
-            state: 'filling',
-            latchedOpen: false,
-            color
-        } );
-    }
-
-    for ( let index = 0; index < streamCount; index += 1 )
-    {
-        const sector = Math.PI * 2 / streamCount;
-        const sourceAngle = startAngle + index * sector + THREE.MathUtils.lerp( -0.32, 0.32, generatedRandom() ) * sector;
-        const targetAngle = startAngle + ( ( index * 0.61803398875 + 0.21 ) % 1 ) * Math.PI * 2
-            + THREE.MathUtils.lerp( -0.09, 0.09, generatedRandom() );
-        const sourceRadius = THREE.MathUtils.lerp( 12.1, 13.6, generatedRandom() );
-        const catchmentRadius = THREE.MathUtils.lerp( 6.25, 6.65, generatedRandom() );
-        const catchmentX = Math.cos( targetAngle ) * catchmentRadius;
-        const catchmentZ = Math.sin( targetAngle ) * catchmentRadius;
-        const sourceX = Math.cos( sourceAngle ) * sourceRadius;
-        const sourceZ = Math.sin( sourceAngle ) * sourceRadius;
-        const approachAngle = Math.atan2( catchmentZ - sourceZ, catchmentX - sourceX )
-            + THREE.MathUtils.lerp( -0.12, 0.12, generatedRandom() );
-        const speedFactor = THREE.MathUtils.lerp( 0.9, 1.1, generatedRandom() );
-        const color = new THREE.Color().setHSL( ( index / streamCount + generatedRandom() * 0.025 ) % 1, 0.5, 0.62 );
-
-        sources.push( {
-            label: `Feed ${index + 1}`,
-            position: [ sourceX, sourceZ ],
-            direction: [ Math.cos( approachAngle ), Math.sin( approachAngle ) ],
-            speedFactor,
-            cadence: THREE.MathUtils.lerp( 0.84, 1.16, generatedRandom() ),
-            mass: THREE.MathUtils.lerp( 0.72, 0.94, generatedRandom() ),
-            color
-        } );
-    }
-
-    const cadenceTotal = sources.reduce( ( total, source ) => total + source.cadence, 0 );
-    sources.forEach( ( source ) => { source.cadence *= streamCount / cadenceTotal; } );
-    return { sources, generatedGates };
-}
 
 function buildGateMeshes()
 {
@@ -647,13 +822,27 @@ function updateSourceMarkerGeometry()
 function regenerateSources()
 {
     simulation.randomState = ( 0x2f6e2b1 ^ parameters.sourceSeed ^ parameters.streamCount ^ ( parameters.gateCount << 8 ) ) >>> 0;
-    const generated = generateGateSystem( parameters.gateCount, parameters.streamCount, parameters.sourceSeed );
+    const generated = generateGateSystem(
+        parameters.gateCount,
+        parameters.streamCount,
+        parameters.sourceSeed,
+        parameters.sourceRadius
+    );
     sourceDefinitions = generated.sources;
     gates = generated.generatedGates;
     buildGateMeshes();
     rebuildSourcePresentation();
     seedValueElement.value = parameters.sourceSeed.toString();
     if ( onGateLayoutChange ) onGateLayoutChange( gates );
+    if ( onSourceLayoutChange )
+    {
+        onSourceLayoutChange( snapshotSluiceSourceLayout( {
+            sources: sourceDefinitions,
+            sourceSeed: parameters.sourceSeed,
+            streamCount: parameters.streamCount,
+            sourceRadius: parameters.sourceRadius
+        } ) );
+    }
 }
 
 const parcelPositions = new Float32Array( simulation.maximumParcels * 3 );
@@ -702,7 +891,7 @@ function spawnParcel( source, sourceIndex )
     const velocityJitter = ( random() - 0.5 ) * 0.34;
     const massVariation = random();
 
-    simulation.parcels.push( {
+    const parcel = {
         x: source.position[0] + perpendicularX * positionJitter,
         z: source.position[1] + perpendicularZ * positionJitter,
         vx: source.direction[0] * speed + perpendicularX * velocityJitter,
@@ -717,7 +906,18 @@ function spawnParcel( source, sourceIndex )
         storageSlot: -1,
         ax: 0,
         az: 0
-    } );
+    };
+    simulation.parcels.push( parcel );
+    if ( onSourceEmission )
+    {
+        onSourceEmission( snapshotSluiceSourceEmission( {
+            source,
+            sourceIndex,
+            parcel,
+            simulationTime: simulation.elapsed
+        } ) );
+    }
+    return parcel;
 }
 
 function emitParcels( timeStep )
@@ -991,8 +1191,8 @@ function applyNeighbourForces( spatialHash )
 
 function depositAt( x, z, amount, temperature, velocityX, velocityZ, footprint )
 {
-    const normalizedX = ( x + 12 ) / 24;
-    const normalizedY = ( 12 - z ) / 24;
+    const normalizedX = ( x + field.radius ) / field.size;
+    const normalizedY = ( field.radius - z ) / field.size;
     const centerX = Math.round( normalizedX * ( field.resolution - 1 ) );
     const centerY = Math.round( normalizedY * ( field.resolution - 1 ) );
 
@@ -1033,7 +1233,7 @@ function depositAt( x, z, amount, temperature, velocityX, velocityZ, footprint )
 function depositTrail( parcel, previousX, previousZ, timeStep )
 {
     const distance = Math.hypot( parcel.x - previousX, parcel.z - previousZ );
-    const spacing = 24 / field.resolution * 0.7;
+    const spacing = field.size / field.resolution * 0.7;
     const samples = Math.max( 1, Math.ceil( distance / spacing ) );
     const amount = parameters.deposition * parcel.mass * timeStep * 0.9 / samples;
 
@@ -1068,6 +1268,153 @@ function sampleField( values, x, y )
     return THREE.MathUtils.lerp( lower, upper, fractionY );
 }
 
+function smoothRange( lower, upper, value )
+{
+    const progress = THREE.MathUtils.clamp(
+        ( value - lower ) / Math.max( upper - lower, Number.EPSILON ),
+        0,
+        1
+    );
+    return progress * progress * ( 3 - 2 * progress );
+}
+
+function writeSourceHeatPresentation()
+{
+    const state = getSourceHeatState?.();
+    if ( !state?.visible || state.mode === 'off'
+        || !Array.isArray( state.sources ) )
+    {
+        return;
+    }
+
+    const heatIntensity = Number( state.heatIntensity );
+    const heatReach = Number( state.heatReach );
+    const phase = Number.isFinite( state.surfacePhase )
+        ? state.surfacePhase
+        : 0;
+    if ( !Number.isFinite( heatIntensity ) || heatIntensity <= 0
+        || !Number.isFinite( heatReach ) || heatReach <= 0 )
+    {
+        return;
+    }
+
+    const maximum = field.resolution - 1;
+    const cellSize = field.size / maximum;
+    for ( const source of state.sources )
+    {
+        if ( source?.manifested !== true ) continue;
+        const sourceX = Number( source.position?.[0] );
+        const sourceZ = Number( source.position?.[1] );
+        const directionX = Number( source.direction?.[0] );
+        const directionZ = Number( source.direction?.[1] );
+        if ( ![
+            sourceX,
+            sourceZ,
+            directionX,
+            directionZ
+        ].every( Number.isFinite ) )
+        {
+            continue;
+        }
+
+        const pressure = THREE.MathUtils.clamp(
+            Number( source.pressure ) || 0,
+            0,
+            1
+        );
+        const reach = heatReach * ( 0.9 + pressure * 0.2 );
+        const gradientExtent = reach * 1.55;
+        const halfWidth = 0.48 + pressure * 0.1;
+        const lateralExtent = halfWidth * 2.4;
+        const rearExtent = Math.min( 0.8, reach * 0.35 );
+        const endX = sourceX + directionX * gradientExtent;
+        const endZ = sourceZ + directionZ * gradientExtent;
+        const margin = Math.max( lateralExtent, rearExtent * 2 )
+            + cellSize * 2;
+        const minimumWorldX = Math.min( sourceX, endX ) - margin;
+        const maximumWorldX = Math.max( sourceX, endX ) + margin;
+        const minimumWorldZ = Math.min( sourceZ, endZ ) - margin;
+        const maximumWorldZ = Math.max( sourceZ, endZ ) + margin;
+        const minimumX = THREE.MathUtils.clamp(
+            Math.floor(
+                ( minimumWorldX + field.radius ) / field.size * maximum
+            ),
+            0,
+            maximum
+        );
+        const maximumX = THREE.MathUtils.clamp(
+            Math.ceil(
+                ( maximumWorldX + field.radius ) / field.size * maximum
+            ),
+            0,
+            maximum
+        );
+        const minimumY = THREE.MathUtils.clamp(
+            Math.floor(
+                ( field.radius - maximumWorldZ ) / field.size * maximum
+            ),
+            0,
+            maximum
+        );
+        const maximumY = THREE.MathUtils.clamp(
+            Math.ceil(
+                ( field.radius - minimumWorldZ ) / field.size * maximum
+            ),
+            0,
+            maximum
+        );
+
+        for ( let y = minimumY; y <= maximumY; y += 1 )
+        {
+            const worldZ = field.radius - y / maximum * field.size;
+            for ( let x = minimumX; x <= maximumX; x += 1 )
+            {
+                const index = y * field.resolution + x;
+                if ( field.contactMask[index] ) continue;
+                const textureOffset = index * 4;
+                const density = field.textureData[textureOffset];
+                if ( density <= Number.EPSILON ) continue;
+
+                const worldX = x / maximum * field.size - field.radius;
+                const offsetX = worldX - sourceX;
+                const offsetZ = worldZ - sourceZ;
+                const along = offsetX * directionX + offsetZ * directionZ;
+                const across = -offsetX * directionZ + offsetZ * directionX;
+                if ( along < -rearExtent * 2
+                    || along > gradientExtent
+                    || Math.abs( across ) > lateralExtent )
+                {
+                    continue;
+                }
+
+                const downstreamProgress = Math.max( along, 0 ) / reach;
+                const rearProgress = Math.max( -along, 0 ) / rearExtent;
+                const lateralProgress = across / halfWidth;
+                const thermalFalloff = Math.exp(
+                    -3 * downstreamProgress * downstreamProgress
+                    -3 * rearProgress * rearProgress
+                    -2.6 * lateralProgress * lateralProgress
+                );
+                const pulse = 1 + Math.sin(
+                    phase * 0.75
+                        - downstreamProgress * 1.2
+                        + source.sourceIndex * 1.37
+                ) * 0.015;
+                const sourceEnergy = thermalFalloff
+                    * heatIntensity
+                    * ( 0.82 + pressure * 0.28 )
+                    * pulse;
+                if ( sourceEnergy <= 0.0005 ) continue;
+                const thermalRatio = 1 + sourceEnergy * 0.3;
+                field.textureData[textureOffset + 1] = Math.max(
+                    field.textureData[textureOffset + 1],
+                    density * thermalRatio
+                );
+            }
+        }
+    }
+}
+
 function writeMoltenTexture()
 {
     for ( let index = 0; index < field.density.length; index += 1 )
@@ -1078,7 +1425,49 @@ function writeMoltenTexture()
         field.textureData[textureOffset + 2] = field.contactMask[index];
         field.textureData[textureOffset + 3] = 1;
     }
+    writeSourceHeatPresentation();
     field.texture.needsUpdate = true;
+}
+
+function sampleMoltenPresentation( x, z )
+{
+    const fieldX = THREE.MathUtils.clamp(
+        ( x + field.radius ) / field.size * ( field.resolution - 1 ),
+        0,
+        field.resolution - 1
+    );
+    const fieldY = THREE.MathUtils.clamp(
+        ( field.radius - z ) / field.size * ( field.resolution - 1 ),
+        0,
+        field.resolution - 1
+    );
+    const x0 = Math.floor( fieldX );
+    const y0 = Math.floor( fieldY );
+    const x1 = Math.min( x0 + 1, field.resolution - 1 );
+    const y1 = Math.min( y0 + 1, field.resolution - 1 );
+    const fractionX = fieldX - x0;
+    const fractionY = fieldY - y0;
+    const channel = ( channelIndex ) => {
+        const first = field.textureData[( y0 * field.resolution + x0 ) * 4 + channelIndex];
+        const second = field.textureData[( y0 * field.resolution + x1 ) * 4 + channelIndex];
+        const third = field.textureData[( y1 * field.resolution + x0 ) * 4 + channelIndex];
+        const fourth = field.textureData[( y1 * field.resolution + x1 ) * 4 + channelIndex];
+        return THREE.MathUtils.lerp(
+            THREE.MathUtils.lerp( first, second, fractionX ),
+            THREE.MathUtils.lerp( third, fourth, fractionX ),
+            fractionY
+        );
+    };
+    const density = channel( 0 );
+    const heatMass = channel( 1 );
+    return Object.freeze( {
+        density,
+        heat: THREE.MathUtils.clamp(
+            heatMass / Math.max( density, 0.001 ),
+            0,
+            1
+        )
+    } );
 }
 
 function refreshContactMask( force = false )
@@ -1102,38 +1491,54 @@ function refreshContactMask( force = false )
         const margin = 3;
         const minimumX = bounds
             ? THREE.MathUtils.clamp(
-                Math.floor( ( bounds.minX + 12 ) / 24 * maximum ) - margin,
+                Math.floor(
+                    ( bounds.minX + field.radius )
+                        / field.size
+                        * maximum
+                ) - margin,
                 0,
                 maximum
             )
             : 0;
         const maximumX = bounds
             ? THREE.MathUtils.clamp(
-                Math.ceil( ( bounds.maxX + 12 ) / 24 * maximum ) + margin,
+                Math.ceil(
+                    ( bounds.maxX + field.radius )
+                        / field.size
+                        * maximum
+                ) + margin,
                 0,
                 maximum
             )
             : maximum;
         const minimumY = bounds
             ? THREE.MathUtils.clamp(
-                Math.floor( ( 12 - bounds.maxZ ) / 24 * maximum ) - margin,
+                Math.floor(
+                    ( field.radius - bounds.maxZ )
+                        / field.size
+                        * maximum
+                ) - margin,
                 0,
                 maximum
             )
             : 0;
         const maximumY = bounds
             ? THREE.MathUtils.clamp(
-                Math.ceil( ( 12 - bounds.minZ ) / 24 * maximum ) + margin,
+                Math.ceil(
+                    ( field.radius - bounds.minZ )
+                        / field.size
+                        * maximum
+                ) + margin,
                 0,
                 maximum
             )
             : maximum;
         for ( let y = minimumY; y <= maximumY; y += 1 )
         {
-            const z = 12 - y / maximum * 24;
+            const z = field.radius - y / maximum * field.size;
             for ( let x = minimumX; x <= maximumX; x += 1 )
             {
-                const worldX = x / maximum * 24 - 12;
+                const worldX = x / maximum * field.size - field.radius;
                 const index = y * field.resolution + x;
                 const sample = moltenContactBoundary.sample( worldX, z );
                 if ( !Number.isFinite( sample?.signedDistance ) ) continue;
@@ -1184,8 +1589,12 @@ function neighbouringAverage( values, first, second, third, fourth, fallback )
 
 function sampleMoltenState( x, z )
 {
-    const fieldX = ( x + 12 ) / 24 * ( field.resolution - 1 );
-    const fieldY = ( 12 - z ) / 24 * ( field.resolution - 1 );
+    const fieldX = ( x + field.radius )
+        / field.size
+        * ( field.resolution - 1 );
+    const fieldY = ( field.radius - z )
+        / field.size
+        * ( field.resolution - 1 );
     const density = sampleField( field.density, fieldX, fieldY );
     const heatMass = sampleField( field.heat, fieldX, fieldY );
     return Object.freeze( {
@@ -1226,7 +1635,7 @@ function updateMoltenField( timeStep )
             const density = field.density[index];
             const velocityX = field.flowX[index] / Math.max( density, 0.03 );
             const velocityZ = field.flowZ[index] / Math.max( density, 0.03 );
-            const pixelScale = resolution / 24;
+            const pixelScale = resolution / field.size;
             const backtraceX = x - velocityX * timeStep * pixelScale * 0.58;
             const backtraceY = y + velocityZ * timeStep * pixelScale * 0.58;
             const blockedBacktrace = isContactBlockedAt( backtraceX, backtraceY );
@@ -1252,7 +1661,8 @@ function updateMoltenField( timeStep )
             field.heatScratch[index] = THREE.MathUtils.lerp( advectedHeat, heatAverage, spread * 1.25 ) * heatDecay;
             let nextFlowX = THREE.MathUtils.lerp( field.flowX[index], flowXAverage, spread ) * densityDecay * 0.92;
             let nextFlowZ = THREE.MathUtils.lerp( field.flowZ[index], flowZAverage, spread ) * densityDecay * 0.92;
-            if ( field.contactDistance[index] < 24 / resolution * 2.5 )
+            if ( field.contactDistance[index]
+                < field.size / resolution * 2.5 )
             {
                 const inward = nextFlowX * field.contactNormalX[index]
                     + nextFlowZ * field.contactNormalZ[index];
@@ -1369,7 +1779,10 @@ function integrateParcels( timeStep )
             return false;
         }
 
-        if ( radius >= 17 || parcel.age >= parcel.lifetime || parcel.temperature <= 0.1 )
+        const outerCullRadius = Math.max( 17, parameters.sourceRadius + 2 );
+        if ( radius >= outerCullRadius
+            || parcel.age >= parcel.lifetime
+            || parcel.temperature <= 0.1 )
         {
             source.lost += 1;
             return false;
@@ -1472,6 +1885,7 @@ function resetParcels()
 function updateSurface()
 {
     deformMembrane( membraneGeometry );
+    if ( terrainApronGeometry ) deformMembrane( terrainApronGeometry );
     deformMembrane( moltenGeometry );
     deformMembrane( diagnosticGeometry );
     if ( receiver.parent ) receiver.position.y = membraneHeight( 0, 0 ) + 0.04;
@@ -1521,6 +1935,11 @@ connectSlider( 'stream-count', 'stream-count-value', ( value ) => {
     regenerateSources();
     resetParcels();
 }, 0 );
+connectSlider( 'source-radius', 'source-radius-value', ( value ) => {
+    parameters.sourceRadius = value;
+    regenerateSources();
+    resetParcels();
+}, 2 );
 connectSlider( 'lava-velocity', 'lava-velocity-value', ( value ) => {
     const velocityScale = value / parameters.lavaVelocity;
     simulation.parcels.forEach( ( parcel ) => {
@@ -1646,6 +2065,7 @@ return {
     simulation,
     environment: {
         membraneSurface,
+        terrainApron,
         diagnostic,
         throatSurface,
         throatDiagnostic,
@@ -1657,7 +2077,11 @@ return {
         receiver
     },
     moltenField: Object.freeze( {
+        domain: sluiceMoltenDomainDefaults,
         sample: sampleMoltenState,
+        samplePresentation: sampleMoltenPresentation,
+        surface: moltenSurface,
+        texture: field.texture,
         get revision() { return field.revision; }
     } ),
     setMoltenContactBoundary,

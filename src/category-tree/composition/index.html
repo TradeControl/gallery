@@ -9,26 +9,38 @@
   <body>
     <main id="scene" aria-label="Category Tree composition study"></main>
 
-    <aside class="controls" aria-label="Category Tree composition controls">
+    <aside id="composition-controls" class="controls" aria-label="Category Tree composition controls">
       <header>
-        <p>P5 · dark-matter substrate</p>
+        <p>P7 · stream-origin heat review</p>
         <h1>Category Tree <span>shared causal world</span></h1>
       </header>
-      <p class="statement">A gravity-depressed dark-matter sea now receives the buried roots beneath the finite terrain. Its mass and light response are fully procedural; it uses no texture inputs.</p>
+      <p class="statement">Each real feed now begins with a restrained pressure-responsive heat lift inside its existing stream. No new silhouette or second material is introduced. The shared radius still moves the real inflow.</p>
 
       <fieldset class="mode-switch">
         <legend>Inspection mode</legend>
-        <button type="button" data-layer-mode="substrate" aria-pressed="false">Dark matter</button>
-        <button type="button" data-layer-mode="terrain-substrate" aria-pressed="false">Terrain + sea</button>
         <button type="button" data-layer-mode="pit" aria-pressed="false">Pit</button>
         <button type="button" data-layer-mode="tree" aria-pressed="false">Tree baseline</button>
-        <button type="button" data-layer-mode="tree-substrate" aria-pressed="false">Tree + sea</button>
         <button type="button" data-layer-mode="universe-tree" aria-pressed="false">Universe + Tree</button>
         <button type="button" data-layer-mode="cosmos-tree" aria-pressed="false">Cosmos + Tree</button>
-        <button type="button" data-layer-mode="complete-baseline" aria-pressed="false">Pre-P5 complete</button>
         <button type="button" data-layer-mode="complete" aria-pressed="true">Complete</button>
       </fieldset>
       <p class="mode-readout">Showing <output id="active-mode">Complete composition</output></p>
+
+      <details open>
+        <summary>Composition · forge-source heat</summary>
+        <label class="switch" for="composition-source-heat-visible"><span>Forge-source heat</span><input id="composition-source-heat-visible" type="checkbox" checked></label>
+        <label class="control" for="u-source-radius"><span>Lava-source ring radius</span><output id="u-source-radius-value">13.00</output><input id="u-source-radius" type="range" min="9" max="16" step="0.25" value="13"></label>
+        <label class="control" for="composition-heat-intensity"><span>Source heat</span><output id="composition-heat-intensity-value">0.40</output><input id="composition-heat-intensity" type="range" min="0" max="1" step="0.05" value="0.4"></label>
+        <label class="control" for="composition-heat-reach"><span>Heat reach</span><output id="composition-heat-reach-value">2.25</output><input id="composition-heat-reach" type="range" min="0.5" max="5" step="0.05" value="2.25"></label>
+        <label class="control" for="composition-settling-time"><span>Pressure settling</span><output id="composition-settling-time-value">1.25</output><input id="composition-settling-time" type="range" min="0.4" max="2.5" step="0.05" value="1.25"></label>
+        <dl class="stats" aria-label="Composition lava-source statistics">
+          <div><dt>Thermal sources</dt><dd><output id="composition-source-ring-state">awaiting sources</output></dd></div>
+          <div><dt>Active source heat</dt><dd><output id="composition-source-heat-state">0 / 12 active</output></dd></div>
+          <div><dt>Accepted events</dt><dd><output id="composition-source-event-state">0 / 0 manifested</output></dd></div>
+          <div><dt>Synthetic mass</dt><dd>0</dd></div>
+        </dl>
+        <p class="seed">Forge heat is applied only where the real stream already exists. It changes no silhouette, mass or parcel.</p>
+      </details>
 
       <details open>
         <summary>Composition · planting</summary>
@@ -50,23 +62,6 @@
           <div><dt>Tree packets</dt><dd><output id="tree-packet-state">waiting</output></dd></div>
           <div><dt>Junction</dt><dd><output id="tree-junction-state">waiting for cyan input</output></dd></div>
           <div><dt>Tree render</dt><dd><output id="tree-render-state">1 pass</output></dd></div>
-        </dl>
-      </details>
-
-      <details open>
-        <summary>Substrate · dark-matter sea</summary>
-        <div class="section-label">Procedural pressure field</div>
-        <label class="control" for="dark-matter-level"><span>Outer sea depth</span><output id="dark-matter-level-value">1.55</output><input id="dark-matter-level" type="range" min="1.2" max="2.4" step="0.05" value="1.55"></label>
-        <label class="control" for="dark-matter-relief"><span>Material relief</span><output id="dark-matter-relief-value">0.06</output><input id="dark-matter-relief" type="range" min="0" max="0.14" step="0.01" value="0.06"></label>
-        <label class="control" for="dark-matter-drift"><span>Pressure current</span><output id="dark-matter-drift-value">0.12</output><input id="dark-matter-drift" type="range" min="0" max="0.35" step="0.01" value="0.12"></label>
-        <label class="control" for="dark-matter-reveal"><span>Grazing reveal</span><output id="dark-matter-reveal-value">0.70</output><input id="dark-matter-reveal" type="range" min="0" max="1.2" step="0.05" value="0.70"></label>
-        <div class="button-row single-action">
-          <button id="dark-matter-reset" type="button">Reset substrate</button>
-        </div>
-        <dl class="stats" aria-label="Dark-matter substrate statistics">
-          <div><dt>Deep boundary</dt><dd><output id="dark-matter-boundary">measuring</output></dd></div>
-          <div><dt>Hidden extent</dt><dd><output id="dark-matter-extent">measuring</output></dd></div>
-          <div><dt>Construction</dt><dd><output id="dark-matter-construction">procedural</output></dd></div>
         </dl>
       </details>
 
@@ -187,10 +182,10 @@
         <button type="button" data-view="elevated">Elevated</button>
         <button type="button" data-view="root">Well / root</button>
         <button type="button" data-view="contact">Contact</button>
-        <button type="button" data-view="substrate">Substrate</button>
         <button type="button" data-view="subterrain">Subterrain</button>
+        <button type="button" data-view="source-ring">Source ring</button>
       </fieldset>
-      <p class="hint">One world · one membrane · one buried medium · three causal layers</p>
+      <p class="hint">One world · depth-true molten well · planted roots · subtle forge-source heat</p>
     </aside>
 
     <script type="module" src="./main.js"></script>

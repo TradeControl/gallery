@@ -53,6 +53,15 @@ header p,
   text-transform: uppercase;
 }
 
+header .statement {
+  margin-top: 0.55rem;
+  color: #adb2ae;
+  font-size: 0.7rem;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+}
+
 h1 {
   margin: 0.1rem 0 0;
   font-size: 1.02rem;
@@ -141,6 +150,21 @@ button:focus-visible {
   border-color: #68a2b8;
 }
 
+button.active,
+button[aria-pressed="true"] {
+  color: #eef9fc;
+  background: #26383e;
+  border-color: #68a2b8;
+}
+
+.forge-mode {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+fieldset .wide {
+  grid-column: 1 / -1;
+}
+
 .button-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -217,6 +241,22 @@ button:focus-visible {
 .stats dt,
 .stats dd {
   margin: 0;
+}
+
+.forge-stats {
+  margin-top: 0.7rem;
+}
+
+.forge-stats output {
+  color: inherit;
+  font: inherit;
+}
+
+.provisional-note {
+  margin: 0.25rem 0 0.7rem;
+  color: #a1947e;
+  font-size: 0.66rem;
+  line-height: 1.45;
 }
 
 .stats dd {

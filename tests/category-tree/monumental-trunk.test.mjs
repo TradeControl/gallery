@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {
     createEngineeredTreeLayer,
     createMonumentalTrunkGeometry
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 
 test( 'monumental trunk has one monotone outward-facing sidewall', () => {
     const nodes = [

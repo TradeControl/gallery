@@ -63,6 +63,7 @@ Each stage should first succeed visually and technically on its own.
 - `src/category-tree/composition/` is the active Category Tree composition study, bringing the signed-off Tree into that shared world.
 - `src/category-tree/tree/` is the standalone Tree study, beginning with an explicit topology skeleton before artistic form and activity are introduced.
 - `src/category-tree/substrate/` is the disconnected energetic-substrate study used to develop the dark-matter sea before any further composition integration.
+- `src/lib/tree/` contains the page-independent Tree engine shared by the standalone Tree and the complete composition.
 - `src/lib/casting-pit/` contains the small shared ES-module library extracted from those references; its README documents module responsibilities and equivalence findings.
 - `src/lib/substrate/` contains the reusable, page-independent pressure-sea engine used by the standalone substrate study.
 - `src/category-tree/casting-pit/archive/` preserves superseded runnable studies, including the rejected well-throat work and its throat-specific library variants.

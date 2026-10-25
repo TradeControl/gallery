@@ -7,12 +7,12 @@ import {
     createHierarchy,
     representativeHierarchy,
     unfoldingHierarchy
-} from '../../src/category-tree/tree/hierarchy.js';
-import { createUnfoldingLayout } from '../../src/category-tree/tree/layout.js';
+} from '../../src/lib/tree/hierarchy.js';
+import { createUnfoldingLayout } from '../../src/lib/tree/layout.js';
 import {
     createEngineeredTreeLayer,
     createInformationRoute
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 import {
     createTrunkRuneGeometry,
     createTrunkRuneGranuleGeometry,
@@ -26,7 +26,7 @@ import {
     trunkRuneManifestationDuration,
     trunkRuneSites,
     trunkRuneTransducerSite
-} from '../../src/category-tree/tree/trunk-rune-layer.js';
+} from '../../src/lib/tree/trunk-rune-layer.js';
 
 function createFixture( overrides = {} )
 {
@@ -1138,7 +1138,7 @@ test( 'C4a-E2 is a deterministic longitudinal gold transducer with causal light'
     );
 
     const runeSource = readFileSync(
-        new URL( '../../src/category-tree/tree/trunk-rune-layer.js', import.meta.url ),
+        new URL( '../../src/lib/tree/trunk-rune-layer.js', import.meta.url ),
         'utf8'
     );
     assert.equal( runeSource.includes( 'THREE.GreaterDepth' ), false );
@@ -1695,7 +1695,7 @@ test( 'C4b-O1 is one narrow taper-following exterior spiral across three trunk s
         .every( ( value ) => value === 0 ) );
 
     const runeSource = readFileSync(
-        new URL( '../../src/category-tree/tree/trunk-rune-layer.js', import.meta.url ),
+        new URL( '../../src/lib/tree/trunk-rune-layer.js', import.meta.url ),
         'utf8'
     );
     assert.equal( runeSource.includes( 'THREE.GreaterDepth' ), false );

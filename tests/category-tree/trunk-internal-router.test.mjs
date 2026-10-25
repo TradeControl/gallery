@@ -6,13 +6,13 @@ import {
     createHierarchy,
     representativeHierarchy,
     unfoldingHierarchy
-} from '../../src/category-tree/tree/hierarchy.js';
-import { createUnfoldingLayout } from '../../src/category-tree/tree/layout.js';
+} from '../../src/lib/tree/hierarchy.js';
+import { createUnfoldingLayout } from '../../src/lib/tree/layout.js';
 import {
     createEngineeredTreeLayer,
     createInformationRoute,
     createTrunkEnvelopeDescriptor
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 import {
     createInternalRouterTreeDescriptor,
     createInternalRouterTreeGeometry,
@@ -21,7 +21,7 @@ import {
     internalRouterSeedSite,
     internalRouterTierRange,
     internalRouterTopology
-} from '../../src/category-tree/tree/internal-router-tree.js';
+} from '../../src/lib/tree/internal-router-tree.js';
 
 const routedTerminalId = 'process-readiness-state';
 

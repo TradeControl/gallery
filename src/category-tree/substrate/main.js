@@ -18,7 +18,7 @@ const renderer = new THREE.WebGLRenderer( {
 renderer.setPixelRatio( Math.min( window.devicePixelRatio, 1.75 ) );
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMappingExposure = 1;
 sceneElement.appendChild( renderer.domElement );
 
 const orbitControls = new OrbitControls( camera, renderer.domElement );
@@ -56,17 +56,6 @@ function setCameraView( viewId )
         button.setAttribute( 'aria-pressed', active ? 'true' : 'false' );
     } );
 }
-
-scene.add( new THREE.HemisphereLight( 0x8aaec4, 0x120b09, 1.05 ) );
-const keyLight = new THREE.DirectionalLight( 0xe8f4ff, 3.6 );
-keyLight.position.set( -13, 18, 9 );
-scene.add( keyLight );
-const crossLight = new THREE.DirectionalLight( 0x8dbbd4, 2.1 );
-crossLight.position.set( 15, 7, -12 );
-scene.add( crossLight );
-const warmEdge = new THREE.DirectionalLight( 0xd78a58, 1.15 );
-warmEdge.position.set( -9, 5, -18 );
-scene.add( warmEdge );
 
 const sea = createEnergeticSeaLayer( { scene } );
 

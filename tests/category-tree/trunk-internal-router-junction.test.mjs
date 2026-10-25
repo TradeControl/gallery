@@ -6,15 +6,15 @@ import {
     createHierarchy,
     representativeHierarchy,
     unfoldingHierarchy
-} from '../../src/category-tree/tree/hierarchy.js';
-import { createUnfoldingLayout } from '../../src/category-tree/tree/layout.js';
+} from '../../src/lib/tree/hierarchy.js';
+import { createUnfoldingLayout } from '../../src/lib/tree/layout.js';
 import {
     createEngineeredTreeLayer,
     createInformationRoute
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 import {
     internalRouterSeedSite
-} from '../../src/category-tree/tree/internal-router-tree.js';
+} from '../../src/lib/tree/internal-router-tree.js';
 
 const routedTerminalId = 'process-readiness-state';
 const junctionCandidateId = 'c4d-d2-router-junction-v1';

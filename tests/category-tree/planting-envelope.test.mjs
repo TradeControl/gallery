@@ -6,7 +6,7 @@ import {
 } from '../../src/category-tree/composition/planting-envelope.js';
 import {
     createMonumentalTrunkGeometry
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 import {
     createCompositionTree,
     treePlacementRanges

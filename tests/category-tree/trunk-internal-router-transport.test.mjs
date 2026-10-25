@@ -6,20 +6,20 @@ import {
     createHierarchy,
     representativeHierarchy,
     unfoldingHierarchy
-} from '../../src/category-tree/tree/hierarchy.js';
-import { createUnfoldingLayout } from '../../src/category-tree/tree/layout.js';
+} from '../../src/lib/tree/hierarchy.js';
+import { createUnfoldingLayout } from '../../src/lib/tree/layout.js';
 import {
     createEngineeredTreeLayer,
     createInformationRoute
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 import {
     internalRouterSeedSite
-} from '../../src/category-tree/tree/internal-router-tree.js';
+} from '../../src/lib/tree/internal-router-tree.js';
 import {
     createInternalRouterRouteEpoch,
     createInternalRouterTransport,
     internalRouterTransportCandidateId
-} from '../../src/category-tree/tree/internal-router-transport.js';
+} from '../../src/lib/tree/internal-router-transport.js';
 
 const routedTerminalId = 'process-readiness-state';
 
@@ -471,7 +471,7 @@ test( 'D3 bounds lifetime audit indexes and reuses deterministic tier epochs', (
     ), /dispatched twice/ );
 
     const engineSource = readFileSync(
-        new URL( '../../src/category-tree/tree/engineered-tree-layer.js', import.meta.url ),
+        new URL( '../../src/lib/tree/engineered-tree-layer.js', import.meta.url ),
         'utf8'
     );
     assert.match( engineSource,

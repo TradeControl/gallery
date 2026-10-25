@@ -6,15 +6,15 @@ import {
     createHierarchy,
     representativeHierarchy,
     unfoldingHierarchy
-} from '../../src/category-tree/tree/hierarchy.js';
-import { createUnfoldingLayout } from '../../src/category-tree/tree/layout.js';
+} from '../../src/lib/tree/hierarchy.js';
+import { createUnfoldingLayout } from '../../src/lib/tree/layout.js';
 import {
     createEngineeredTreeLayer,
     trunkVisibilityModes
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 import {
     createTrunkVisibilityRenderer
-} from '../../src/category-tree/tree/trunk-visibility-renderer.js';
+} from '../../src/lib/tree/trunk-visibility-renderer.js';
 
 const expectedModes = [
     'off',
@@ -690,7 +690,7 @@ test( 'renderer rebinds bounded proxies when switching between active roots and 
     comparison.dispose();
 } );
 
-test( 'composition terrain owns D4 pixels in front of the lower trunk', () => {
+test( 'a detached external occluder owns D4 pixels without visible presentation', () => {
     const { layer, parameters } = createMatureLayer( {
         packetFrequency: 11,
         packetSpeed: 1.55,
@@ -726,7 +726,8 @@ test( 'composition terrain owns D4 pixels in front of the lower trunk', () => {
     terrain.name = 'Casting Pit membrane test occluder';
     terrain.rotation.x = -Math.PI / 2;
     terrain.position.set( 0.4, -0.3, -0.6 );
-    scene.add( terrain );
+    terrain.updateMatrixWorld( true );
+    assert.equal( terrain.parent, null );
     scene.updateMatrixWorld( true );
 
     const camera = new THREE.PerspectiveCamera( 48, 640 / 360, 0.1, 80 );

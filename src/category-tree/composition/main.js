@@ -3,8 +3,11 @@ import {
     cosmicCircuitryDefaults,
     createCastingPitWorld,
     createCosmicCircuitryLayer,
+    createForgeSourceLayer,
     createGaussianMembrane,
     createSluiceGateLayer,
+    forgeSourceDefaults,
+    forgeSourceRanges,
     sluiceGateDefaults
 } from '../../lib/casting-pit/index.js';
 import {
@@ -13,11 +16,6 @@ import {
     treePlacementDefaults,
     treePlacementRanges
 } from './tree-instance.js';
-import {
-    createDarkMatterSea,
-    darkMatterSeaDefaults,
-    darkMatterSeaRanges
-} from './dark-matter-sea.js';
 import { createCompositionMoltenContact } from './molten-contact.js';
 
 const parameters = {
@@ -34,15 +32,49 @@ const world = createCastingPitWorld(
 );
 world.orbitControls.maxDistance = 60;
 const membrane = createGaussianMembrane( parameters );
+const forge = createForgeSourceLayer( {
+    parameters: forgeSourceDefaults,
+    maxSources: 18
+} );
+
+function updateForgeReadouts()
+{
+    const snapshot = forge.getSnapshot();
+    document.querySelector( '#composition-source-ring-state' ).value =
+        `${snapshot.manifestedSourceCount}/${snapshot.sourceCount} sources`
+        + ` · actual r ${snapshot.sourceRingRadius.toFixed( 2 )}`;
+    document.querySelector( '#composition-source-heat-state' ).value =
+        `${snapshot.activeSourceCount}/${snapshot.manifestedSourceCount} active`
+        + ` · p ${snapshot.maximumPressure.toFixed( 2 )}`;
+    document.querySelector( '#composition-source-event-state' ).value =
+        `${snapshot.manifestedEmissionCount}`
+        + ` / ${snapshot.emissionEventCount} manifested`;
+}
+
+function handleForgeSourceLayout( snapshot )
+{
+    forge.setSourceLayout( snapshot );
+    updateForgeReadouts();
+}
 
 const universe = createSluiceGateLayer( {
     world,
     membrane,
     parameters,
-    root: document.querySelector( '#universe-controls' ),
+    root: document.querySelector( '#composition-controls' ),
     controlPrefix: 'u-',
-    moltenRenderOrder: 5
+    moltenRenderOrder: 5,
+    includeEnvironment: false,
+    onSourceLayoutChange: handleForgeSourceLayout,
+    onSourceEmission: forge.consumeEmission,
+    getSourceHeatState: forge.getFieldState
 } );
+world.scene.add(
+    universe.environment.diagnostic,
+    universe.environment.hemisphereLight,
+    universe.environment.keyLight,
+    universe.environment.rimLight
+);
 
 const cosmos = createCosmicCircuitryLayer( {
     world,
@@ -61,12 +93,6 @@ const tree = createCompositionTree( {
     camera: world.camera,
     membrane,
     externalOccluders: [ universe.environment.membraneSurface ]
-} );
-
-const darkMatterSea = createDarkMatterSea( {
-    scene: world.scene,
-    membrane,
-    plantingEnvelope: tree.plantingEnvelope
 } );
 
 const moltenContact = createCompositionMoltenContact( {
@@ -96,94 +122,66 @@ const cameraViews = {
         position: new THREE.Vector3( 8, 8, 11.5 ),
         target: new THREE.Vector3( 0, -4.65, 0 )
     },
-    substrate: {
-        position: new THREE.Vector3( 20, 2.8, 25 ),
-        target: new THREE.Vector3( 0, -2.3, 0 )
-    },
     subterrain: {
         position: new THREE.Vector3( 6, -8.5, 9.5 ),
         target: new THREE.Vector3( 0, -5.7, 0 )
+    },
+    'source-ring': {
+        position: new THREE.Vector3( 0, 46, 26 ),
+        target: new THREE.Vector3( 0, 0.9, 0 )
     }
 };
 
+let activeCameraViewId = 'composition';
+function setCameraView( viewId )
+{
+    const view = cameraViews[viewId];
+    if ( !view ) throw new Error( `Unknown camera view '${viewId}'.` );
+    activeCameraViewId = viewId;
+    world.setCameraView( view );
+    document.querySelectorAll( '[data-view]' ).forEach( ( button ) => {
+        const active = button.dataset.view === activeCameraViewId;
+        button.classList.toggle( 'active', active );
+        button.setAttribute( 'aria-pressed', active ? 'true' : 'false' );
+    } );
+}
+
 document.querySelectorAll( '[data-view]' ).forEach( ( button ) => {
     button.addEventListener( 'click', () => {
-        world.setCameraView( cameraViews[button.dataset.view] );
+        setCameraView( button.dataset.view );
     } );
 } );
 
 const layerModes = Object.freeze( {
-    substrate: Object.freeze( {
-        label: 'Dark-matter sea alone',
-        terrain: false,
-        universe: false,
-        cosmos: false,
-        tree: false,
-        substrate: true
-    } ),
-    'terrain-substrate': Object.freeze( {
-        label: 'Terrain + dark-matter sea',
-        terrain: true,
-        universe: false,
-        cosmos: false,
-        tree: false,
-        substrate: true
-    } ),
     pit: Object.freeze( {
         label: 'Casting Pit only',
-        terrain: true,
         universe: true,
         cosmos: true,
-        tree: false,
-        substrate: false
+        tree: false
     } ),
     tree: Object.freeze( {
         label: 'Tree planting baseline',
-        terrain: true,
         universe: false,
         cosmos: false,
-        tree: true,
-        substrate: false
-    } ),
-    'tree-substrate': Object.freeze( {
-        label: 'Tree + dark-matter sea',
-        terrain: true,
-        universe: false,
-        cosmos: false,
-        tree: true,
-        substrate: true
+        tree: true
     } ),
     'universe-tree': Object.freeze( {
         label: 'Universe + Tree',
-        terrain: true,
         universe: true,
         cosmos: false,
-        tree: true,
-        substrate: false
+        tree: true
     } ),
     'cosmos-tree': Object.freeze( {
         label: 'Cosmos + Tree',
-        terrain: true,
         universe: false,
         cosmos: true,
-        tree: true,
-        substrate: false
-    } ),
-    'complete-baseline': Object.freeze( {
-        label: 'Pre-substrate complete comparison',
-        terrain: true,
-        universe: true,
-        cosmos: true,
-        tree: true,
-        substrate: false
+        tree: true
     } ),
     complete: Object.freeze( {
         label: 'Complete composition',
-        terrain: true,
         universe: true,
         cosmos: true,
-        tree: true,
-        substrate: true
+        tree: true
     } )
 } );
 let activeLayerModeId = 'complete';
@@ -194,16 +192,13 @@ function setLayerMode( modeId )
     if ( !mode ) throw new Error( `Unknown composition mode '${modeId}'.` );
     activeLayerModeId = modeId;
     universe.setVisible( mode.universe );
+    forge.setVisible(
+        mode.universe
+        && document.querySelector( '#composition-source-heat-visible' ).checked
+    );
     cosmos.setVisible( mode.cosmos );
     tree.setVisible( mode.tree );
-    darkMatterSea.setVisible( mode.substrate );
-    const isolatedSubstrate = modeId === 'substrate';
-    universe.environment.hemisphereLight.visible = !isolatedSubstrate;
-    universe.environment.keyLight.visible = !isolatedSubstrate;
-    universe.environment.rimLight.visible = !isolatedSubstrate;
-    universe.environment.membraneSurface.visible = mode.terrain;
-    universe.environment.receiver.visible = mode.terrain && mode.universe;
-    universe.environment.diagnostic.visible = mode.terrain
+    universe.environment.diagnostic.visible = mode.universe
         && document.querySelector( '#u-diagnostic' ).checked;
     const contactVisible = mode.universe && mode.tree;
     moltenContact.setActive( contactVisible );
@@ -224,83 +219,44 @@ document.querySelectorAll( '[data-layer-mode]' ).forEach( ( button ) => {
 
 document.querySelector( '#u-diagnostic' ).addEventListener( 'change', ( event ) => {
     const mode = layerModes[activeLayerModeId];
-    universe.environment.diagnostic.visible = mode.terrain
+    universe.environment.diagnostic.visible = mode.universe
         && event.currentTarget.checked;
 } );
 
-const darkMatterControls = Object.freeze( {
-    'dark-matter-level': {
-        property: 'outerDepth',
-        decimals: 2
-    },
-    'dark-matter-relief': {
-        property: 'relief',
-        decimals: 2
-    },
-    'dark-matter-drift': {
-        property: 'drift',
-        decimals: 2
-    },
-    'dark-matter-reveal': {
-        property: 'grazingReveal',
-        decimals: 2
+document.querySelector( '#composition-source-heat-visible' ).addEventListener(
+    'change',
+    ( event ) => {
+        const mode = layerModes[activeLayerModeId];
+        forge.setVisible( mode.universe && event.currentTarget.checked );
+        updateForgeReadouts();
     }
+);
+
+const forgeRangeControls = Object.freeze( {
+    'composition-heat-intensity': { property: 'heatIntensity', decimals: 2 },
+    'composition-heat-reach': { property: 'heatReach', decimals: 2 },
+    'composition-settling-time': { property: 'settlingTime', decimals: 2 }
 } );
 
-function displayDarkMatterControlValue( id, descriptor, value )
-{
-    document.querySelector( `#${id}-value` ).value = Number( value ).toFixed(
-        descriptor.decimals
-    );
-}
-
-function updateDarkMatterReadouts()
-{
-    const state = darkMatterSea.getSnapshot();
-    if ( !state ) return;
-    document.querySelector( '#dark-matter-boundary' ).value =
-        `${state.depthSource} · ${state.deepMediumDepth.toFixed( 2 )}`
-        + ` + ${state.guaranteedDeepClearance.toFixed( 2 )}`;
-    document.querySelector( '#dark-matter-extent' ).value =
-        `${state.extent.toFixed( 0 )} across · sunk perimeter`;
-    document.querySelector( '#dark-matter-construction' ).value =
-        `${state.broadPressureModeCount} mass + `
-        + `${state.finePressureModeCount} light · 0 textures`;
-}
-
-for ( const [ id, descriptor ] of Object.entries( darkMatterControls ) )
+for ( const [ id, descriptor ] of Object.entries( forgeRangeControls ) )
 {
     const control = document.querySelector( `#${id}` );
-    const range = darkMatterSeaRanges[descriptor.property];
+    const output = document.querySelector( `#${id}-value` );
+    const range = forgeSourceRanges[descriptor.property];
     control.min = range.min;
     control.max = range.max;
     control.step = range.step;
-    control.value = darkMatterSea.parameters[descriptor.property];
+    control.value = forgeSourceDefaults[descriptor.property];
+    output.value = Number( control.value ).toFixed( descriptor.decimals );
     control.addEventListener( 'input', () => {
-        const value = darkMatterSea.setParameter(
+        const value = forge.setParameter(
             descriptor.property,
             Number( control.value )
         );
-        displayDarkMatterControlValue( id, descriptor, value );
-        updateDarkMatterReadouts();
+        output.value = value.toFixed( descriptor.decimals );
+        updateForgeReadouts();
     } );
-    displayDarkMatterControlValue(
-        id,
-        descriptor,
-        darkMatterSea.parameters[descriptor.property]
-    );
 }
-
-document.querySelector( '#dark-matter-reset' ).addEventListener( 'click', () => {
-    darkMatterSea.reset();
-    for ( const [ id, descriptor ] of Object.entries( darkMatterControls ) )
-    {
-        const value = darkMatterSeaDefaults[descriptor.property];
-        document.querySelector( `#${id}` ).value = value;
-        displayDarkMatterControlValue( id, descriptor, value );
-    }
-    updateDarkMatterReadouts();
-} );
 
 const treeRangeControls = Object.freeze( {
     'tree-crown-spread': {
@@ -391,8 +347,6 @@ function updateAnchorReadout()
     const [ x, y, z ] = tree.getState().anchor;
     document.querySelector( '#tree-root-anchor' ).value =
         `${x.toFixed( 2 )}, ${y.toFixed( 2 )}, ${z.toFixed( 2 )}`;
-    darkMatterSea.updateSurface();
-    updateDarkMatterReadouts();
     updatePlantingReadouts();
 }
 
@@ -480,6 +434,7 @@ for ( const controlId of [ 'u-depth', 'u-width' ] )
 {
     document.querySelector( `#${controlId}` ).addEventListener( 'input', () => {
         cosmos.updateSurface();
+        forge.refreshSurface();
         tree.updatePlacement();
         updateAnchorReadout();
     } );
@@ -518,13 +473,18 @@ function updateTreeReadouts()
 }
 
 world.addFrameCallback( ( time ) => {
+    forge.update( time );
     tree.update( time );
-    darkMatterSea.update( time );
     moltenContact.update( time );
+    updateForgeReadouts();
     updateTreeReadouts();
 } );
 
 updateAnchorReadout();
 setLayerMode( 'complete' );
-world.setCameraView( cameraViews.composition );
+document.querySelector( '#u-reset' ).addEventListener( 'click', () => {
+    forge.clearActivity();
+    updateForgeReadouts();
+} );
+setCameraView( 'composition' );
 world.start( () => tree.render() );

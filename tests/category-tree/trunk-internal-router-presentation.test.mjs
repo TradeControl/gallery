@@ -6,8 +6,8 @@ import {
     createHierarchy,
     representativeHierarchy,
     unfoldingHierarchy
-} from '../../src/category-tree/tree/hierarchy.js';
-import { createUnfoldingLayout } from '../../src/category-tree/tree/layout.js';
+} from '../../src/lib/tree/hierarchy.js';
+import { createUnfoldingLayout } from '../../src/lib/tree/layout.js';
 import {
     createEngineeredTreeLayer,
     createInformationRoute,
@@ -15,17 +15,17 @@ import {
     getInformationPacketRadius,
     informationPacketVisualProfile,
     internalRouterPresentationCandidateId
-} from '../../src/category-tree/tree/engineered-tree-layer.js';
+} from '../../src/lib/tree/engineered-tree-layer.js';
 import {
     internalRouterSeedSite
-} from '../../src/category-tree/tree/internal-router-tree.js';
+} from '../../src/lib/tree/internal-router-tree.js';
 import {
     trunkRuneCandidateIds
-} from '../../src/category-tree/tree/trunk-rune-layer.js';
+} from '../../src/lib/tree/trunk-rune-layer.js';
 import {
     createInternalRouterPacketTrailGeometry,
     internalRouterPresentationStyle
-} from '../../src/category-tree/tree/trunk-visibility-renderer.js';
+} from '../../src/lib/tree/trunk-visibility-renderer.js';
 
 function createFixture( overrides = {} )
 {
@@ -110,7 +110,7 @@ test( 'the signed-off packet-only presentation is integral on load', () => {
     );
     const rendererSource = readFileSync(
         new URL(
-            '../../src/category-tree/tree/trunk-visibility-renderer.js',
+            '../../src/lib/tree/trunk-visibility-renderer.js',
             import.meta.url
         ),
         'utf8'
@@ -394,7 +394,7 @@ test( 'D4 preserves one exact gold head-and-wake trail per packet at 11 Hz', () 
 test( 'D4 renderer stays bounded and disposes only renderer-owned resources', () => {
     const source = readFileSync(
         new URL(
-            '../../src/category-tree/tree/trunk-visibility-renderer.js',
+            '../../src/lib/tree/trunk-visibility-renderer.js',
             import.meta.url
         ),
         'utf8'

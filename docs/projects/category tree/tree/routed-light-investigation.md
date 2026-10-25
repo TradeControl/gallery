@@ -40,7 +40,7 @@ added.
 
 ## Files changed for this block
 
-- `src/category-tree/tree/engineered-tree-layer.js`
+- `src/lib/tree/engineered-tree-layer.js`
 - `tests/category-tree/routed-light.test.mjs`
 - `tests/category-tree/monumental-trunk.test.mjs`
 - `docs/projects/category tree/tree/routed-light-investigation.md`
@@ -163,8 +163,8 @@ latent node is at least `0.999` mature.
 
 ### Files changed for Block 2
 
-- `src/category-tree/tree/engineered-tree-layer.js`
-- `src/category-tree/tree/growth-cycle.js`
+- `src/lib/tree/engineered-tree-layer.js`
+- `src/lib/tree/growth-cycle.js`
 - `src/category-tree/tree/index.html`
 - `src/category-tree/tree/main.js`
 - `tests/category-tree/routed-light.test.mjs`
@@ -304,7 +304,7 @@ were not redesigned.
 
 ### Files changed for Block 3
 
-- `src/category-tree/tree/engineered-tree-layer.js`
+- `src/lib/tree/engineered-tree-layer.js`
 - `src/category-tree/tree/index.html`
 - `src/category-tree/tree/main.js`
 - `tests/category-tree/routed-light.test.mjs`

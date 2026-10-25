@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import {
+    createEngineeredTreeLayer,
+    createGrowthCycle,
     createHierarchy,
+    createTrunkVisibilityRenderer,
+    createUnfoldingLayout,
     representativeHierarchy,
     unfoldingHierarchy
-} from '../tree/hierarchy.js';
-import { createUnfoldingLayout } from '../tree/layout.js';
-import { createEngineeredTreeLayer } from '../tree/engineered-tree-layer.js';
-import { createGrowthCycle } from '../tree/growth-cycle.js';
-import { createTrunkVisibilityRenderer } from '../tree/trunk-visibility-renderer.js';
+} from '../../lib/tree/index.js';
 import { createPlantingEnvelope } from './planting-envelope.js';
 import { createCompositionRootSystem } from './root-system.js';
 

@@ -3,17 +3,74 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Casting Pit v0.3</title>
+    <title>Casting Pit · Continuous lava-source study</title>
     <link rel="stylesheet" href="./style.css">
   </head>
   <body>
-    <main id="scene" aria-label="Casting Pit parcel dynamics study"></main>
+    <main id="scene" aria-label="Casting Pit continuous lava-source study"></main>
 
-    <aside class="controls" aria-label="Parcel dynamics controls">
+    <aside class="controls" aria-label="Continuous lava-source and parcel dynamics controls">
       <header>
-        <p>Shared Rim Reservoir</p>
-        <h1>Casting Pit <span>v0.3 distributed feeds</span></h1>
+        <p>F3 · stream-origin heat</p>
+        <h1>Casting Pit <span>causal source study</span></h1>
+        <p class="statement">
+          Every real lava feed is its own forge. Only the existing stream's
+          first molten pixels receive a pressure-responsive thermal lift; no
+          separate source silhouette or material is created.
+        </p>
       </header>
+
+      <div class="section-label">Thermal source ring</div>
+
+      <fieldset class="forge-mode">
+        <legend>Manifestation</legend>
+        <button type="button" data-forge-mode="off" aria-pressed="false">Off</button>
+        <button type="button" data-forge-mode="selected" aria-pressed="false">Selected</button>
+        <button class="active" type="button" data-forge-mode="all" aria-pressed="true">Whole ring</button>
+      </fieldset>
+
+      <label class="control" for="source-radius">
+        <span>Lava-source ring radius</span>
+        <output id="source-radius-value" for="source-radius">13.00</output>
+        <input id="source-radius" type="range" min="9" max="16" step="0.25" value="13">
+      </label>
+
+      <label class="control" for="forge-source-index">
+        <span>Selected feed</span>
+        <output id="forge-source-index-value" for="forge-source-index">1 / 12</output>
+        <input id="forge-source-index" type="range" min="1" max="12" step="1" value="1">
+      </label>
+
+      <label class="control" for="forge-heat-intensity">
+        <span>Source heat</span>
+        <output id="forge-heat-intensity-value" for="forge-heat-intensity">0.40</output>
+        <input id="forge-heat-intensity" type="range" min="0" max="1" step="0.05" value="0.4">
+      </label>
+
+      <label class="control" for="forge-heat-reach">
+        <span>Heat reach</span>
+        <output id="forge-heat-reach-value" for="forge-heat-reach">2.25</output>
+        <input id="forge-heat-reach" type="range" min="0.5" max="5" step="0.05" value="2.25">
+      </label>
+
+      <label class="control" for="forge-settling-time">
+        <span>Pressure settling</span>
+        <output id="forge-settling-time-value" for="forge-settling-time">1.25</output>
+        <input id="forge-settling-time" type="range" min="0.4" max="2.5" step="0.05" value="1.25">
+      </label>
+
+      <dl class="stats forge-stats" aria-label="Forge-source statistics">
+        <div><dt>Source</dt><dd><output id="forge-selected-readout">no source</output></dd></div>
+        <div><dt>Active source heat</dt><dd><output id="forge-heat-readout">0 / 12 active</output></dd></div>
+        <div><dt>Accepted events</dt><dd><output id="forge-emission-readout">0 / 0 manifested</output></dd></div>
+        <div><dt>Thermal sources</dt><dd><output id="forge-ring-readout">0 sources</output></dd></div>
+        <div><dt>Synthetic mass</dt><dd>0</dd></div>
+      </dl>
+
+      <p class="provisional-note">
+        Source heat changes only the existing stream's thermal presentation.
+        It adds no footprint, parcel or synthetic mass.
+      </p>
 
       <div class="section-label">Membrane</div>
 
@@ -156,6 +213,8 @@
         <legend>Camera</legend>
         <button type="button" data-view="monumental">Monumental</button>
         <button type="button" data-view="elevated">Elevated</button>
+        <button class="active" type="button" data-view="forge-ring" aria-pressed="true">Source ring</button>
+        <button type="button" data-view="forge-source" aria-pressed="false">Selected source</button>
       </fieldset>
 
       <div class="button-row">
@@ -182,7 +241,7 @@
         <div><dt>Simulation</dt><dd id="simulation-time">0.00 ms</dd></div>
       </dl>
 
-      <p class="hint">Distributed inflow · shared rim storage · independent phased release</p>
+      <p class="hint">One continuous molten field · subtle source heat · no synthetic lava</p>
     </aside>
 
     <script type="module" src="./main.js"></script>

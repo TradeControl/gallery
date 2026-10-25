@@ -1,6 +1,6 @@
 # Tree — phased work plan
 
-**Status:** active experimental record; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1, C4d-D2 and C4d-D3 are approved; D4's technically valid v1 point-locus presentation is retained as artistically insufficient evidence; human review accepts the bounded v2 route-local head-and-wake presentation as the strongest artistic result so far; the exact-seed junction-knot experiment and consolidated standalone Tree are approved, with the baseline recorded at commit `7c88dc3`; composition work has moved to `../composition/`; aggregation and later Category Tree semantics remain gated
+**Status:** active experimental record; C1 retained as hidden architecture; C2's inventory disclosures and C3a's passive passage marks rejected artistically; C4a filigree remains reproducible technical evidence; C4b-O1's exterior optical fibre is technically valid but artistically rejected as a wrapped thread; C4c-I1's packet-selected internal arborescence is technically valid but artistically rejected as too longitudinal and visually subdued; C4d-D1, C4d-D2 and C4d-D3 are approved; D4's technically valid v1 point-locus presentation is retained as artistically insufficient evidence; human review accepts the bounded v2 route-local head-and-wake presentation as the strongest artistic result so far; the exact-seed junction-knot experiment and consolidated standalone Tree are approved, with the baseline recorded at commit `7c88dc3`; reusable Tree mechanisms now live in `src/lib/tree/` and are shared by the standalone study and composition; composition work has moved to `../composition/`; aggregation and later Category Tree semantics remain gated
 **Scope:** the Tree as an independent construction problem and its retained experiment history; integration now has a separate composition plan
 
 ## Decision: develop the Tree separately first
@@ -52,17 +52,18 @@ The signed-off Casting Pit also establishes constraints for eventual composition
 
 ## Proposed working structure
 
-The first runnable study should live at `src/category-tree/tree/`. Its `main.js` should remain a composition root: create the neutral world, select a representative hierarchy, construct the Tree layer, bind the small control surface and start the frame loop.
+The runnable reference study remains at `src/category-tree/tree/`. Its `main.js` is now an endpoint root: it creates the neutral world, chooses the controls, defaults, lighting and cameras, and starts the frame loop.
 
-If the study proves reusable mechanisms, a small Tree library can be introduced under `src/lib/category-tree/tree/`. Likely responsibilities are:
+On 2026-10-25 the proved reusable mechanisms were moved without intentional functional change into `src/lib/tree/`, with `index.js` as the public application surface. Both the standalone endpoint and `src/category-tree/composition/tree-instance.js` now consume that same library. Its responsibilities are:
 
 - **model:** validate and index explicit nodes and parent-child edges;
 - **layout:** deterministically assign local positions to that known hierarchy;
 - **structure:** render finite conduits and role-specific nodes;
 - **activity:** move events along actual edges and resolve them at actual confluences;
-- **layer:** own the Tree group and expose only the composition seams demonstrated by the study.
+- **layer:** own the Tree group and expose only the composition seams demonstrated by the study;
+- **presentation mechanisms:** own the rune, internal-router and multipass visibility implementations without owning a scene, page or Casting Pit policy.
 
-These are provisional boundaries, not permission to create a general graph framework. Modules should be split only when the corresponding mechanism exists.
+The DOM, camera, lighting and page controls remain endpoint-owned. The planting envelope and physical-root adapter remain composition-owned because they depend on the live Casting Pit membrane. This is a dependency-boundary refactor, not a new artistic acceptance or permission to create a general graph framework. See `src/lib/tree/README.md` for the current module boundary.
 
 ## Representative hierarchy
 

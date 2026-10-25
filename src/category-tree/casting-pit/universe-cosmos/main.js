@@ -26,8 +26,15 @@ const universe = createSluiceGateLayer( {
     parameters,
     root: document.querySelector( '#universe-controls' ),
     controlPrefix: 'u-',
-    moltenRenderOrder: 5
+    moltenRenderOrder: 5,
+    includeEnvironment: false
 } );
+world.scene.add(
+    universe.environment.diagnostic,
+    universe.environment.hemisphereLight,
+    universe.environment.keyLight,
+    universe.environment.rimLight
+);
 
 const cosmos = createCosmicCircuitryLayer( {
     world,

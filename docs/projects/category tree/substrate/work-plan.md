@@ -1,7 +1,7 @@
 # Energetic substrate — standalone work plan
 
 **Date:** 2026-10-25  
-**Status:** S1 implemented and ready for human visual review; composition integration deliberately deferred
+**Status:** S1 material and material-local lighting implemented and ready for human visual review; composition integration deliberately deferred
 
 ## Why this study is separate
 
@@ -11,10 +11,10 @@ The standalone endpoint at `src/category-tree/substrate/index.html` removes thos
 
 ## Code boundary
 
-- `src/category-tree/substrate/` owns the page, cameras, lighting, controls and one render loop.
-- `src/lib/substrate/` owns fixed surface geometry, procedural displacement, optical detail, bounded parameters and deterministic motion.
-- The engine has no DOM, renderer, camera, well, membrane, terrain, Tree, planting-envelope or composition dependency.
-- The existing composition prototype remains intact as comparison evidence. S1 does not import or adapt it.
+- `src/category-tree/substrate/` owns the page, cameras, controls and one render loop. It contains no light objects and uses the composition exposure of `1.00`.
+- `src/lib/substrate/` owns fixed surface geometry, procedural displacement, optical detail, bounded parameters, deterministic motion and material-local illumination.
+- The engine has no scene-light, DOM, renderer, camera, well, membrane, terrain, Tree, planting-envelope or composition dependency.
+- The rejected composition-bound prototype is recoverable at reference commit `7cffc2b`, but has been removed from the active composition. S1 does not import or adapt it.
 
 This restores the endpoint/library pattern still used by the Casting Pit. A future composition adapter may consume the accepted engine without transferring page ownership into the library.
 
@@ -26,10 +26,12 @@ The first independent surface combines:
 - two moving, elliptical energy packets so activity gathers and disperses locally;
 - three band-limited optical modes for close detail without distant moire;
 - asymmetric crests and domain-warped currents rather than evenly repeated sine rows;
-- opposing cold and warm grazing light over a nearly black opaque material;
+- opposing cold and warm grazing response over a nearly black opaque material, computed inside that material rather than by lights that can affect the rest of the world;
 - no image textures, data textures, particles, post-processing or environment map.
 
 The controls separate swell height, pressure energy, crest tension, cross-current, fine activity, reflection and current speed. Their bounds are part of the experiment: minimums remain visible and maximums remain a usable rough-sea state rather than a broken diagnostic.
+
+The first positively reviewed high-energy candidate used `1.60` swell height, `1.75` pressure energy, `0.30` crest tension, `1.35` cross-current, `0.40` fine activity, `1.15` reflection and `1.90` current speed. These are recorded comparison settings, not yet approved defaults.
 
 ## Review questions
 
@@ -46,6 +48,8 @@ No gravity-well shaping, terrain cutout, root interaction or P2 depth binding sh
 ## Technical verification
 
 - Eight focused substrate tests cover the public parameter contract, fixed resource ownership, shader structure, deterministic motion, visibility, disposal and the endpoint/library boundary.
-- The complete Category Tree suite passes 129 tests with zero failures.
-- Production builds pass for both the standalone substrate and the unchanged composition endpoint.
+- The material declares zero scene-light dependencies. Focused tests require all four standard lighting accumulators to be cleared before three world-stable, material-local directions are evaluated.
+- The standalone endpoint contains no Hemisphere, Directional, Ambient, Point or Spot lights and uses the composition's `1.00` exposure.
+- The rejected composition P5 implementation, controls and tests were removed after being preserved at reference commit `7cffc2b`; the active composition is again the accepted P4 world.
+- The complete Category Tree suite passes 118 tests with zero failures, and production builds pass for both the standalone substrate and the restored P4 composition endpoint.
 - Live browser review covered the horizon, elevated and close-waterline cameras, plus the minimum and maximum control states. The elevated view exposed an early regular optical grid; S1 now uses irregular phase warping and derivative-based band limiting so that distant fine detail recedes instead of producing moire.

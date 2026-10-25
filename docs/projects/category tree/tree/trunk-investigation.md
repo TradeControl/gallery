@@ -19,7 +19,7 @@ circumference.
 
 ## Files changed
 
-- `src/category-tree/tree/engineered-tree-layer.js`
+- `src/lib/tree/engineered-tree-layer.js`
 - `tests/category-tree/monumental-trunk.test.mjs`
 - `docs/projects/category tree/tree/trunk-investigation.md`
 

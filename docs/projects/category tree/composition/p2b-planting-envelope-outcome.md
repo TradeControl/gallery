@@ -51,4 +51,4 @@ The composition controls now expose a supported placement envelope rather than e
 
 ## Boundary
 
-P2 now supplies truthful shared spatial evidence and terrain ownership. It does not add visible root geometry, replace the standalone trunk's temporary planted extension, create a collar, or make molten material react to the Tree. Those remain the bounded responsibilities of P3 and P4.
+P2 now supplies truthful shared spatial evidence. The visible opaque-terrain presentation was later retired by P7/F3; the planting envelope remains valid because it samples the mathematical membrane directly. A detached, colourless copy of the same membrane geometry is still supplied only to the Tree's D4 stencil renderer so rootward packet trails respect nearer terrain. It is not a scene surface and does not occlude lava or Cosmos. P2 does not add visible root geometry, replace the standalone trunk's temporary planted extension, create a collar, or make molten material react to the Tree. Those remain the bounded responsibilities of P3 and P4.

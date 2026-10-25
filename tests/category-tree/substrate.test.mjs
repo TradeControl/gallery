@@ -56,6 +56,8 @@ test( 'the public engine builds one fixed opaque textureless surface', () => {
     assert.equal( snapshot.geometricBandCount, 2 );
     assert.equal( snapshot.opticalBandCount, 3 );
     assert.equal( snapshot.packetCount, 2 );
+    assert.equal( snapshot.lightingModel, 'material-local' );
+    assert.equal( snapshot.sceneLightDependencyCount, 0 );
     assert.ok( sea.mesh.material.isMeshStandardMaterial );
     assert.equal( sea.mesh.material.transparent, false );
     assert.equal( sea.mesh.material.depthTest, true );
@@ -106,6 +108,28 @@ test( 'the shader contains real multi-band geometry and optical compression', ()
     assert.match(
         shader.fragmentShader,
         /reflectedLight\.indirectSpecular\s*\+=/
+    );
+    for ( const bucket of [
+        'directDiffuse',
+        'directSpecular',
+        'indirectDiffuse',
+        'indirectSpecular'
+    ] )
+    {
+        assert.match(
+            shader.fragmentShader,
+            new RegExp(
+                `reflectedLight\\.${bucket}\\s*=\\s*vec3\\(\\s*0\\.0\\s*\\)`
+            )
+        );
+    }
+    assert.match( shader.fragmentShader, /mat3\( viewMatrix \)/ );
+    assert.match( shader.fragmentShader, /substrateKeyColour/ );
+    assert.match( shader.fragmentShader, /substrateCrossColour/ );
+    assert.match( shader.fragmentShader, /substrateWarmColour/ );
+    assert.equal(
+        Array.from( shader.fragmentShader.matchAll( /RE_Direct\(/g ) ).length,
+        3
     );
     const source = readFileSync(
         new URL(
@@ -278,6 +302,11 @@ test( 'the standalone endpoint is a thin owner of controls and one loop', () => 
     }
     assert.match( main, /from '\.\.\/\.\.\/lib\/substrate\/index\.js'/ );
     assert.doesNotMatch( main, /composition|plantingEnvelope|membrane|gravity/i );
+    assert.doesNotMatch(
+        main,
+        /HemisphereLight|DirectionalLight|AmbientLight|PointLight|SpotLight/
+    );
+    assert.match( main, /renderer\.toneMappingExposure = 1;/ );
     assert.equal( Array.from( main.matchAll( /setAnimationLoop/g ) ).length, 1 );
     assert.ok( main.indexOf( 'sea.update( time )' ) < main.indexOf( 'renderer.render' ) );
     assert.match( main, /window\.addEventListener\( 'resize'/ );
