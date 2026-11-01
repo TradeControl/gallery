@@ -470,6 +470,60 @@ export function snapshotSluiceSourceEmission( {
     return Object.freeze( snapshot );
 }
 
+export function snapshotSluiceMoltenUptake( {
+    source,
+    sourceIndex,
+    parcel,
+    simulationTime,
+    boundaryRevision = null
+} )
+{
+    const settlement = parcel.moltenContactSettlement ?? {};
+    const parcelIdentity = Number.isInteger( parcel.capillaryIdentity )
+        ? parcel.capillaryIdentity
+        : null;
+    const capillaryRoute = parcel.capillaryRoute ?? null;
+    const identity = Object.freeze( {
+        parcelIdentity,
+        sourceIndex,
+        capillaryRouteId: capillaryRoute?.id ?? null,
+        capillaryPrimaryIndex: capillaryRoute?.primaryIndex ?? null,
+        capillaryTerminalIndex: capillaryRoute?.terminalIndex ?? null
+    } );
+    const contact = Object.freeze( {
+        position: Object.freeze( [
+            settlement.x ?? parcel.x,
+            settlement.z ?? parcel.z
+        ] ),
+        normal: Object.freeze( [
+            settlement.normalX ?? 0,
+            settlement.normalZ ?? 0
+        ] ),
+        residence: settlement.residence ?? parcel.contactResidence ?? 0,
+        tangentialTravel: settlement.tangentialTravel
+            ?? parcel.contactTangentialTravel
+            ?? 0,
+        boundaryRevision
+    } );
+    return Object.freeze( {
+        type: 'molten-root-uptake',
+        sourceIndex,
+        sourceLabel: source.label,
+        sourcePosition: Object.freeze( [ ...source.position ] ),
+        sourceDirection: Object.freeze( [ ...source.direction ] ),
+        identity,
+        parcelIdentity,
+        position: Object.freeze( [ parcel.x, parcel.z ] ),
+        velocity: Object.freeze( [ parcel.vx, parcel.vz ] ),
+        mass: parcel.mass,
+        footprint: parcel.footprint,
+        temperature: parcel.temperature,
+        contact,
+        simulationTime,
+        identityPreserved: parcelIdentity !== null
+    } );
+}
+
 function generateGateSystem(
     gateCount,
     streamCount,
@@ -669,6 +723,7 @@ export function createSluiceGateLayer( {
     onGateLayoutChange = null,
     onSourceLayoutChange = null,
     onSourceEmission = null,
+    onMoltenUptake = null,
     getSourceHeatState = null,
     moltenContactBoundary: initialMoltenContactBoundary = null,
     capillaryNetwork = null
@@ -686,6 +741,10 @@ const hasOpening = typeof membrane.isInsideOpening === 'function';
 if ( getSourceHeatState !== null && typeof getSourceHeatState !== 'function' )
 {
     throw new TypeError( 'Source heat state must be supplied by a function.' );
+}
+if ( onMoltenUptake !== null && typeof onMoltenUptake !== 'function' )
+{
+    throw new TypeError( 'Molten uptake must be supplied by a function.' );
 }
 const capillary = resolveCapillaryNetworkOptions( capillaryNetwork );
 const moltenDomain = capillary.enabled
@@ -780,6 +839,10 @@ const contactDiagnostics = {
     contactStepCount: 0,
     settledParcelCount: 0,
     settledMass: 0,
+    uptakeEventCount: 0,
+    uptakeMass: 0,
+    uptakeCallbackFailureCount: 0,
+    lastUptakeCallbackError: null,
     divertedImpulse: 0
 };
 
@@ -2375,6 +2438,7 @@ function integrateParcels( timeStep )
             if ( contact.settled && !parcel.contactSettlementCounted )
             {
                 parcel.contactSettlementCounted = true;
+                parcel.moltenContactSettlement = contact;
                 contactDiagnostics.settledParcelCount += 1;
                 contactDiagnostics.settledMass += parcel.mass;
             }
@@ -2393,9 +2457,39 @@ function integrateParcels( timeStep )
         const radius = Math.hypot( parcel.x, parcel.z );
         const source = sourceDefinitions[parcel.sourceIndex];
 
+        if ( parcel.settledAtContact )
+        {
+            if ( parcel.moltenUptakeDispatched ) return false;
+            parcel.moltenUptakeDispatched = true;
+            source.captured += 1;
+            const uptake = snapshotSluiceMoltenUptake( {
+                source,
+                sourceIndex: parcel.sourceIndex,
+                parcel,
+                simulationTime: simulation.elapsed,
+                boundaryRevision: moltenContactBoundary?.revision ?? null
+            } );
+            contactDiagnostics.uptakeEventCount += 1;
+            contactDiagnostics.uptakeMass += uptake.mass;
+            if ( onMoltenUptake )
+            {
+                try
+                {
+                    onMoltenUptake( uptake );
+                }
+                catch ( error )
+                {
+                    contactDiagnostics.uptakeCallbackFailureCount += 1;
+                    contactDiagnostics.lastUptakeCallbackError = (
+                        error instanceof Error ? error.message : String( error )
+                    ).slice( 0, 240 );
+                }
+            }
+            return false;
+        }
+
         if (
-            parcel.settledAtContact
-                || parcel.enteredOpening
+            parcel.enteredOpening
                 || ( !hasOpening && radius <= simulation.receiverRadius )
         )
         {
@@ -2488,6 +2582,10 @@ function resetParcels()
     contactDiagnostics.contactStepCount = 0;
     contactDiagnostics.settledParcelCount = 0;
     contactDiagnostics.settledMass = 0;
+    contactDiagnostics.uptakeEventCount = 0;
+    contactDiagnostics.uptakeMass = 0;
+    contactDiagnostics.uptakeCallbackFailureCount = 0;
+    contactDiagnostics.lastUptakeCallbackError = null;
     contactDiagnostics.divertedImpulse = 0;
     capillaryDiagnostics.nextParcelId = 1;
     capillaryDiagnostics.inletEmissionCount = 0;

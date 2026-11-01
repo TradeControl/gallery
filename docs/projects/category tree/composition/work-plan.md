@@ -1,7 +1,7 @@
 # Category Tree composition — phased work plan
 
 **Date:** 2026-11-01
-**Status:** active 2026-11-01 checkpoint; the shared Tree library refactor is complete; P4 remains a sufficient contact study; P6 has a provisional clean-line/default-tuning pass; the accepted independent substrate engine now has a bounded P5 composition-integration candidate; P7/F4 has a bounded provisional whole-plexus composition adapter; P8.1 now supplies the standalone Tree and Composition with one moving-gust-front candidate and a shared `0–15 s` to `13–29 s` interval-band review control; and P2 has a bounded ordinary terrain-depth candidate plus a live D4 terrain-depth comparison under human review
+**Status:** active 2026-11-01 checkpoint; the shared Tree library refactor is complete; P4 remains a sufficient contact study; P6 has a provisional clean-line/default-tuning pass; the accepted independent substrate engine now has a bounded P5 composition-integration candidate; P7/F4 has a bounded provisional whole-plexus composition adapter; P8.1 now supplies the standalone Tree and Composition with one moving-gust-front candidate and a shared `0–15 s` to `13–29 s` interval-band review control; P10.2 replaces the first bead-like uptake manifestation with a bounded routed-liquid experiment paced by the existing information cadence; and P2 has a bounded ordinary terrain-depth candidate plus a live D4 terrain-depth comparison under human review
 **Scope:** compose the signed-off Tree, Universe and Cosmos as one causal world while preserving their standalone reference endpoints
 
 ## Starting evidence
@@ -270,14 +270,43 @@ Can the approved defaults present one artwork without requiring the viewer to op
 - Reset returns to the approved composition, not to three unrelated source defaults.
 - The complete scene retains credible performance headroom.
 
-## P10 — causal transduction, deliberately deferred
+## P10 — causal transduction
 
-Only after the spatial, material and motion gates pass should the composition connect its two opposed flows:
+**Progress:** P10.1 proved the exact causal seam but its three-point manifestations read as beads. P10.2 retains that seam and replaces only the presentation with one connected routed-liquid field. At most one genuine waiting root-contact parcel is admitted on each existing information-packet cadence slot; surplus real contacts remain exact audited unvisualised mass, and an empty slot remains dark. The first routed pass incorrectly began every wake at the well nadir, reused the cyan centreline and applied the rim's hot colour without its physical attenuation. The active refinement now projects each genuine contact onto the planted trunk, clips the route below that entry, assigns it to one of three continuous subsurface lanes around the bark circumference and reserves the centreline for cyan/gold transduction. Its molten head is a dark fraction of the rim palette and its finite wake cools almost to black. Composition review then rejected the correctly routed result as a near-invisible hairline: the original large-route radius was only `0.012`, or 37.5% of the cyan packet radius, and the first `0.024` correction still projected to only about 1.1 pixels. The current review candidate therefore replaces the fixed cap with a clearance-bound liquid envelope. At the default weight its trunk radius reaches `0.060`, while smaller branches narrow automatically against explicit cyan-core and outer-bark margins; neither the dark molten colour envelope nor its normal-alpha presentation changes. This remains a bounded review candidate, not an artistic acceptance. It does **not** add a second sugar-return layer. The existing cyan-to-gold information traversal remains the composition's opposed return.
 
-- molten material rises from the physical Universe through the planted root system to sustain the Tree;
-- aggregated information descends through the Tree and roots into ordered Cosmos.
+### P10.2 — routed-liquid physical uptake candidate
 
-These must remain distinct transport laws driven by real source events. P10 is listed now because P2–P9 must leave truthful seams for it, but it is not authority to implement decorative cross-system pulses during the visual composition work.
+The candidate belongs in the shared Tree library so the standalone Tree and Composition render the same routes, material, rooted deformation and packet lifecycle. The standalone endpoint may admit an explicitly labelled manual review pulse because it has no physical Universe. Composition may admit an uptake only after a real molten parcel reaches the root-contact region and is consumed there. Neither endpoint may create uptake on a timer, from source-forge activity or merely because the Tree is visible.
+
+This remains deliberately subordinate. Uptake uses the cyan packet's smooth Gaussian head and finite wake grammar, but owns a separate one-channel texture, reverse direction and molten palette. The palette retains the physical layer's cooled (`0.055, 0.009, 0.004`), warm (`0.46, 0.038, 0.006`) and hot (`0.95, 0.25, 0.018`) source colours, then restores the density/crust/edge attenuation omitted by the rejected bright-red pass: the wake is near-black cooled material, the body is dark rust and even the head remains below forty per cent linear red. It uses normal alpha rather than additive warning-light blending. There is no red-to-gold conversion, white core, bloom, scene light, bark recolouring, autonomous tube glow or new silhouette. A single merged tube mesh and fixed traffic texture carry all active wakes; the exact lifetime event and mass totals remain independent of that bounded presentation. Individual identities remain in a bounded recent-provenance window with explicit truncation metadata rather than an ever-growing render-loop ledger.
+
+### Question
+
+Can overlapping finite molten wakes read as liquid xylem in the trunk and discrete physical packets in the crown without turning the Tree into a red signpost or weakening the information hierarchy?
+
+### Work
+
+1. Define one immutable root-uptake event carrying the consumed parcel identity, physical source, mass, contact position and contact time. Emit it exactly once at genuine root contact, in the same update that transfers the real parcel out of the molten simulation, so physical mass never exists concurrently in both systems.
+2. Add one injectable physical-uptake layer to the shared Tree library. Composition passes only genuine consumed events; the standalone Tree's manual review button passes an explicitly synthetic test event. Neither path owns a private timer, animation loop or background emission rate.
+3. Reuse the authored information-route topology and signal profile without sharing information identities or transport state. Project the genuine accepted contact onto the rootward trunk, clip every earlier sample, then reverse route distance so molten wakes begin at that planted boundary, overlap through the common trunk, divide across twelve deterministic routes and reach `90–100%` of their route toward the branch tips. Rebuilding growth may replace route geometry but must not duplicate an accepted event.
+4. Render uptake through one merged tube mesh, one fixed `64 × lane-edge-count` traffic texture and one molten-rim material. Keep three continuous lanes between the cyan centre and bark, route each principal limb through its inherited lane and draw molten before cyan so the transducer remains authoritative. Attenuate the existing cooled, warm and hot physical-layer colours into a dark body and darker tail; prohibit a white-hot core, bloom, extra light, bark tint, idle tube glow or silhouette change.
+5. Apply the same rooted-motion field and absolute Tree-local time used by the shell and existing packet manifestations, so upward packets remain registered during gusts and **Freeze sway** changes pose only, not transport.
+6. Reuse `packetFrequency` as a presentation gate and `packetSpeed` as transport speed, with no extra physical-frequency control. The frequency creates no event or mass: each slot may select only one genuine waiting transfer, and all other real contacts are immediately booked as unvisualised exact count and mass. Rephase a live frequency change without a burst and retain deterministic results across coarse and fine frame cadence.
+7. Make the composition A/B control presentation-only. Hiding molten wakes must not restore consumed lava, pause uptake, change routing or alter the existing cyan-to-gold return flow. Reset and disposal must clear active visual packets and audit state without leaking geometry, material or callbacks.
+8. Keep the composition control panel collapsed on initial load and place the P10.2 A/B and readouts inside one closed diagnostic section. The standalone endpoint exposes one **Admit test uptake** action and an idle/xylem/branch readout, but no uptake-specific frequency, colour, brightness or automatic-emission control.
+9. Review P10.2 as upward transport only. Do not add a new downward sugar packet family: the existing cyan-to-gold information traversal remains the composition's opposed return.
+
+### Acceptance gate
+
+- Composition produces no uptake event without consuming one real molten parcel at the planted root contact, and each consumed parcel creates at most one immutable uptake event.
+- Consumed mass, accepted event mass and audited uptake mass balance exactly; hiding the presentation cannot change that balance.
+- The standalone manual pulse and composition's genuine event enter the same shared uptake layer, while the composition exposes no manual or timer-driven injection path.
+- Every visible wake begins at or above its genuine accepted contact, stays within a peripheral bark lane outside the cyan core, travels monotonically outward/upward along an existing Tree route and remains registered with rooted sway.
+- The head remains dark molten orange/rust rather than pure red, and its finite tail is darker still; neither may obscure the central cyan/gold transducer flow.
+- Overlapping wakes can form a connected trunk stream and then separate into legible branch packets without producing idle red tubes, broad bark illumination, a new silhouette or competition with cyan/gold information traffic.
+- Branch division is deterministic and bounded; intake bursts cannot allocate unbounded packet, geometry, material or lifetime identity-list resources.
+- **Freeze sway**, growth replay, layer visibility, camera changes and the collapsed control panel do not pause, duplicate or invent physical transport.
+- Human review may reject the entire optical treatment or request lower visual capacity without invalidating the one-parcel/one-event causal seam.
 
 ## Cross-phase verification
 
@@ -290,14 +319,15 @@ Every bounded phase should include:
 - the focused Category Tree test suite and a production build;
 - a brief outcome record separating technical result from human artistic judgement.
 
-The 1 November checkpoint places **P7 / F4 into the composition as a bounded provisional twelve-feed capillary-plexus review** and promotes **P8.1 as a bounded moving-gust-front candidate** shared by standalone Tree and composition. F3 thermal emphasis has been removed from the composition; neither F4 nor P8.1 has artistic acceptance. P8.1 keeps the contact and first trunk bay static, moves pressure spatially across the crown and drives shell, internal manifestations and the weighted physical-root shoulder through the same field. P6 remains a provisional clean-line pass. P5 has a spatially safe shared-engine integration candidate, and P2 has a distinct colourless ordinary-depth candidate over it. Their combined review must now account for the exposed P7 support and hidden-mode performance seams as well as sustained P8 collar stability and crown life.
+The 1 November checkpoint places **P7 / F4 into the composition as a bounded provisional twelve-feed capillary-plexus review**, promotes **P8.1 as a bounded moving-gust-front candidate** shared by standalone Tree and composition, and advances **P10.2 as a bounded routed-liquid physical-uptake experiment**. F3 thermal emphasis has been removed from the composition; F4, P8.1 and P10.2 remain review candidates without artistic acceptance. P8.1 keeps the contact and first trunk bay static, moves pressure spatially across the crown and drives shell, internal manifestations and the weighted physical-root shoulder through the same field. P10.2 consumes real root-contact parcels, paces a deterministic sample with the existing information frequency and discloses it through rim-coloured connected wakes; the existing cyan-to-gold system remains the sole downward information return. P6 remains a provisional clean-line pass. P5 has a spatially safe shared-engine integration candidate, and P2 has a distinct colourless ordinary-depth candidate over it. Their combined review must now account for the exposed P7 support, hidden-mode performance seam, sustained P8 collar stability and the possibility that P10.2 overwhelms the hierarchy it is intended to complete.
 
 Continue in this order:
 
-1. review P8.1 in the standalone Tree and in Composition's **Tree baseline** and **Complete** modes at default Rooted sway with **Gust interval base** at both `0–15 s` and `13–29 s`, then confirm that **Freeze sway** remains exactly neutral in both endpoints;
-2. use the well/root and contact cameras at default and maximum `0.65` to reject any collar slide, open junction, packet/rune separation or loss of lower-trunk weight;
-3. review P7/F4 in **Complete**, **Casting Pit only** and **Universe + Tree** modes from the composition, elevated and **Supply plexus** cameras, then compare the standalone selected and three-feed cluster controls;
-4. decide whether the twelve-feed visual load needs the current branch density, a thinner confluence or an additional bifurcation level, and whether outer capillaries need explicit physical support;
-5. measure complete-scene and hidden-Universe performance, then decide whether inspection modes should pause the roughly `2.25×` field workload or preserve continuous simulation state;
-6. complete human A/B review of the P2 depth owner and P5 substrate, including disclosure beyond the radial core, then recheck P3/P4 burial and collar contact;
-7. consolidate overall camera, relative emphasis and controls before considering any transient P8 load channel or P9 consolidation.
+1. review P10.2 first in the standalone Tree with isolated manual pulses, then at several pulses per second to decide whether the common-trunk overlap reads as liquid rather than beads or a permanent lamp;
+2. review the same shared layer in Composition after genuine root contact, confirming that the rim-derived orange balance belongs to the physical layer and remains quieter than cyan/gold information;
+3. compare composition, elevated, well/root and contact cameras with the control panel initially collapsed, then compare the presentation A/B without altering causal state;
+4. recheck P8.1 at default and maximum Rooted sway to reject collar slide, open junctions or red-packet separation during gusts and **Freeze sway**;
+5. review P7/F4 in **Complete**, **Casting Pit only** and **Universe + Tree** modes from the composition, elevated and **Supply plexus** cameras, then decide whether its visual load and physical support remain credible beneath P10.2;
+6. measure complete-scene and hidden-Universe performance, including the bounded uptake capacity, then decide whether inspection modes should pause the roughly `2.25×` molten-field workload or preserve continuous simulation state;
+7. complete human A/B review of the P2 depth owner and P5 substrate, including disclosure beyond the radial core, then recheck P3/P4 burial and collar contact;
+8. consolidate overall camera, relative emphasis and controls without adding a second downward return system.

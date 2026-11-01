@@ -185,7 +185,11 @@ test( 'the composition panel collapses without disturbing live scene state', () 
     )?.[0] ?? '';
     assert.match(
         compositionHtml,
-        /id="composition-controls-toggle"[\s\S]*?aria-controls="composition-controls"[\s\S]*?aria-expanded="true"[\s\S]*?aria-label="Hide controls"/
+        /<body class="controls-collapsed">[\s\S]*?id="composition-controls-toggle"[\s\S]*?aria-controls="composition-controls"[\s\S]*?aria-expanded="false"[\s\S]*?aria-label="Show controls"/
+    );
+    assert.match(
+        compositionHtml,
+        /id="composition-controls"[^>]*aria-hidden="true"[^>]*\binert\b/
     );
     assert.match(
         compositionMain,
@@ -195,6 +199,7 @@ test( 'the composition panel collapses without disturbing live scene state', () 
         compositionMain,
         /event\.key === 'Escape'[\s\S]*?setControlsCollapsed\( false \)[\s\S]*?controlsToggle\.focus\(\)/
     );
+    assert.match( compositionMain, /setControlsCollapsed\( true \);/ );
     assert.match(
         compositionStyle,
         /body\.controls-collapsed \.controls \{[^}]*visibility: hidden;[^}]*pointer-events: none;[^}]*transform: translateX/

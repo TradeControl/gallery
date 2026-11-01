@@ -154,9 +154,10 @@ test( 'review sections start closed under the final Tree recursion identity', ()
         compositionHtml.matchAll( /<details\b[^>]*>/g ),
         ( match ) => match[0]
     );
-    assert.equal( detailTags.length, 7 );
+    assert.equal( detailTags.length, 8 );
     detailTags.forEach( ( tag ) => assert.doesNotMatch( tag, /\bopen\b/ ) );
     assert.match( compositionHtml, /<summary>Tree · recursion<\/summary>/ );
+    assert.match( compositionHtml, /<summary>Tree · physical uptake<\/summary>/ );
     assert.doesNotMatch( compositionHtml, /Tree · accepted baseline/i );
 } );
 

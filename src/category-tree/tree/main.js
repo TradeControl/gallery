@@ -4,6 +4,7 @@ import {
     createEngineeredTreeLayer,
     createGrowthCycle,
     createHierarchy,
+    createPhysicalUptakeLayer,
     createTreeLayer,
     createTrunkVisibilityRenderer,
     createUnfoldingLayout,
@@ -94,6 +95,8 @@ scene.add( diagnostics.group );
 
 const engineeredTree = createEngineeredTreeLayer( hierarchy, positions, form );
 scene.add( engineeredTree.group );
+const physicalUptake = createPhysicalUptakeLayer( hierarchy, positions, form );
+scene.add( physicalUptake.group );
 const trunkVisibilityRenderer = createTrunkVisibilityRenderer(
     renderer,
     scene,
@@ -102,8 +105,10 @@ const trunkVisibilityRenderer = createTrunkVisibilityRenderer(
 );
 const growthCycle = createGrowthCycle( hierarchy, 2 );
 const matureGrowth = growthCycle.sample( Number.MAX_SAFE_INTEGER, 0.42 );
+let activeGrowthProgress = matureGrowth.progress;
 engineeredTree.setGrowthProgress( matureGrowth.progress );
 diagnostics.setGrowthProgress( matureGrowth.progress );
+physicalUptake.setGrowthProgress( matureGrowth.progress );
 let unfoldingElapsed = 0;
 let unfoldingActive = false;
 let previousAnimationTime = null;
@@ -113,6 +118,8 @@ function rebuildTree()
     positions = createPositions();
     diagnostics.update( positions, form );
     engineeredTree.rebuild( positions, form );
+    physicalUptake.rebuild( positions, form );
+    physicalUptake.setGrowthProgress( activeGrowthProgress );
     updateConstraintStats();
 }
 
@@ -199,6 +206,25 @@ bindRange(
     ( value ) => `${Math.round( value * 100 )}% trunk max`
 );
 
+let manualUptakeSequence = 0;
+let latestAnimationElapsed = 0;
+
+function updatePhysicalUptakeReadout()
+{
+    const uptake = physicalUptake.getSnapshot();
+    const output = document.querySelector( '#physical-uptake-activity' );
+    if ( uptake.acceptedTransferCount === 0 )
+    {
+        output.value = 'idle · manual test only';
+        return;
+    }
+    output.value = `${uptake.activeXylemCount} xylem`
+        + ` · ${uptake.activeBranchPacketCount} branch`
+        + ` · ${uptake.completedVisualCount} faded`
+        + ` · ${uptake.acceptedTransferCount} admitted`
+        + ` · mass ${uptake.acceptedMass.toFixed( 2 )}`;
+}
+
 document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
     const ids = {
         crownSpread: 'crown-spread',
@@ -223,14 +249,39 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
     }
     form.motionFrozen = formDefaults.motionFrozen;
     document.querySelector( '#freeze-motion' ).checked = form.motionFrozen;
+    manualUptakeSequence = 0;
+    physicalUptake.reset();
+    updatePhysicalUptakeReadout();
 } );
+
+document.querySelector( '#admit-physical-uptake' ).addEventListener(
+    'click',
+    () => {
+        const sequence = ++manualUptakeSequence;
+        physicalUptake.acceptPhysicalUptake( {
+            transferId: `standalone-review-${sequence}`,
+            sourceParcelId: `manual-parcel-${sequence}`,
+            sourceId: 'standalone-tree-review',
+            mass: 0.82,
+            energy: 0.74,
+            temperature: 0.74,
+            contactPosition: [ 0, 0, 0 ],
+            contactTime: latestAnimationElapsed,
+            presentationTime: latestAnimationElapsed
+        } );
+        physicalUptake.update( latestAnimationElapsed, form );
+        updatePhysicalUptakeReadout();
+    }
+);
 
 document.querySelector( '#replay-unfolding' ).addEventListener( 'click', () => {
     unfoldingElapsed = 0;
     unfoldingActive = true;
     const initial = growthCycle.reset();
+    activeGrowthProgress = initial.progress;
     engineeredTree.setGrowthProgress( initial.progress );
     diagnostics.setGrowthProgress( initial.progress );
+    physicalUptake.setGrowthProgress( initial.progress );
     document.querySelector( '#recursive-complexity' ).value = '0%';
 } );
 
@@ -298,6 +349,7 @@ function applyEngineeredVisibility()
         || inspectingTransport;
     surfaceControl.disabled = inspectingInternal;
     engineeredTree.setVisible( surfaceControl.checked && !inspectingInternal );
+    physicalUptake.setVisible( surfaceControl.checked && !inspectingInternal );
     engineeredTree.setTrunkVisibilityMode( 'off' );
     engineeredTree.setInternalRouterDiagnosticVisible( inspectingInternal );
     engineeredTree.setInternalRouterJunctionDiagnosticVisible(
@@ -400,10 +452,12 @@ function resize()
     trunkVisibilityRenderer.resize();
 }
 
-const animationStart = performance.now();
+let animationStart = null;
 function animate( now )
 {
-    const elapsed = ( now - animationStart ) / 1000;
+    if ( animationStart === null ) animationStart = now;
+    const elapsed = Math.max( 0, ( now - animationStart ) / 1000 );
+    latestAnimationElapsed = elapsed;
     const frameDelta = previousAnimationTime === null
         ? 0
         : Math.min( ( now - previousAnimationTime ) / 1000, 0.1 );
@@ -412,12 +466,16 @@ function animate( now )
     {
         unfoldingElapsed += frameDelta;
         const growth = growthCycle.sample( unfoldingElapsed, 0.42 );
+        activeGrowthProgress = growth.progress;
         engineeredTree.setGrowthProgress( growth.progress );
         diagnostics.setGrowthProgress( growth.progress );
+        physicalUptake.setGrowthProgress( growth.progress );
         document.querySelector( '#recursive-complexity' ).value = `${Math.round( growth.viability * 100 )}%`;
         if ( growth.complete ) unfoldingActive = false;
     }
     engineeredTree.update( elapsed, form );
+    physicalUptake.update( elapsed, form );
+    updatePhysicalUptakeReadout();
     orbitControls.update();
     trunkVisibilityRenderer.render();
     const junctionActivity = document.querySelector(

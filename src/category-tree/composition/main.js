@@ -71,8 +71,9 @@ document.addEventListener( 'keydown', ( event ) => {
         controlsToggle.focus();
     }
 } );
-setControlsCollapsed( false );
+setControlsCollapsed( true );
 
+let tree = null;
 const universe = createSluiceGateLayer( {
     world,
     membrane,
@@ -85,7 +86,8 @@ const universe = createSluiceGateLayer( {
         enabled: true,
         reviewMode: 'all',
         selectedSourceIndex: 0
-    }
+    },
+    onMoltenUptake: ( event ) => tree?.acceptPhysicalUptake( event )
 } );
 world.scene.add(
     universe.environment.diagnostic,
@@ -151,13 +153,25 @@ const cosmos = createCosmicCircuitryLayer( {
     manifestationLiftScale: 0.45
 } );
 
-const tree = createCompositionTree( {
+tree = createCompositionTree( {
     scene: world.scene,
     renderer: world.renderer,
     camera: world.camera,
     membrane,
     externalOccluders: [ universe.environment.membraneSurface ]
 } );
+
+document.querySelector( '#tree-physical-uptake-visible' ).addEventListener(
+    'change',
+    ( event ) => tree.setPhysicalUptakeVisible( event.currentTarget.checked )
+);
+for ( const id of [ 'u-reset', 'u-reseed' ] )
+{
+    document.querySelector( `#${id}` ).addEventListener(
+        'click',
+        tree.resetPhysicalUptake
+    );
+}
 
 const compositionSubstrate = createCompositionSubstrate( {
     scene: world.scene,
@@ -656,6 +670,27 @@ function updateTreeReadouts()
     document.querySelector( '#tree-render-state' ).value =
         `${render.passCount} pass${render.passCount === 1 ? '' : 'es'}`
         + ` · ${render.cpuSubmissionEmaMs.toFixed( 1 )} ms`;
+    const uptake = tree.physicalUptake.getSnapshot();
+    document.querySelector( '#tree-physical-uptake-state' ).value =
+        uptake.acceptedTransferCount === 0
+            ? 'waiting for root contact'
+            : ( uptake.activePacketCount > 0
+                ? `${uptake.activeXylemCount} xylem`
+                    + ` · ${uptake.activeBranchPacketCount} branch`
+                : 'absorbed · vessels quiet' );
+    document.querySelector( '#tree-physical-uptake-accounting' ).value =
+        `${uptake.acceptedTransferCount} events`
+        + ` · mass ${uptake.acceptedMass.toFixed( 3 )}`
+        + ` · Δ ${( Math.abs( uptake.massBalance ) < 0.0005
+            ? 0
+            : uptake.massBalance ).toFixed( 3 )}`;
+    const activeRoutes = new Set( uptake.activePackets.map(
+        ( packet ) => packet.routeTerminalId
+    ) ).size;
+    document.querySelector( '#tree-physical-uptake-traffic' ).value =
+        `${uptake.activePacketCount} wakes`
+        + ` · ${activeRoutes}/${uptake.routeCount} routes`
+        + ` · ${uptake.unvisualisedTransferCount} unshown`;
     const contact = moltenContact.getSnapshot();
     document.querySelector( '#molten-contact-state' ).value =
         `${contact.status} · ${contact.activeSectorCount} arcs`

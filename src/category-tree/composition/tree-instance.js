@@ -3,6 +3,7 @@ import {
     createEngineeredTreeLayer,
     createGrowthCycle,
     createHierarchy,
+    createPhysicalUptakeLayer,
     createTrunkVisibilityRenderer,
     createUnfoldingLayout,
     representativeHierarchy,
@@ -127,9 +128,14 @@ export function createCompositionTree( {
 
     let positions = createPositions();
     const layer = createEngineeredTreeLayer( hierarchy, positions, form );
+    const physicalUptake = createPhysicalUptakeLayer(
+        hierarchy,
+        positions,
+        form
+    );
     const plantingGroup = new THREE.Group();
     plantingGroup.name = 'Category Tree planting transform';
-    plantingGroup.add( layer.group );
+    plantingGroup.add( layer.group, physicalUptake.group );
     scene.add( plantingGroup );
 
     const growthCycle = createGrowthCycle( hierarchy, 2 );
@@ -139,6 +145,7 @@ export function createCompositionTree( {
     let startTime = null;
     let previousTime = null;
     layer.setGrowthProgress( growthState.progress );
+    physicalUptake.setGrowthProgress( growthState.progress );
 
     const visibilityRenderer = createTrunkVisibilityRenderer(
         renderer,
@@ -158,6 +165,8 @@ export function createCompositionTree( {
     let plantingEnvelopeDiagnosticRequested = false;
     let physicalRootDiagnosticRequested = false;
     let treeVisible = true;
+    let physicalUptakePresentationRequested = true;
+    let physicalUptakeEventSequence = 0;
 
     function refreshPlantingEnvelope( force = false )
     {
@@ -193,7 +202,9 @@ export function createCompositionTree( {
     {
         positions = createPositions();
         layer.rebuild( positions, form );
+        physicalUptake.rebuild( positions, form );
         layer.setGrowthProgress( growthState.progress );
+        physicalUptake.setGrowthProgress( growthState.progress );
         refreshPlantingEnvelope();
     }
 
@@ -203,6 +214,7 @@ export function createCompositionTree( {
         growthElapsed = 0;
         unfoldingActive = false;
         layer.setGrowthProgress( growthState.progress );
+        physicalUptake.setGrowthProgress( growthState.progress );
         refreshPlantingEnvelope();
     }
 
@@ -212,6 +224,7 @@ export function createCompositionTree( {
         unfoldingActive = true;
         growthState = growthCycle.reset();
         layer.setGrowthProgress( growthState.progress );
+        physicalUptake.setGrowthProgress( growthState.progress );
         refreshPlantingEnvelope();
     }
 
@@ -245,7 +258,51 @@ export function createCompositionTree( {
         Object.assign( form, treeBaselineDefaults );
         positions = createPositions();
         layer.rebuild( positions, form );
+        physicalUptake.rebuild( positions, form );
+        physicalUptake.reset();
+        physicalUptakeEventSequence = 0;
         setMature();
+    }
+
+    function acceptPhysicalUptake( event )
+    {
+        if ( !event || event.type !== 'molten-root-uptake'
+            || !Array.isArray( event.contact?.position )
+            || event.contact.position.length !== 2 )
+        {
+            throw new TypeError(
+                'Composition Tree uptake requires a molten root-contact event.'
+            );
+        }
+        const [ worldX, worldZ ] = event.contact.position;
+        plantingGroup.updateWorldMatrix( true, true );
+        const localContact = plantingGroup.worldToLocal( new THREE.Vector3(
+            worldX,
+            membrane.height( worldX, worldZ ),
+            worldZ
+        ) );
+        physicalUptakeEventSequence += 1;
+        return physicalUptake.acceptPhysicalUptake( {
+            transferId: `composition-uptake-${physicalUptakeEventSequence}`,
+            sourceParcelId: Number.isInteger( event.parcelIdentity )
+                ? `parcel-${event.parcelIdentity}`
+                : `unidentified-${physicalUptakeEventSequence}`,
+            sourceId: `feed-${event.sourceIndex}`,
+            mass: event.mass,
+            energy: Math.max( event.temperature, 0.001 ),
+            temperature: Math.max( event.temperature, 0.001 ),
+            contactPosition: localContact.toArray(),
+            contactTime: event.simulationTime,
+            presentationTime: startTime === null
+                ? 0
+                : Math.max( 0, ( performance.now() - startTime ) / 1000 )
+        } );
+    }
+
+    function resetPhysicalUptake()
+    {
+        physicalUptakeEventSequence = 0;
+        return physicalUptake.reset();
     }
 
     function applyPlacementTransform( transform )
@@ -299,10 +356,12 @@ export function createCompositionTree( {
             growthElapsed += frameDelta;
             growthState = growthCycle.sample( growthElapsed, 0.42 );
             layer.setGrowthProgress( growthState.progress );
+            physicalUptake.setGrowthProgress( growthState.progress );
             refreshPlantingEnvelope();
             if ( growthState.complete ) unfoldingActive = false;
         }
         layer.update( elapsed, form );
+        physicalUptake.update( elapsed, form );
     }
 
     updatePlacement();
@@ -312,6 +371,7 @@ export function createCompositionTree( {
         hierarchy,
         group: plantingGroup,
         layer,
+        physicalUptake,
         visibilityRenderer,
         plantingEnvelope,
         physicalRootSystem,
@@ -320,6 +380,8 @@ export function createCompositionTree( {
         resize: visibilityRenderer.resize,
         replayGrowth,
         resetForm,
+        resetPhysicalUptake,
+        acceptPhysicalUptake,
         setFormValue,
         setPlacementValue,
         updatePlacement,
@@ -331,9 +393,18 @@ export function createCompositionTree( {
             physicalRootDiagnosticRequested = Boolean( visible );
             return applyPhysicalRootDiagnosticVisibility();
         },
+        setPhysicalUptakeVisible( visible ) {
+            physicalUptakePresentationRequested = Boolean( visible );
+            return physicalUptake.setVisible(
+                treeVisible && physicalUptakePresentationRequested
+            );
+        },
         setVisible( visible ) {
             treeVisible = Boolean( visible );
             layer.setVisible( treeVisible );
+            physicalUptake.setVisible(
+                treeVisible && physicalUptakePresentationRequested
+            );
             physicalRootSystem.setVisible( treeVisible );
             applyPlantingEnvelopeDiagnosticVisibility();
             applyPhysicalRootDiagnosticVisibility();
