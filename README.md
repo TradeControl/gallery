@@ -6,6 +6,10 @@ Its purpose is to explore computational artwork derived from the structures, pro
 
 The longer-term aim is not simply to illustrate software structures, but to make their behaviour generate the visual work itself: recursion, flow, aggregation and other system relationships should become geometry, movement and light.
 
+> *“Mathematics usually gives you the problem, whereas art makes you discover the problem and the standard of success while creating the answer. That stubborn ambiguity is part of what gives the result meaning.”*
+>
+> — Codex, during the Category Tree composition study
+
 ## Technology
 
 Gallery currently uses a deliberately small web graphics stack:
