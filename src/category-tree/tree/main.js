@@ -50,16 +50,18 @@ scene.add( datum );
 const establishedHierarchy = createHierarchy( representativeHierarchy );
 const hierarchy = createHierarchy( unfoldingHierarchy );
 const formDefaults = {
-    crownSpread: 1.14,
+    crownSpread: 0.8,
     verticalRise: 0.95,
     asymmetry: 0.68,
     conduitWeight: 1.34,
-    windSweep: 0.48,
+    windSweep: 0,
     surfaceRelief: 0.1,
-    structuralResponse: 0.22,
+    structuralResponse: 0.5,
+    canopyGustCandidate: true,
+    gustIntervalBase: 0,
     packetSpeed: 1.55,
-    packetFrequency: 1,
-    growthTiers: 3,
+    packetFrequency: 4,
+    growthTiers: 6,
     internalRouterTiers: 4,
     internalRouterJunctionEnabled: true,
     internalRouterTransportEnabled: true,
@@ -163,6 +165,19 @@ bindRange( 'conduit-weight', 'conduitWeight' );
 bindRange( 'wind-sweep', 'windSweep' );
 bindRange( 'surface-relief', 'surfaceRelief', 2, false );
 bindRange( 'structural-response', 'structuralResponse', 2, false );
+bindRange(
+    'gust-interval-base',
+    'gustIntervalBase',
+    0,
+    false,
+    false,
+    null,
+    ( value ) => {
+        const base = Math.round( value );
+        const ceiling = Math.round( base + 15 + base / 13 );
+        return `${base}–${ceiling} s`;
+    }
+);
 bindRange( 'packet-speed', 'packetSpeed', 2, false );
 bindRange( 'packet-frequency', 'packetFrequency', 2, false );
 bindRange( 'growth-tiers', 'growthTiers', 0, true, true );
@@ -193,6 +208,7 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
         windSweep: 'wind-sweep',
         surfaceRelief: 'surface-relief',
         structuralResponse: 'structural-response',
+        gustIntervalBase: 'gust-interval-base',
         packetSpeed: 'packet-speed',
         packetFrequency: 'packet-frequency',
         growthTiers: 'growth-tiers',
@@ -205,6 +221,8 @@ document.querySelector( '#reset-form' ).addEventListener( 'click', () => {
         control.value = formDefaults[property];
         control.dispatchEvent( new Event( 'input' ) );
     }
+    form.motionFrozen = formDefaults.motionFrozen;
+    document.querySelector( '#freeze-motion' ).checked = form.motionFrozen;
 } );
 
 document.querySelector( '#replay-unfolding' ).addEventListener( 'click', () => {

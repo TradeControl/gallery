@@ -12,16 +12,18 @@ import { createPlantingEnvelope } from './planting-envelope.js';
 import { createCompositionRootSystem } from './root-system.js';
 
 export const treeBaselineDefaults = Object.freeze( {
-    crownSpread: 1.14,
+    crownSpread: 0.8,
     verticalRise: 0.95,
     asymmetry: 0.68,
     conduitWeight: 1.34,
-    windSweep: 0.48,
+    windSweep: 0,
     surfaceRelief: 0.1,
-    structuralResponse: 0.22,
+    structuralResponse: 0.5,
+    canopyGustCandidate: true,
+    gustIntervalBase: 0,
     packetSpeed: 1.55,
-    packetFrequency: 1,
-    growthTiers: 3,
+    packetFrequency: 4,
+    growthTiers: 6,
     internalRouterTiers: 4,
     internalRouterJunctionEnabled: true,
     internalRouterTransportEnabled: true,

@@ -9,6 +9,16 @@
   <body>
     <main id="scene" aria-label="Category Tree composition study"></main>
 
+    <button
+      id="composition-controls-toggle"
+      class="controls-toggle"
+      type="button"
+      aria-controls="composition-controls"
+      aria-expanded="true"
+      aria-label="Hide controls"
+      title="Hide controls"
+    ><span aria-hidden="true">&#x2039;</span></button>
+
     <aside id="composition-controls" class="controls" aria-label="Category Tree composition controls">
       <header>
         <p>P2 · terrain-depth review</p>
@@ -26,7 +36,7 @@
       </fieldset>
       <p class="mode-readout">Showing <output id="active-mode">Complete composition</output></p>
 
-      <details open>
+      <details>
         <summary>Terrain · invisible depth ownership</summary>
         <label class="switch" for="composition-terrain-depth-visible"><span>Terrain depth ownership</span><input id="composition-terrain-depth-visible" type="checkbox" checked></label>
         <dl class="stats" aria-label="Terrain depth ownership statistics">
@@ -37,7 +47,7 @@
         <p class="seed">Substrate colour first · live membrane depth second · visible Tree, lava and Cosmos last</p>
       </details>
 
-      <details open>
+      <details>
         <summary>Substrate · integration candidate</summary>
         <label class="switch" for="composition-substrate-visible"><span>Dark-matter substrate</span><input id="composition-substrate-visible" type="checkbox" checked></label>
         <div class="section-label">Placement</div>
@@ -65,23 +75,20 @@
         <p class="seed">One shared textureless surface · ordinary opaque depth · perimeter sunk beyond the review area</p>
       </details>
 
-      <details open>
-        <summary>Composition · forge-source heat</summary>
-        <label class="switch" for="composition-source-heat-visible"><span>Forge-source heat</span><input id="composition-source-heat-visible" type="checkbox" checked></label>
-        <label class="control" for="u-source-radius"><span>Lava-source ring radius</span><output id="u-source-radius-value">13.00</output><input id="u-source-radius" type="range" min="9" max="16" step="0.25" value="13"></label>
-        <label class="control" for="composition-heat-intensity"><span>Source heat</span><output id="composition-heat-intensity-value">0.40</output><input id="composition-heat-intensity" type="range" min="0" max="1" step="0.05" value="0.4"></label>
-        <label class="control" for="composition-heat-reach"><span>Heat reach</span><output id="composition-heat-reach-value">2.25</output><input id="composition-heat-reach" type="range" min="0.5" max="5" step="0.05" value="2.25"></label>
-        <label class="control" for="composition-settling-time"><span>Pressure settling</span><output id="composition-settling-time-value">1.25</output><input id="composition-settling-time" type="range" min="0.4" max="2.5" step="0.05" value="1.25"></label>
-        <dl class="stats" aria-label="Composition lava-source statistics">
-          <div><dt>Thermal sources</dt><dd><output id="composition-source-ring-state">awaiting sources</output></dd></div>
-          <div><dt>Active source heat</dt><dd><output id="composition-source-heat-state">0 / 12 active</output></dd></div>
-          <div><dt>Accepted events</dt><dd><output id="composition-source-event-state">0 / 0 manifested</output></dd></div>
-          <div><dt>Synthetic mass</dt><dd>0</dd></div>
+      <details>
+        <summary>Composition · capillary supply</summary>
+        <label class="control" for="u-source-radius"><span>Confluence ring radius</span><output id="u-source-radius-value">13.00</output><input id="u-source-radius" type="range" min="9" max="16" step="0.25" value="13"></label>
+        <dl class="stats" aria-label="Composition capillary supply statistics">
+          <div><dt>Network</dt><dd><output id="composition-capillary-network-state">awaiting plexus</output></dd></div>
+          <div><dt>Upstream parcels</dt><dd><output id="composition-capillary-parcel-state">0 travelling</output></dd></div>
+          <div><dt>Handoffs</dt><dd><output id="composition-capillary-handoff-state">0 / 0 accepted</output></dd></div>
+          <div><dt>Mass continuity</dt><dd><output id="composition-capillary-mass-state">Δ +0.000 · synthetic 0</output></dd></div>
+          <div><dt>Molten domain</dt><dd><output id="composition-capillary-domain-state">54 × 54 · 384²</output></dd></div>
         </dl>
-        <p class="seed">Forge heat is applied only within each existing stream, where real molten material already exists. It changes no silhouette, mass or parcel.</p>
+        <p class="seed">The whole hierarchical shared plexus is active; crossings are accepted. Capillaries carry the same parcels in the same molten field, with no synthetic mass or separate material.</p>
       </details>
 
-      <details open>
+      <details>
         <summary>Composition · planting</summary>
         <div class="section-label">Tree transform</div>
         <label class="control" for="tree-scale"><span>Tree scale</span><output id="tree-scale-value">1.00</output><input id="tree-scale" type="range" min="0.90" max="1.30" step="0.01" value="1.00"></label>
@@ -104,28 +111,29 @@
         </dl>
       </details>
 
-      <details open>
-        <summary>Tree · accepted baseline</summary>
+      <details>
+        <summary>Tree · recursion</summary>
         <div id="tree-controls">
           <div class="section-label">Form</div>
-          <label class="control" for="tree-crown-spread"><span>Crown spread</span><output id="tree-crown-spread-value">1.14</output><input id="tree-crown-spread" type="range" min="0.65" max="1.45" step="0.01" value="1.14"></label>
+          <label class="control" for="tree-crown-spread"><span>Crown spread</span><output id="tree-crown-spread-value">0.80</output><input id="tree-crown-spread" type="range" min="0.65" max="1.45" step="0.01" value="0.80"></label>
           <label class="control" for="tree-vertical-rise"><span>Vertical rise</span><output id="tree-vertical-rise-value">0.95</output><input id="tree-vertical-rise" type="range" min="0.70" max="1.35" step="0.01" value="0.95"></label>
           <label class="control" for="tree-asymmetry"><span>Asymmetry</span><output id="tree-asymmetry-value">0.68</output><input id="tree-asymmetry" type="range" min="0" max="1" step="0.01" value="0.68"></label>
           <label class="control" for="tree-conduit-weight"><span>Conduit weight</span><output id="tree-conduit-weight-value">1.34</output><input id="tree-conduit-weight" type="range" min="0.75" max="1.85" step="0.01" value="1.34"></label>
-          <label class="control" for="tree-wind-sweep"><span>Wind sweep</span><output id="tree-wind-sweep-value">0.48</output><input id="tree-wind-sweep" type="range" min="-1.20" max="1.20" step="0.01" value="0.48"></label>
+          <label class="control" for="tree-wind-sweep"><span>Wind sweep</span><output id="tree-wind-sweep-value">0.00</output><input id="tree-wind-sweep" type="range" min="-1.20" max="1.20" step="0.01" value="0"></label>
 
           <div class="section-label">Material response</div>
           <label class="control" for="tree-surface-relief"><span>Surface relief</span><output id="tree-surface-relief-value">0.10</output><input id="tree-surface-relief" type="range" min="0" max="0.45" step="0.01" value="0.10"></label>
-          <label class="control" for="tree-structural-response"><span>Structural response</span><output id="tree-structural-response-value">0.22</output><input id="tree-structural-response" type="range" min="0" max="0.65" step="0.01" value="0.22"></label>
-          <label class="switch" for="tree-freeze-motion"><span>Freeze response</span><input id="tree-freeze-motion" type="checkbox"></label>
+          <label class="control" for="tree-structural-response"><span>Rooted sway</span><output id="tree-structural-response-value">0.50</output><input id="tree-structural-response" type="range" min="0" max="0.65" step="0.01" value="0.50"></label>
+          <label class="control" for="tree-gust-interval-base"><span>Gust interval base</span><output id="tree-gust-interval-base-value">0–15 s</output><input id="tree-gust-interval-base" type="range" min="0" max="13" step="1" value="0"></label>
+          <label class="switch" for="tree-freeze-motion"><span>Freeze sway</span><input id="tree-freeze-motion" type="checkbox"></label>
 
           <div class="section-label">Routed information</div>
           <label class="control" for="tree-packet-speed"><span>Packet speed</span><output id="tree-packet-speed-value">1.55</output><input id="tree-packet-speed" type="range" min="0.50" max="3.00" step="0.05" value="1.55"></label>
-          <label class="control" for="tree-packet-frequency"><span>Packet frequency (/s)</span><output id="tree-packet-frequency-value">1.00</output><input id="tree-packet-frequency" type="range" min="0.05" max="11.00" step="0.01" value="1.00"></label>
+          <label class="control" for="tree-packet-frequency"><span>Packet frequency (/s)</span><output id="tree-packet-frequency-value">4.00</output><input id="tree-packet-frequency" type="range" min="0.05" max="11.00" step="0.01" value="4.00"></label>
           <label class="control" for="tree-junction-circumference"><span>Rune circumference</span><output id="tree-junction-circumference-value">55%</output><input id="tree-junction-circumference" type="range" min="0.20" max="1.00" step="0.01" value="0.55"></label>
 
           <div class="section-label">Structural growth</div>
-          <label class="control" for="tree-growth-tiers"><span>Growth tiers</span><output id="tree-growth-tiers-value">3</output><input id="tree-growth-tiers" type="range" min="0" max="8" step="1" value="3"></label>
+          <label class="control" for="tree-growth-tiers"><span>Growth tiers</span><output id="tree-growth-tiers-value">6</output><input id="tree-growth-tiers" type="range" min="0" max="8" step="1" value="6"></label>
           <label class="control" for="tree-internal-router-tiers"><span>Internal router tiers</span><output id="tree-internal-router-tiers-value">4</output><input id="tree-internal-router-tiers" type="range" min="3" max="6" step="1" value="4"></label>
           <div class="button-row">
             <button id="tree-replay-growth" type="button">Replay growth</button>
@@ -176,7 +184,7 @@
           <ul class="source-key" id="u-source-key"></ul>
           <p class="seed">Rim reservoir <output id="u-reservoir-count">0</output></p>
           <dl class="stats" aria-label="Physical simulation statistics">
-            <div><dt>Parcels</dt><dd id="u-parcel-count">0 / 700</dd></div>
+            <div><dt>Parcels</dt><dd id="u-parcel-count">0 / 1000</dd></div>
             <div><dt>Neighbour pairs</dt><dd id="u-interaction-count">0</dd></div>
             <div><dt>Cross-source pairs</dt><dd id="u-cross-source-count">0</dd></div>
             <div><dt>Reconstruction</dt><dd id="u-reconstruction-time">0.00 ms</dd></div>
@@ -222,7 +230,7 @@
         <button type="button" data-view="root">Well / root</button>
         <button type="button" data-view="contact">Contact</button>
         <button type="button" data-view="subterrain">Subterrain</button>
-        <button type="button" data-view="source-ring">Source ring</button>
+        <button type="button" data-view="supply-plexus">Supply plexus</button>
       </fieldset>
       <p class="hint">One world · dark substrate · colourless terrain depth · planted roots · live molten well</p>
     </aside>

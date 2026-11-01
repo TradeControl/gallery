@@ -115,7 +115,7 @@ test( 'the signed-off packet-only presentation is integral on load', () => {
         ),
         'utf8'
     );
-    assert.match( mainSource, /packetFrequency:\s*1/ );
+    assert.match( mainSource, /packetFrequency:\s*4/ );
     assert.match( mainSource, /internalRouterTiers:\s*4/ );
     assert.match( mainSource,
         /internalRouterPresentationEnabled:\s*true/ );
@@ -126,7 +126,7 @@ test( 'the signed-off packet-only presentation is integral on load', () => {
     assert.match( mainSource,
         /setCameraView\(\s*cameraViews\.presentation\s*\)/ );
     assert.match( htmlSource,
-        /id="packet-frequency"[^>]*max="11\.00"[^>]*value="1\.00"/ );
+        /id="packet-frequency"[^>]*max="11\.00"[^>]*value="4\.00"/ );
     assert.match( htmlSource,
         /id="internal-router-tiers"[^>]*min="3"[^>]*max="6"[^>]*value="4"/ );
     assert.doesNotMatch( htmlSource, /id="show-internal-router-presentation"/ );

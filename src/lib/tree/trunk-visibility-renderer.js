@@ -5,33 +5,46 @@ import {
     informationPacketVisualProfile,
     internalRouterPresentationCandidateId
 } from './engineered-tree-layer.js';
+import {
+    registerRootedMotionMaterial,
+    rootedMotionShaderApplication,
+    rootedMotionShaderDeclarations
+} from './rooted-motion.js';
+
+function registerRendererOwnedMotion( material, role )
+{
+    return registerRootedMotionMaterial(
+        material,
+        {
+            time: material.uniforms.treeTime,
+            response: material.uniforms.treeResponse,
+            gustMix: material.uniforms.treeGustMix,
+            intervalBase: material.uniforms.treeGustIntervalBase
+        },
+        role
+    );
+}
 
 const swayedVertexBody = `
     vec3 transformed = position;
     float brushed = sin( position.y * 23.0 + position.x * 7.0 + position.z * 5.0 );
-    float motionReach = smoothstep( 0.25, 5.6, max( position.y, 0.0 ) );
-    float swayX = sin( treeTime * 0.72 + position.y * 0.38 + position.z * 0.12 );
-    float swayZ = sin( treeTime * 0.56 + position.y * 0.31 + position.x * 0.10 + 1.7 );
-    float flutter = sin( treeTime * 1.17 + position.y * 0.81 + position.z * 0.19 );
     transformed += normalize( normal ) * brushed * treeRelief * 0.004;
-    transformed.x += ( swayX * 0.25 + flutter * 0.035 )
-        * treeResponse * motionReach;
-    transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
-        * treeResponse * motionReach;
+    ${rootedMotionShaderApplication( 'position' )}
 `;
 
 function createProxyMaterial( side, packedDepth = false )
 {
-    return new THREE.ShaderMaterial( {
+    const material = new THREE.ShaderMaterial( {
         uniforms: {
             treeTime: { value: 0 },
             treeRelief: { value: 0.1 },
-            treeResponse: { value: 0.22 }
+            treeResponse: { value: 0.22 },
+            treeGustMix: { value: 0 },
+            treeGustIntervalBase: { value: 0 }
         },
         vertexShader: `
-            uniform float treeTime;
             uniform float treeRelief;
-            uniform float treeResponse;
+            ${rootedMotionShaderDeclarations}
             void main()
             {
                 ${swayedVertexBody}
@@ -61,6 +74,11 @@ function createProxyMaterial( side, packedDepth = false )
         toneMapped: false,
         blending: THREE.NoBlending
     } );
+    registerRendererOwnedMotion(
+        material,
+        packedDepth ? 'trunk-shell-depth' : 'trunk-shell-ownership'
+    );
+    return material;
 }
 
 function createCarrierOverlayMaterial( attenuation )
@@ -69,6 +87,8 @@ function createCarrierOverlayMaterial( attenuation )
         uniforms: {
             treeTime: { value: 0 },
             treeResponse: { value: 0.22 },
+            treeGustMix: { value: 0 },
+            treeGustIntervalBase: { value: 0 },
             frontDepth: { value: null },
             backDepth: { value: null },
             viewport: { value: new THREE.Vector2( 1, 1 ) },
@@ -79,8 +99,7 @@ function createCarrierOverlayMaterial( attenuation )
             proxyLength: { value: 1 }
         },
         vertexShader: `
-            uniform float treeTime;
-            uniform float treeResponse;
+            ${rootedMotionShaderDeclarations}
             uniform vec3 proxyStart;
             uniform vec3 proxyAxis;
             attribute float carrierVisibility;
@@ -91,14 +110,7 @@ function createCarrierOverlayMaterial( attenuation )
                 visibleCarrier = carrierVisibility;
                 longitudinalPosition = dot( position - proxyStart, proxyAxis );
                 vec3 transformed = position;
-                float motionReach = smoothstep( 0.25, 5.6, max( position.y, 0.0 ) );
-                float swayX = sin( treeTime * 0.72 + position.y * 0.38 + position.z * 0.12 );
-                float swayZ = sin( treeTime * 0.56 + position.y * 0.31 + position.x * 0.10 + 1.7 );
-                float flutter = sin( treeTime * 1.17 + position.y * 0.81 + position.z * 0.19 );
-                transformed.x += ( swayX * 0.25 + flutter * 0.035 )
-                    * treeResponse * motionReach;
-                transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
-                    * treeResponse * motionReach;
+                ${rootedMotionShaderApplication( 'position' )}
                 gl_Position = projectionMatrix * modelViewMatrix
                     * vec4( transformed, 1.0 );
             }
@@ -176,12 +188,15 @@ function createCarrierOverlayMaterial( attenuation )
     material.name = attenuation
         ? 'C2 linearized trunk attenuation overlay'
         : 'C2 trunk stencil diagnostic overlay';
+    registerRendererOwnedMotion(
+        material,
+        attenuation ? 'carrier-attenuation' : 'carrier-stencil-diagnostic'
+    );
     return material;
 }
 
 const runeVertexShader = `
-    uniform float treeTime;
-    uniform float treeResponse;
+    ${rootedMotionShaderDeclarations}
     attribute float runeSignal;
     attribute float runeWarmth;
     varying float internalRuneSignal;
@@ -192,14 +207,7 @@ const runeVertexShader = `
         internalRuneSignal = runeSignal;
         internalRuneWarmth = runeWarmth;
         vec3 transformed = position;
-        float motionReach = smoothstep( 0.25, 5.6, max( position.y, 0.0 ) );
-        float swayX = sin( treeTime * 0.72 + position.y * 0.38 + position.z * 0.12 );
-        float swayZ = sin( treeTime * 0.56 + position.y * 0.31 + position.x * 0.10 + 1.7 );
-        float flutter = sin( treeTime * 1.17 + position.y * 0.81 + position.z * 0.19 );
-        transformed.x += ( swayX * 0.25 + flutter * 0.035 )
-            * treeResponse * motionReach;
-        transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
-            * treeResponse * motionReach;
+        ${rootedMotionShaderApplication( 'position' )}
         gl_Position = projectionMatrix * modelViewMatrix
             * vec4( transformed, 1.0 );
     }
@@ -210,7 +218,9 @@ function createRuneDepthMaterial()
     const material = new THREE.ShaderMaterial( {
         uniforms: {
             treeTime: { value: 0 },
-            treeResponse: { value: 0.22 }
+            treeResponse: { value: 0.22 },
+            treeGustMix: { value: 0 },
+            treeGustIntervalBase: { value: 0 }
         },
         vertexShader: runeVertexShader,
         fragmentShader: `
@@ -231,6 +241,7 @@ function createRuneDepthMaterial()
         blending: THREE.NoBlending
     } );
     material.name = 'internal rune nearest-signal depth';
+    registerRendererOwnedMotion( material, 'internal-rune-depth' );
     return material;
 }
 
@@ -240,6 +251,8 @@ function createRuneSubsurfaceMaterial()
         uniforms: {
             treeTime: { value: 0 },
             treeResponse: { value: 0.22 },
+            treeGustMix: { value: 0 },
+            treeGustIntervalBase: { value: 0 },
             frontDepth: { value: null },
             backDepth: { value: null },
             runeDepth: { value: null },
@@ -348,6 +361,7 @@ function createRuneSubsurfaceMaterial()
     material.userData.depthAware = true;
     material.userData.cameraFacing = false;
     material.userData.greaterDepth = false;
+    registerRendererOwnedMotion( material, 'internal-rune-subsurface' );
     return material;
 }
 
@@ -366,8 +380,7 @@ export const internalRouterPresentationStyle = Object.freeze( {
 } );
 
 const packetTrailVertexShader = `
-    uniform float treeTime;
-    uniform float treeResponse;
+    ${rootedMotionShaderDeclarations}
     attribute float packetSignal;
     attribute float packetWarmth;
     varying float internalPacketSignal;
@@ -381,17 +394,7 @@ const packetTrailVertexShader = `
         #ifdef USE_INSTANCING
             transformed = ( instanceMatrix * vec4( transformed, 1.0 ) ).xyz;
         #endif
-        float motionReach = smoothstep( 0.25, 5.6, max( transformed.y, 0.0 ) );
-        float swayX = sin( treeTime * 0.72 + transformed.y * 0.38
-            + transformed.z * 0.12 );
-        float swayZ = sin( treeTime * 0.56 + transformed.y * 0.31
-            + transformed.x * 0.10 + 1.7 );
-        float flutter = sin( treeTime * 1.17 + transformed.y * 0.81
-            + transformed.z * 0.19 );
-        transformed.x += ( swayX * 0.25 + flutter * 0.035 )
-            * treeResponse * motionReach;
-        transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
-            * treeResponse * motionReach;
+        ${rootedMotionShaderApplication( 'transformed' )}
         gl_Position = projectionMatrix * modelViewMatrix
             * vec4( transformed, 1.0 );
     }
@@ -402,7 +405,9 @@ function createPacketTrailDepthMaterial()
     const material = new THREE.ShaderMaterial( {
         uniforms: {
             treeTime: { value: 0 },
-            treeResponse: { value: 0.22 }
+            treeResponse: { value: 0.22 },
+            treeGustMix: { value: 0 },
+            treeGustIntervalBase: { value: 0 }
         },
         vertexShader: packetTrailVertexShader,
         fragmentShader: `
@@ -425,6 +430,7 @@ function createPacketTrailDepthMaterial()
     material.name = 'D4 nearest route-local packet-trail depth';
     material.userData.presentationCandidateId =
         internalRouterPresentationCandidateId;
+    registerRendererOwnedMotion( material, 'route-local-packet-depth' );
     return material;
 }
 
@@ -434,6 +440,8 @@ function createPacketTrailSubsurfaceMaterial()
         uniforms: {
             treeTime: { value: 0 },
             treeResponse: { value: 0.22 },
+            treeGustMix: { value: 0 },
+            treeGustIntervalBase: { value: 0 },
             frontDepth: { value: null },
             backDepth: { value: null },
             trailDepth: { value: null },
@@ -563,6 +571,7 @@ function createPacketTrailSubsurfaceMaterial()
     material.name = 'D4 route-local gold head-and-wake transmission';
     material.userData.presentationCandidateId =
         internalRouterPresentationCandidateId;
+    registerRendererOwnedMotion( material, 'route-local-packet-subsurface' );
     material.userData.depthAware = true;
     material.userData.cameraFacing = false;
     material.userData.greaterDepth = false;
@@ -961,11 +970,17 @@ export function createTrunkVisibilityRenderer(
             material.uniforms.treeTime.value = source.time.value;
             material.uniforms.treeRelief.value = source.relief.value;
             material.uniforms.treeResponse.value = source.response.value;
+            material.uniforms.treeGustMix.value = source.gustMix.value;
+            material.uniforms.treeGustIntervalBase.value =
+                source.intervalBase.value;
         }
         for ( const material of [ attenuationMaterial, stencilMaterial ] )
         {
             material.uniforms.treeTime.value = source.time.value;
             material.uniforms.treeResponse.value = source.response.value;
+            material.uniforms.treeGustMix.value = source.gustMix.value;
+            material.uniforms.treeGustIntervalBase.value =
+                source.intervalBase.value;
             material.uniforms.cameraNear.value = camera.near;
             material.uniforms.cameraFar.value = camera.far;
         }
@@ -1010,11 +1025,17 @@ export function createTrunkVisibilityRenderer(
             material.uniforms.treeTime.value = source.time.value;
             material.uniforms.treeRelief.value = source.relief.value;
             material.uniforms.treeResponse.value = source.response.value;
+            material.uniforms.treeGustMix.value = source.gustMix.value;
+            material.uniforms.treeGustIntervalBase.value =
+                source.intervalBase.value;
         }
         for ( const material of [ runeDepthMaterial, runeSubsurfaceMaterial ] )
         {
             material.uniforms.treeTime.value = source.time.value;
             material.uniforms.treeResponse.value = source.response.value;
+            material.uniforms.treeGustMix.value = source.gustMix.value;
+            material.uniforms.treeGustIntervalBase.value =
+                source.intervalBase.value;
         }
         runeSubsurfaceMaterial.uniforms.cameraNear.value = camera.near;
         runeSubsurfaceMaterial.uniforms.cameraFar.value = camera.far;
@@ -1061,6 +1082,9 @@ export function createTrunkVisibilityRenderer(
             material.uniforms.treeTime.value = source.time.value;
             material.uniforms.treeRelief.value = source.relief.value;
             material.uniforms.treeResponse.value = source.response.value;
+            material.uniforms.treeGustMix.value = source.gustMix.value;
+            material.uniforms.treeGustIntervalBase.value =
+                source.intervalBase.value;
         }
         for ( const material of [
             packetLocusDepthMaterial,
@@ -1069,6 +1093,9 @@ export function createTrunkVisibilityRenderer(
         {
             material.uniforms.treeTime.value = source.time.value;
             material.uniforms.treeResponse.value = source.response.value;
+            material.uniforms.treeGustMix.value = source.gustMix.value;
+            material.uniforms.treeGustIntervalBase.value =
+                source.intervalBase.value;
         }
         packetLocusSubsurfaceMaterial.uniforms.cameraNear.value = camera.near;
         packetLocusSubsurfaceMaterial.uniforms.cameraFar.value = camera.far;

@@ -35,6 +35,12 @@ import {
     createInternalRouterTransport,
     internalRouterTransportCandidateId
 } from './internal-router-transport.js';
+import {
+    createRootedMotionUniforms,
+    registerRootedMotionMaterial,
+    rootedMotionShaderApplication,
+    rootedMotionShaderDeclarations
+} from './rooted-motion.js';
 
 const routedTerminalId = 'process-readiness-state';
 const defaultInformationSpeed = 1.55;
@@ -109,46 +115,37 @@ function createMaterial( colour, roughness, metalness )
         clearcoatRoughness: 0.4
     } );
     const uniforms = {
-        time: { value: 0 },
+        ...createRootedMotionUniforms(),
         relief: { value: 0.1 },
-        response: { value: 0.22 }
     };
     material.onBeforeCompile = ( shader ) => {
         shader.uniforms.treeTime = uniforms.time;
         shader.uniforms.treeRelief = uniforms.relief;
         shader.uniforms.treeResponse = uniforms.response;
+        shader.uniforms.treeGustMix = uniforms.gustMix;
+        shader.uniforms.treeGustIntervalBase = uniforms.intervalBase;
         shader.vertexShader = `
-            uniform float treeTime;
+            ${rootedMotionShaderDeclarations}
             uniform float treeRelief;
-            uniform float treeResponse;
         ` + shader.vertexShader.replace(
             '#include <begin_vertex>',
             `#include <begin_vertex>
             float brushed = sin( position.y * 23.0 + position.x * 7.0 + position.z * 5.0 );
-            // A shared deformation field keeps coincident branch junctions
-            // coincident while allowing the mature crown to remain alive.
-            // Motion grows with height so the trunk foot stays planted.
-            float motionReach = smoothstep( 0.25, 5.6, max( position.y, 0.0 ) );
-            float swayX = sin( treeTime * 0.72 + position.y * 0.38 + position.z * 0.12 );
-            float swayZ = sin( treeTime * 0.56 + position.y * 0.31 + position.x * 0.10 + 1.7 );
-            float flutter = sin( treeTime * 1.17 + position.y * 0.81 + position.z * 0.19 );
             transformed += normalize( objectNormal ) * brushed * treeRelief * 0.004;
-            transformed.x += ( swayX * 0.25 + flutter * 0.035 )
-                * treeResponse * motionReach;
-            transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
-                * treeResponse * motionReach;`
+            ${rootedMotionShaderApplication( 'position' )}`
         );
         material.userData.shader = shader;
     };
-    material.customProgramCacheKey = () => `engineered-tree-${colour}`;
+    material.customProgramCacheKey = () =>
+        `engineered-tree-rooted-motion-v4-${colour}`;
+    registerRootedMotionMaterial( material, uniforms, 'structural-surface' );
     return { material, uniforms };
 }
 
 function createInformationCoreMaterial()
 {
     const uniforms = {
-        time: { value: 0 },
-        response: { value: 0.22 },
+        ...createRootedMotionUniforms(),
         trafficTexture: { value: null },
         sourceColour: {
             value: new THREE.Vector3().fromArray(
@@ -167,13 +164,14 @@ function createInformationCoreMaterial()
         uniforms: {
             treeTime: uniforms.time,
             treeResponse: uniforms.response,
+            treeGustMix: uniforms.gustMix,
+            treeGustIntervalBase: uniforms.intervalBase,
             trafficTexture: uniforms.trafficTexture,
             sourceColour: uniforms.sourceColour,
             outputColour: uniforms.outputColour
         },
         vertexShader: `
-            uniform float treeTime;
-            uniform float treeResponse;
+            ${rootedMotionShaderDeclarations}
             attribute vec2 trafficUv;
             varying vec2 routedTrafficUv;
 
@@ -181,14 +179,7 @@ function createInformationCoreMaterial()
             {
                 routedTrafficUv = trafficUv;
                 vec3 transformed = position;
-                float motionReach = smoothstep( 0.25, 5.6, max( position.y, 0.0 ) );
-                float swayX = sin( treeTime * 0.72 + position.y * 0.38 + position.z * 0.12 );
-                float swayZ = sin( treeTime * 0.56 + position.y * 0.31 + position.x * 0.10 + 1.7 );
-                float flutter = sin( treeTime * 1.17 + position.y * 0.81 + position.z * 0.19 );
-                transformed.x += ( swayX * 0.25 + flutter * 0.035 )
-                    * treeResponse * motionReach;
-                transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
-                    * treeResponse * motionReach;
+                ${rootedMotionShaderApplication( 'position' )}
                 gl_Position = projectionMatrix * modelViewMatrix * vec4( transformed, 1.0 );
             }
         `,
@@ -219,15 +210,15 @@ function createInformationCoreMaterial()
         side: THREE.DoubleSide,
         toneMapped: false
     } );
+    registerRootedMotionMaterial( material, uniforms, 'routed-information' );
     return { material, uniforms };
 }
 
 function createInteriorSkeletonMaterial()
 {
     const uniforms = {
-        time: { value: 0 },
+        ...createRootedMotionUniforms(),
         relief: { value: 0 },
-        response: { value: 0.22 }
     };
     const material = new THREE.MeshPhysicalMaterial( {
         color: 0xc6cbc8,
@@ -239,23 +230,17 @@ function createInteriorSkeletonMaterial()
     material.onBeforeCompile = ( shader ) => {
         shader.uniforms.treeTime = uniforms.time;
         shader.uniforms.treeResponse = uniforms.response;
+        shader.uniforms.treeGustMix = uniforms.gustMix;
+        shader.uniforms.treeGustIntervalBase = uniforms.intervalBase;
         shader.vertexShader = `
-            uniform float treeTime;
-            uniform float treeResponse;
+            ${rootedMotionShaderDeclarations}
             attribute float carrierVisibility;
             varying float trunkCarrierVisibility;
         ` + shader.vertexShader.replace(
             '#include <begin_vertex>',
             `#include <begin_vertex>
             trunkCarrierVisibility = carrierVisibility;
-            float motionReach = smoothstep( 0.25, 5.6, max( position.y, 0.0 ) );
-            float swayX = sin( treeTime * 0.72 + position.y * 0.38 + position.z * 0.12 );
-            float swayZ = sin( treeTime * 0.56 + position.y * 0.31 + position.x * 0.10 + 1.7 );
-            float flutter = sin( treeTime * 1.17 + position.y * 0.81 + position.z * 0.19 );
-            transformed.x += ( swayX * 0.25 + flutter * 0.035 )
-                * treeResponse * motionReach;
-            transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
-                * treeResponse * motionReach;`
+            ${rootedMotionShaderApplication( 'position' )}`
         );
         shader.fragmentShader = `
             varying float trunkCarrierVisibility;
@@ -265,15 +250,16 @@ function createInteriorSkeletonMaterial()
             if ( trunkCarrierVisibility < 0.5 ) discard;`
         );
     };
-    material.customProgramCacheKey = () => 'engineered-tree-interior-skeleton-c1';
+    material.customProgramCacheKey = () =>
+        'engineered-tree-interior-skeleton-c1-rooted-motion-v4';
+    registerRootedMotionMaterial( material, uniforms, 'trunk-interior' );
     return { material, uniforms };
 }
 
 function createInternalRouterTransportMaterial( colour, opacity, instanced )
 {
     const uniforms = {
-        time: { value: 0 },
-        response: { value: 0.22 },
+        ...createRootedMotionUniforms(),
         offset: { value: new THREE.Vector3() },
         colour: { value: new THREE.Color( colour ) },
         opacity: { value: opacity }
@@ -287,13 +273,14 @@ function createInternalRouterTransportMaterial( colour, opacity, instanced )
         uniforms: {
             treeTime: uniforms.time,
             treeResponse: uniforms.response,
+            treeGustMix: uniforms.gustMix,
+            treeGustIntervalBase: uniforms.intervalBase,
             diagnosticOffset: uniforms.offset,
             diagnosticColour: uniforms.colour,
             diagnosticOpacity: uniforms.opacity
         },
         vertexShader: `
-            uniform float treeTime;
-            uniform float treeResponse;
+            ${rootedMotionShaderDeclarations}
             uniform vec3 diagnosticOffset;
 
             void main()
@@ -301,31 +288,7 @@ function createInternalRouterTransportMaterial( colour, opacity, instanced )
                 vec3 transformed = position;
                 ${instanceTransform}
                 transformed += diagnosticOffset;
-                float motionReach = smoothstep(
-                    0.25,
-                    5.6,
-                    max( transformed.y, 0.0 )
-                );
-                float swayX = sin(
-                    treeTime * 0.72
-                    + transformed.y * 0.38
-                    + transformed.z * 0.12
-                );
-                float swayZ = sin(
-                    treeTime * 0.56
-                    + transformed.y * 0.31
-                    + transformed.x * 0.10
-                    + 1.7
-                );
-                float flutter = sin(
-                    treeTime * 1.17
-                    + transformed.y * 0.81
-                    + transformed.z * 0.19
-                );
-                transformed.x += ( swayX * 0.25 + flutter * 0.035 )
-                    * treeResponse * motionReach;
-                transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
-                    * treeResponse * motionReach;
+                ${rootedMotionShaderApplication( 'transformed' )}
                 gl_Position = projectionMatrix * modelViewMatrix
                     * vec4( transformed, 1.0 );
             }
@@ -344,11 +307,7 @@ function createInternalRouterTransportMaterial( colour, opacity, instanced )
         depthWrite: instanced,
         toneMapped: false
     } );
-    material.userData.deformationFieldId = 'engineered-tree-shared-sway-v1';
-    material.userData.deformationUniforms = Object.freeze( {
-        time: uniforms.time,
-        response: uniforms.response
-    } );
+    registerRootedMotionMaterial( material, uniforms, 'router-manifestation' );
     return { material, uniforms };
 }
 
@@ -2153,6 +2112,24 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         internalRouterDiagnostic,
         apertureLiner
     ];
+    let latestMotionParameters = initialParameters;
+
+    function updateRootedMotionUniforms( entry, elapsed, parameters )
+    {
+        entry.uniforms.time.value = elapsed;
+        entry.uniforms.response.value = parameters.motionFrozen
+            ? 0
+            : ( parameters.structuralResponse ?? 0.22 );
+        entry.uniforms.gustMix.value = parameters.canopyGustCandidate === true
+            ? 1
+            : 0;
+        entry.uniforms.intervalBase.value = parameters.gustIntervalBase ?? 0;
+    }
+    for ( const entry of materialEntries )
+    {
+        updateRootedMotionUniforms( entry, 0, initialParameters );
+    }
+    updateRootedMotionUniforms( informationCore, 0, initialParameters );
     let growthProgress = new Map();
     let surfaceVisible = true;
     let interiorDiagnosticVisible = false;
@@ -2752,7 +2729,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
 
     function refreshInternalRouterTransportDiagnostic(
         elapsed = 0,
-        parameters = {}
+        parameters = latestMotionParameters
     )
     {
         if ( !internalRouterTransportDiagnosticGroup )
@@ -2773,16 +2750,12 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         internalRouterTransportPacketMesh.count = transport.activePacketCount;
         internalRouterTransportPacketMesh.instanceMatrix.needsUpdate = true;
 
-        const response = parameters.motionFrozen
-            ? 0
-            : ( parameters.structuralResponse ?? 0.22 );
         for ( const entry of [
             internalRouterTransportPacket,
             internalRouterTransportGuide
         ] )
         {
-            entry.uniforms.time.value = elapsed;
-            entry.uniforms.response.value = response;
+            updateRootedMotionUniforms( entry, elapsed, parameters );
         }
         internalRouterTransportGuideLine.visible =
             internalRouterTransportDiagnosticVisible;
@@ -2924,7 +2897,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
 
     function refreshInternalRouterJunctionDiagnostic(
         elapsed = 0,
-        parameters = {}
+        parameters = latestMotionParameters
     )
     {
         if ( !internalRouterJunctionDiagnosticGroup )
@@ -2934,17 +2907,13 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         }
         const descriptor = getInternalRouterDescriptor();
         const site = descriptor?.seedSite;
-        const response = parameters.motionFrozen
-            ? 0
-            : ( parameters.structuralResponse ?? 0.22 );
         for ( const entry of [
             internalRouterJunctionIngress,
             internalRouterJunctionTrace,
             internalRouterJunctionOutput
         ] )
         {
-            entry.uniforms.time.value = elapsed;
-            entry.uniforms.response.value = response;
+            updateRootedMotionUniforms( entry, elapsed, parameters );
         }
         if ( descriptor )
         {
@@ -4204,6 +4173,17 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
 
     function rebuild( positions, parameters = {} )
     {
+        latestMotionParameters = parameters;
+        const motionElapsed = informationLastElapsed ?? 0;
+        for ( const entry of materialEntries )
+        {
+            updateRootedMotionUniforms( entry, motionElapsed, parameters );
+        }
+        updateRootedMotionUniforms(
+            informationCore,
+            motionElapsed,
+            parameters
+        );
         if ( informationTraffic ) informationTraffic.texture.dispose();
         informationTraffic = null;
         informationCore.uniforms.trafficTexture.value = null;
@@ -4623,6 +4603,7 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
         group,
         rebuild,
         update( elapsed, parameters = {} ) {
+            latestMotionParameters = parameters;
             const packetSpeed = Math.max(
                 0.05,
                 parameters.packetSpeed ?? defaultInformationSpeed
@@ -4742,14 +4723,14 @@ export function createEngineeredTreeLayer( hierarchy, initialPositions, initialP
 
             for ( const entry of materialEntries )
             {
-                entry.uniforms.time.value = elapsed;
                 entry.uniforms.relief.value = parameters.surfaceRelief ?? 0.1;
-                entry.uniforms.response.value = parameters.motionFrozen ? 0 : ( parameters.structuralResponse ?? 0.22 );
+                updateRootedMotionUniforms( entry, elapsed, parameters );
             }
-            informationCore.uniforms.time.value = elapsed;
-            informationCore.uniforms.response.value = parameters.motionFrozen
-                ? 0
-                : ( parameters.structuralResponse ?? 0.22 );
+            updateRootedMotionUniforms(
+                informationCore,
+                elapsed,
+                parameters
+            );
             const trafficState = stampInformationTraffic();
             updateTrunkRuneTraversals();
             refreshInternalRouterJunctionDiagnostic( elapsed, parameters );

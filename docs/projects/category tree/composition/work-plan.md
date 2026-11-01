@@ -1,7 +1,7 @@
 # Category Tree composition — phased work plan
 
 **Date:** 2026-11-01
-**Status:** active 2026-11-01 checkpoint; the shared Tree library refactor is complete; P4 remains a sufficient contact study; P6 has a provisional clean-line/default-tuning pass; the accepted independent substrate engine now has a bounded P5 composition-integration candidate; P7/F3 is technically retained but artistically unfinished; and P2 now has a bounded ordinary terrain-depth candidate plus a live D4 terrain-depth comparison under human review
+**Status:** active 2026-11-01 checkpoint; the shared Tree library refactor is complete; P4 remains a sufficient contact study; P6 has a provisional clean-line/default-tuning pass; the accepted independent substrate engine now has a bounded P5 composition-integration candidate; P7/F4 has a bounded provisional whole-plexus composition adapter; P8.1 now supplies the standalone Tree and Composition with one moving-gust-front candidate and a shared `0–15 s` to `13–29 s` interval-band review control; and P2 has a bounded ordinary terrain-depth candidate plus a live D4 terrain-depth comparison under human review
 **Scope:** compose the signed-off Tree, Universe and Cosmos as one causal world while preserving their standalone reference endpoints
 
 ## Starting evidence
@@ -160,37 +160,64 @@ How can ordered Cosmos remain precise without reading as pristine line-and-point
 
 ## P7 — Physical Layer source-forge study
 
-**Progress:** F1 proved the causal accepted-emission seam and one-source-per-feed layout, but its fountain-firework manifestation was rejected in the complete composition as superficial and visually competitive. F2's pressure-responsive lakes were also rejected: even with the molten material family, their footprints read as round shields or bulbs attached to stream ends. F3 retains the shared causal state but gives it no independent silhouette. Both endpoints now apply a restrained heat lift only to existing molten density at the beginning of each real feed. The brown terrain presentation remains absent; the molten surface itself writes depth to correct the well's transparent self-ordering. Human review finds this materially more continuous but still unfinished. P5's new substrate candidate is independent of this retained forge experiment.
+**Progress:** F1 proved the causal accepted-emission seam and one-source-per-feed layout, but its fountain-firework manifestation was rejected in the complete composition as superficial and visually competitive. F2's pressure-responsive lakes were also rejected: even with the molten material family, their footprints read as round shields or bulbs attached to stream ends. F3 retained the shared causal state without an independent silhouette, but its thermal treatment has now been removed from the composition rather than carried beside a second source proposition. F4 first replaced the standalone Physical Layer's thermal source ring with a capillary-confluence candidate. Every source owns two or three deterministic primary trunks; each trunk bifurcates into two terminal capillaries, giving four to six outer tips before the primary trunks meet at the exact physical source. Real molten parcels enter this hierarchy through one enlarged shared field and continue downstream with the same identity and mass. The confluence creates no synthetic lava, source bulb, second material or render layer. Because one selected feed proved too sparse and the whole system too visually dense for useful standalone judgement, that endpoint still defaults to a three-feed cluster while retaining selected and whole-system comparisons.
+
+The composition now opts the same shared Sluice engine into a bounded provisional F4 adapter with all twelve feeds active. It uses the expanded `54 × 54 / 384²` molten domain, the same real parcel budget and one shared molten reconstruction, and exposes the physical confluence radius, continuity readouts and a widened **Supply plexus** camera. The irregular radial expiry still conceals the field's square numerical allocation. Each source's own hierarchy is intersection-free; rare crossings between different sources are accepted for this whole-plexus review. No further bifurcation has been added yet: branch density should be judged in the complete artwork before multiplying the visual load.
+
+This is a review implementation, not an artistic acceptance. The outer network lies beyond the radial terrain-depth core while the dark-matter sea is deliberately lower, so oblique views may make the capillaries read as unsupported or floating. The enlarged field also reconstructs `384²` rather than `256²` cells—about `2.25×` the cell work—and currently continues simulating when a composition inspection mode hides the Universe layer. Those support and performance seams are now explicit review questions rather than reasons to conceal the candidate. P5's substrate remains independent of the molten engine.
+
+The F4 capillary implementation currently lives inside `universe/sluice-gate-layer.js`. That placement preserved one parcel identity, mass and molten reconstruction across the outer inlet, forge confluence, rim reservoir, sluice gates and well, so it was a defensible implementation seam rather than a second visual system. It is nevertheless too broad an ownership boundary: capillary layout, review policy and upstream routing do not conceptually belong to the rim-gate mechanism. Before further P7 development, extract them to `universe/capillary-supply.js` in two safe phases. First move the pure deterministic layout and review helpers without changing behaviour. Then introduce a narrow live-lifecycle seam that advances the same parcel to its exact confluence and hands it to the existing Sluice engine, protected by identity, flux, reset/reseed and zero-synthetic-mass conservation tests.
 
 ### Question
 
-Can the beginning of each real molten stream imply a forge through a subtle, correctly directed energy gradient, without adding a marker, bulb, second material or opaque terrain basin?
+Can each real molten stream emerge from a materially continuous upstream capillary network, with its forge understood as the confluence rather than as a marker, bulb, second material or opaque terrain basin?
 
 ### Work
 
-1. Retain immutable source-layout and accepted-emission events from the shared Sluice layer. A source response may occur only after a parcel enters the real simulation; it must not inject a second parcel or alter mass, velocity, timing, storage or reconstruction.
-2. Keep the forge component as a bounded state engine with no mesh, geometry, material, texture, light, timer or animation loop. Both endpoints must read the same shared state.
-3. Keep **Lava-source ring radius** as a real physical control. `sourceRadius` spans `9–16` units in `0.25` steps, defaults to `13` and retains deterministic `±0.75` per-feed variation. Changing it rebuilds the physical origins and approach trajectories; thermal origins follow the resulting source observations.
-4. Retain `all`, `selected` and `off` diagnostics in the standalone endpoint. The composition needs only a checked whole-ring A/B switch.
-5. Aggregate each accepted event into bounded pressure owned by its source. Pressure modestly strengthens and extends source heat, then settles to zero; time alone, visibility changes and mode changes cannot create or replay activity.
-6. Apply source energy only after copying the physical molten field, and only where existing reconstructed density is non-zero. Use a continuous Gaussian falloff across and downstream in the ordinary lava palette, avoiding any bounded LED-like colour step. Modify the presentation heat channel, not density, silhouette or any physical density, heat, flow or parcel state.
-7. Retain the expanded `36 × 36 / 256²` molten field and irregular radial coverage expiry so every bounded source remains connected to visible lava without revealing its square numerical allocation.
-8. Keep the brown membrane core, perimeter apron, throat and receiver absent from the composition and active Casting Pit studies. Retain only a detached, colourless membrane proxy in the Tree's private D4 packed-depth pass so gold rootward packet trails respect nearer terrain; it must not write colour or depth to the main framebuffer or affect lava and Cosmos. Keep the optional wireframe diagnostic, and let the transparent molten material write depth so nearest molten fragments resolve the steep well correctly.
-9. Expose **Source heat** (`0–1`, default `0.40`), **Heat reach** (`0.50–5.00`, default `2.25`) and **Pressure settling** (`0.40–2.50`, default `1.25`), together with one fixed **Source ring** comparison camera and explicit causal/zero-mass readouts.
+1. Retain the standalone review's three-feed **Cluster**, **Selected feed** and **Whole system** comparisons as controlled evidence. The selected-confluence slider remains the cluster centre, and the cluster, whole-field and close cameras retain explicit active-feed, trunk, terminal, upstream-parcel, handoff, mass-continuity and domain readouts.
+2. Opt the composition into the same shared Sluice engine with all twelve capillary feeds active. Remove the F3 thermal controls and callback plumbing from that endpoint rather than layering thermal emphasis over F4.
+3. Use one enlarged `54 × 54 / 384²` molten field in each opted-in endpoint. Give every real source two or three deterministic primary trunks, each supplied by exactly two terminal capillaries beginning within the hidden irregular perimeter fade. Sibling terminals join at their shared branch point; separate primary trunks remain distinct until the source's exact forge confluence.
+4. Emit the existing physical parcel budget through terminal inlets rather than multiplying it by terminal or trunk count. A parcel must retain its source ownership, identity, mass, inlet, terminal and primary-trunk provenance as it reaches the forge; the accepted-source event occurs once there, not at an outer inlet or intermediate branch point.
+5. Guide a parcel only while it is upstream, excluding it from gravity and neighbour interactions during that constrained passage but depositing its trail into the same molten field. At the exact confluence, release that same parcel into the accepted downstream simulation without replacement or duplication.
+6. Use the one existing molten surface, material, texture and reconstruction pass for upstream and downstream flow. F4 adds no forge mesh, source heat layer, light, timer, second animation loop or synthetic density.
+7. Keep **Confluence ring radius** as the same real physical `sourceRadius` control: `9–16` units in `0.25` steps, default `13`, with deterministic `±0.75` per-feed variation. Changing it must regenerate the physical confluences and their capillary hierarchies rather than transform a visual-only group.
+8. Give the composition a fixed **Supply plexus** comparison camera and readouts for active hierarchy, travelling upstream parcels, accepted handoffs, mass continuity and expanded-domain size. Keep these diagnostics observational: they must not create a second simulation or material.
+9. Retain the irregular radial coverage expiry so upstream flow enters without disclosing the enlarged field's square allocation. The optional membrane wireframe remains the contour diagnostic; no brown basin presentation returns.
+10. Review rare inter-feed crossings as an allowed shared-plexus property. Do not add another bifurcation level until the twelve-feed composition establishes whether more branching would enrich the flow or merely thicken its radial visual load.
+11. Review the outer capillaries from oblique composition cameras against the terrain-depth core and lower substrate. If they read as floating, resolve the physical support contract explicitly rather than hiding the gap with an unrelated opaque basin.
+12. Measure the `384²` reconstruction with the complete Tree and Cosmos render active and while inspection modes hide the Universe. Decide separately whether hidden modes should pause simulation or preserve continuous state; visibility alone must not silently redefine causality.
 
 ### Acceptance gate
 
-- Source pressure can occur only after its exact source accepts an emission; stopping, reset and layout replacement return every thermal source to rest.
-- One accepted event affects only its owning source, and repeated events remain bounded at pressure `1` without allocating render resources.
-- Every generated feed has exactly one source observation, and heat is evaluated along that feed's real initial direction.
-- Moving `sourceRadius` regenerates physical feeds across `9–16`; it is not a visual-only group transform.
-- The thermal presentation writes no density, creates zero synthetic mass and leaves downstream Universe behaviour equivalent with or without its callback.
-- Minimum and maximum source-heat settings preserve the real molten silhouette; no bulb, lake or end cap appears.
-- Active endpoints contain no opaque basin presentation. The single molten surface writes its own nearest-fragment depth instead of relying on the former brown bowl.
+- Every generated feed has one exact forge confluence, two or three distinct primary trunks and exactly two terminal capillaries per trunk. Within that source, sibling terminals meet only at their recorded branch point, different primary trunks meet only at the forge, and no path terminates as an end cap.
+- Total emitted flux remains the accepted source budget rather than being multiplied by terminal or trunk count.
+- A capillary parcel retains identity, source, mass and route provenance across its one confluence handoff, which emits exactly one accepted-source event and creates zero synthetic mass.
+- Upstream and downstream traces reconstruct through one molten surface and material; no square numerical edge, separate source object or thermal-source ring is visible.
+- Moving `sourceRadius` regenerates physical confluences and capillary routes across `9–16`; it is not a visual-only group transform.
+- Reset, reseed, source selection and review-scope changes clear stale parcels and density without allocating additional render resources or animation loops.
+- The composition's provisional adapter activates the whole twelve-feed plexus, removes F3 thermal emphasis and exposes no duplicate source treatment.
+- The **Supply plexus** camera and ordinary composition cameras together expose the full expanded domain closely enough to judge the ring, confluences and rare inter-feed crossings.
+- Human review explicitly decides whether the outer capillaries need a terrain/support adapter and whether the `384²` field retains acceptable performance in complete and hidden-layer modes.
 - The optional membrane wireframe remains off by default and accurately exposes the same physical field when requested.
-- Human review can revise the thermal treatment without invalidating the causal seam, physical radius contract or one-source-per-feed proposition.
+- Human review may reject the whole-system radial character, request a thinner shared-field confluence or ask for more bifurcation after the composition pass without invalidating the causal seam, identity contract or one-source-per-feed proposition.
 
 ## P8 — rooted motion
+
+**Progress:** P8 replaces the copied raw-height sway with one shared persistent rooted-motion field consumed by the Tree shell, information core, runes, internal D1–D4 presentation and composition roots. The field is exactly static through local height `2.05`, then releases smoothly through the monumental lower trunk to `6.25`; crown height and radial reach add coherent response, while the faster term is confined to the lightest extremities. The established physical-root shoulder weights remain a second contact boundary, so buried roots stay static and the collar-to-trunk handoff remains continuous. Both Tree endpoints retain one bounded **Rooted sway** control (`0–0.65`, review default `0.50`) and an exact neutral-pose **Freeze sway** comparison. Time and packet transport continue while frozen; the toggle changes presentation only.
+
+The first shared-field implementation proved registration but failed visual acceptance: at the former `0.22` response, canopy movement measured only about `0.40 px/s` at the silhouette camera; maximum sway measured about `1.18 px/s`, and Freeze commonly changed the image by only one or two pixels. The revised `v3` field therefore treats the same control as a meaningful rooted bend rather than a nominal offset. Its recorded representative outer-crown trace was `0.663` world units at that former response and `1.958` at maximum, with up to `0.569` world units of one-second travel under the stress setting. The first exposed trunk bay remains bounded to `0.0122` world units at maximum and the contact region remains exactly static. These are retained historical measurements rather than measurements of the new `0.50` review default.
+
+Human review rejected the `v3` motion artistically because its coherent bend reads as the whole Tree swivelling about its axis. It remains evidence for registration and stiffness bounds, but is no longer the active composition baseline: Composition now opts explicitly into the bounded P8.1 alternative for whole-scene review.
+
+### P8.1 — controlled moving-gust-front candidate
+
+The standalone Tree and Composition now opt into one bounded candidate in which a spatial gust front travels across the crown and gives different canopy regions different pressure at the same instant. Promoting it to Composition creates a whole-scene review, not artistic acceptance. This first experiment derives response from spatial position and the existing rooted stiffness profile only. Hierarchy-aware branch-order, parent/child delay and per-limb metadata remain deliberately deferred, so the trial can answer the simpler question first: does a moving pressure region remove the axial-swivel character while preserving one registered Tree amid the complete artwork?
+
+The existing **Rooted sway**, **Freeze sway** and Reset contracts remain unchanged. Freeze must still produce the exact neutral pose without pausing time or transport. Both endpoints now expose one **Gust interval base** control (`0–13 s`, integer, default `0`) whose readout states the whole nominal interval band: `0–15 s` at minimum and `13–29 s` at maximum. Moving it updates the same shared timing uniform without rebuilding the Tree; each endpoint's reset restores `0–15 s`. Composition's Tree baseline and Complete modes now use `gustMix = 1`, and its physical-root shoulder inherits the exact gust selector and interval uniform while buried root vertices remain locked.
+
+The `v4` candidate now uses deterministic but irregular land-wind events rather than a regular shoreline-like wave. For base `B`, its irregular span is `S = 15 + B / 13`; each event start is displaced independently around the mean cadence `B + S / 2` by at most `S / 4`. Consecutive transitions therefore stay exactly inside the stated band—`0–15 s` at `B = 0`, `13–29 s` at `B = 13`—without the hidden fixed beat created by complementary interval pairs. The first event begins at `t = 0`, and a precision-stable modular hash gives the CPU reference and GPU shader the same repeatable event sequence. Event direction, front speed (`5.2–9.0`), attack, duration (`1.6–4.0`), lane width and strength still vary independently. Very short intervals are smoothly attenuated, and every event fades exactly to zero at its schedule boundaries, preventing either overlap or a cut at the prompt end of the slider. Curvature and a seeded crosswind meander break the planar phase, while the off-lane pressure floor remains `0.12` so the entire crown does not participate weakly in every event. All randomness is repeatable and spatially continuous; nothing is sampled per frame.
+
+A front travels through Tree-local `x/z` space rather than applying one global angular phase. Height, crown exposure and radial reach supply bounded compliance, so outer limbs move disproportionately while the collar remains exactly locked through local height `2.05`. With the precision-stable event sequence, the first clearly measurable canopy response occurs at about `1.08 s` and the first half-loaded canopy arrival at about `1.15 s`. Across the recorded `160 s` base-zero review, representative outer-crown travel was `0.315` world units at the former `0.22` response, `0.716` at the new `0.50` response and `0.930` at maximum response; maximum displacement at local heights `3` and `6.25` remained bounded to `0.00390` and `0.03376` respectively. The active review defaults now use crown spread `0.80`, packet frequency `4/s`, six growth tiers and Rooted sway `0.50`. Six tiers manifest `591` of `683` hierarchy nodes rather than the former three-tier `453`, so live whole-scene performance remains part of artistic review. Freeze restores the exact authored pose while packet transport continues. If full-circle event-to-event changes read as capricious rather than terrestrial, the next refinement should add a slowly evolving prevailing-wind regime with smaller local veer while retaining occasional reversals.
 
 ### Question
 
@@ -198,15 +225,16 @@ What motion makes the Tree alive without weakening its mass or breaking the phys
 
 ### Work
 
-1. Retain the current shared deformation field as evidence: it already keeps the shell, information core and diagnostics together and weights motion by local height.
-2. Replace raw height alone with a structural stiffness profile where useful:
+1. Keep the rooted-motion law in the shared Tree library so standalone Tree and composition consume the same field, profile and absolute-time phase.
+2. Use the bounded structural stiffness profile:
    - zero sway below contact and through the roots, with a controlled continuity handoff across the exposed collar into the lower trunk;
    - very low, coherent flex through the monumental lower trunk;
    - increasing response through limb order and thinner branches;
    - restrained high-frequency motion only at the lightest extremities.
-3. Distinguish persistent environmental sway from transient loading caused by growth or activity; do not let every parameter become generic wind.
-4. Verify that packets, runes, internal presentation and any molten contact geometry remain registered with their hosts.
-5. Use the existing freeze control for exact A/B review before deciding whether a public motion control is still useful.
+3. Retain `structuralResponse` as the one amplitude property and keep static `windSweep` as authored form rather than repurposing it as live wind. Default authored sweep to `0` in both endpoints so the gust front, not a baked directional lean, owns the initial motion review.
+4. Keep persistent environmental sway distinct from transient loading caused by growth or activity; the transient channel is zero in this pass.
+5. Verify that packets, runes, internal presentation and any molten contact geometry remain registered with their hosts through the one shared field.
+6. Use **Freeze sway** for exact neutral/live A/B review without pausing time, packet transport or rebuilding resources.
 
 ### Acceptance gate
 
@@ -262,12 +290,14 @@ Every bounded phase should include:
 - the focused Category Tree test suite and a production build;
 - a brief outcome record separating technical result from human artistic judgement.
 
-The 1 November checkpoint retains **P7 / F3 as technically sound but artistically unfinished** and records **P6 as a provisional clean-line pass**. P5 now has a spatially safe shared-engine integration candidate, and P2 has a distinct colourless ordinary-depth candidate over it. Their first joint review is useful evidence rather than automatic acceptance: the sea supplies the lower world, while the borrowed radial membrane now supplies well concealment without a visible basin.
+The 1 November checkpoint places **P7 / F4 into the composition as a bounded provisional twelve-feed capillary-plexus review** and promotes **P8.1 as a bounded moving-gust-front candidate** shared by standalone Tree and composition. F3 thermal emphasis has been removed from the composition; neither F4 nor P8.1 has artistic acceptance. P8.1 keeps the contact and first trunk bay static, moves pressure spatially across the crown and drives shell, internal manifestations and the weighted physical-root shoulder through the same field. P6 remains a provisional clean-line pass. P5 has a spatially safe shared-engine integration candidate, and P2 has a distinct colourless ordinary-depth candidate over it. Their combined review must now account for the exposed P7 support and hidden-mode performance seams as well as sustained P8 collar stability and crown life.
 
 Continue in this order:
 
-1. complete human A/B review of the P2 depth owner and P5 substrate from the composition, elevated, root and subterrain cameras;
-2. if the radial core passes, audit any remaining disclosure outside its boundary before deciding whether a separate irregular-apron experiment is necessary;
-3. recheck P3 root burial and P4 collar/contact against the distinct terrain and lower-medium owners;
-4. review overall camera, relative emphasis and substrate controls before returning to the unfinished P7/F3 source heat;
-5. begin P8 rooted sway only after the planting interface is visually trustworthy.
+1. review P8.1 in the standalone Tree and in Composition's **Tree baseline** and **Complete** modes at default Rooted sway with **Gust interval base** at both `0–15 s` and `13–29 s`, then confirm that **Freeze sway** remains exactly neutral in both endpoints;
+2. use the well/root and contact cameras at default and maximum `0.65` to reject any collar slide, open junction, packet/rune separation or loss of lower-trunk weight;
+3. review P7/F4 in **Complete**, **Casting Pit only** and **Universe + Tree** modes from the composition, elevated and **Supply plexus** cameras, then compare the standalone selected and three-feed cluster controls;
+4. decide whether the twelve-feed visual load needs the current branch density, a thinner confluence or an additional bifurcation level, and whether outer capillaries need explicit physical support;
+5. measure complete-scene and hidden-Universe performance, then decide whether inspection modes should pause the roughly `2.25×` field workload or preserve continuous simulation state;
+6. complete human A/B review of the P2 depth owner and P5 substrate, including disclosure beyond the radial core, then recheck P3/P4 burial and collar contact;
+7. consolidate overall camera, relative emphasis and controls before considering any transient P8 load channel or P9 consolidation.

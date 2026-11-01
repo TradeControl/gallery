@@ -19,6 +19,22 @@ export const sluiceMoltenDomainDefaults = Object.freeze( {
     maskFadeWidth: 0.055
 } );
 
+export const sluiceCapillaryDomainDefaults = Object.freeze( {
+    radius: 27,
+    size: 54,
+    resolution: 384,
+    geometrySegments: 320,
+    maskLimitMin: 0.99,
+    maskLimitMax: 0.995,
+    maskFadeWidth: 0.055
+} );
+
+const capillaryReviewModes = Object.freeze( [
+    'selected',
+    'cluster',
+    'all'
+] );
+
 export const sluiceGateDefaults = {
     depth: 5.5,
     width: 3.8,
@@ -102,6 +118,315 @@ export function generateSluiceSourceLayout( {
     } );
 }
 
+function freezeCapillaryPoint( point )
+{
+    return Object.freeze( [ point[0], point[1] ] );
+}
+
+function capillaryPointAt( angle, radius )
+{
+    return [ Math.cos( angle ) * radius, Math.sin( angle ) * radius ];
+}
+
+export function resolveSluiceCapillaryActiveSourceIndices( {
+    reviewMode = 'selected',
+    selectedSourceIndex = 0,
+    sourceCount
+} = {} )
+{
+    if ( !capillaryReviewModes.includes( reviewMode ) )
+    {
+        throw new Error(
+            `Unknown Sluice capillary review mode '${reviewMode}'.`
+        );
+    }
+    if ( !Number.isInteger( sourceCount ) || sourceCount <= 0 )
+    {
+        throw new RangeError(
+            'Sluice capillary source count must be a positive integer.'
+        );
+    }
+    if ( !Number.isInteger( selectedSourceIndex )
+        || selectedSourceIndex < 0
+        || selectedSourceIndex >= sourceCount )
+    {
+        throw new RangeError(
+            `Selected Sluice capillary source must be between 0 and ${sourceCount - 1}.`
+        );
+    }
+    if ( reviewMode === 'all' )
+    {
+        return Object.freeze(
+            Array.from( { length: sourceCount }, ( _, index ) => index )
+        );
+    }
+    if ( reviewMode === 'selected' )
+    {
+        return Object.freeze( [ selectedSourceIndex ] );
+    }
+    if ( sourceCount < 3 )
+    {
+        return Object.freeze(
+            Array.from( { length: sourceCount }, ( _, index ) => index )
+        );
+    }
+    return Object.freeze( [
+        ( selectedSourceIndex - 1 + sourceCount ) % sourceCount,
+        selectedSourceIndex,
+        ( selectedSourceIndex + 1 ) % sourceCount
+    ] );
+}
+
+export function generateSluiceCapillaryLayout( {
+    sourceLayout,
+    sourceSeed = sluiceGateDefaults.sourceSeed,
+    domain = sluiceCapillaryDomainDefaults
+} = {} )
+{
+    const sourceCandidates = Array.isArray( sourceLayout )
+        ? sourceLayout
+        : sourceLayout?.sources;
+    if ( !Array.isArray( sourceCandidates ) || sourceCandidates.length === 0 )
+    {
+        throw new TypeError(
+            'Sluice capillary layout requires a non-empty source layout.'
+        );
+    }
+    if ( !Number.isFinite( sourceSeed ) )
+    {
+        throw new TypeError( 'Sluice capillary seed must be finite.' );
+    }
+    if ( !Number.isFinite( domain?.radius ) || domain.radius <= 0
+        || !Number.isFinite( domain?.size ) || domain.size !== domain.radius * 2
+        || !Number.isInteger( domain?.resolution ) || domain.resolution < 2
+        || !Number.isInteger( domain?.geometrySegments )
+        || domain.geometrySegments < 2 )
+    {
+        throw new TypeError(
+            'Sluice capillary domain must provide a positive radius, matching size and valid resolution.'
+        );
+    }
+
+    const sector = Math.PI * 2 / sourceCandidates.length;
+    let primaryTrunkCount = 0;
+    let terminalCapillaryCount = 0;
+    const sources = sourceCandidates.map( ( source, fallbackIndex ) => {
+        const sourceIndex = Number.isInteger( source.sourceIndex )
+            ? source.sourceIndex
+            : fallbackIndex;
+        const position = source.position;
+        const direction = source.direction;
+        if ( !Array.isArray( position ) || position.length < 2
+            || !position.every( Number.isFinite )
+            || !Array.isArray( direction ) || direction.length < 2
+            || !direction.every( Number.isFinite ) )
+        {
+            throw new TypeError(
+                'Each Sluice capillary source must provide finite position and direction pairs.'
+            );
+        }
+        const directionLength = Math.hypot( direction[0], direction[1] );
+        if ( directionLength <= Number.EPSILON )
+        {
+            throw new RangeError(
+                'Each Sluice capillary source direction must have non-zero length.'
+            );
+        }
+        const normalizedDirection = [
+            direction[0] / directionLength,
+            direction[1] / directionLength
+        ];
+        const sourceAngle = Math.atan2( position[1], position[0] );
+        const generatedRandom = seededGenerator(
+            0x6d2b79f5 ^ Number( sourceSeed ) ^ ( sourceIndex * 0x9e3779b9 )
+        );
+        const primaryCount = 2 + ( generatedRandom() >= 0.48 ? 1 : 0 );
+        const approachLateralX = -normalizedDirection[1];
+        const approachLateralZ = normalizedDirection[0];
+        const radialTangentX = -Math.sin( sourceAngle );
+        const radialTangentZ = Math.cos( sourceAngle );
+        const approachOrderingSign = approachLateralX * radialTangentX
+            + approachLateralZ * radialTangentZ >= 0
+            ? 1
+            : -1;
+        const orderedApproachLateralX = approachLateralX
+            * approachOrderingSign;
+        const orderedApproachLateralZ = approachLateralZ
+            * approachOrderingSign;
+        const approachDistance = THREE.MathUtils.lerp(
+            2.25,
+            3.15,
+            generatedRandom()
+        );
+        const confluence = freezeCapillaryPoint( position );
+        const primaryTrunks = [];
+        const terminalRoutes = [];
+
+        for ( let primaryIndex = 0;
+            primaryIndex < primaryCount;
+            primaryIndex += 1 )
+        {
+            const primaryOffset = primaryIndex - ( primaryCount - 1 ) * 0.5;
+            const approachLateral = primaryOffset * 0.72
+                + THREE.MathUtils.lerp( -0.08, 0.08, generatedRandom() );
+            const approach = freezeCapillaryPoint( [
+                position[0] - normalizedDirection[0] * approachDistance
+                    + orderedApproachLateralX * approachLateral,
+                position[1] - normalizedDirection[1] * approachDistance
+                    + orderedApproachLateralZ * approachLateral
+            ] );
+            const primaryAngle = sourceAngle
+                + primaryOffset * sector * 0.34
+                + THREE.MathUtils.lerp(
+                    -sector * 0.04,
+                    sector * 0.04,
+                    generatedRandom()
+                );
+            const branchRadius = THREE.MathUtils.lerp(
+                Math.hypot( approach[0], approach[1] ) + 3.6,
+                domain.radius * 0.79,
+                generatedRandom()
+            );
+            const branchPoint = freezeCapillaryPoint(
+                capillaryPointAt( primaryAngle, branchRadius )
+            );
+            const primaryId = `source-${sourceIndex}-primary-${primaryIndex}`;
+            const primaryTerminals = [];
+
+            for ( let terminalIndex = 0; terminalIndex < 2; terminalIndex += 1 )
+            {
+                const terminalOffset = terminalIndex === 0 ? -0.5 : 0.5;
+                const inletAngle = primaryAngle
+                    + terminalOffset * sector * 0.16
+                    + THREE.MathUtils.lerp(
+                        -sector * 0.018,
+                        sector * 0.018,
+                        generatedRandom()
+                    );
+                const inletRadius = THREE.MathUtils.lerp(
+                    domain.radius * 0.942,
+                    domain.radius * 0.973,
+                    generatedRandom()
+                );
+                const inlet = freezeCapillaryPoint(
+                    capillaryPointAt( inletAngle, inletRadius )
+                );
+                const bendAngle = THREE.MathUtils.lerp(
+                    inletAngle,
+                    primaryAngle,
+                    THREE.MathUtils.lerp( 0.38, 0.62, generatedRandom() )
+                ) + terminalOffset * sector * 0.035;
+                const bendRadius = THREE.MathUtils.lerp(
+                    branchRadius + 1.8,
+                    inletRadius - 1.3,
+                    THREE.MathUtils.lerp( 0.38, 0.68, generatedRandom() )
+                );
+                const bend = freezeCapillaryPoint(
+                    capillaryPointAt( bendAngle, bendRadius )
+                );
+                const tributaryIndex = primaryIndex * 2 + terminalIndex;
+                const points = Object.freeze( [
+                    inlet,
+                    bend,
+                    branchPoint,
+                    approach,
+                    confluence
+                ] );
+                const terminal = Object.freeze( {
+                    id: `${primaryId}-terminal-${terminalIndex}`,
+                    primaryId,
+                    sourceIndex,
+                    primaryIndex,
+                    terminalIndex,
+                    tributaryIndex,
+                    inlet,
+                    branchPoint,
+                    approach,
+                    confluence,
+                    points
+                } );
+                primaryTerminals.push( terminal );
+                terminalRoutes.push( terminal );
+            }
+
+            primaryTrunks.push( Object.freeze( {
+                id: primaryId,
+                sourceIndex,
+                primaryIndex,
+                branchPoint,
+                approach,
+                confluence,
+                terminalCapillaries: Object.freeze( primaryTerminals )
+            } ) );
+        }
+        const frozenPrimaryTrunks = Object.freeze( primaryTrunks );
+        const frozenTerminalRoutes = Object.freeze( terminalRoutes );
+        primaryTrunkCount += frozenPrimaryTrunks.length;
+        terminalCapillaryCount += frozenTerminalRoutes.length;
+        return Object.freeze( {
+            sourceIndex,
+            confluence,
+            direction: freezeCapillaryPoint( normalizedDirection ),
+            primaryTrunkCount: frozenPrimaryTrunks.length,
+            terminalCapillaryCount: frozenTerminalRoutes.length,
+            primaryTrunks: frozenPrimaryTrunks,
+            terminalCapillaries: frozenTerminalRoutes,
+            tributaries: frozenTerminalRoutes
+        } );
+    } );
+    return Object.freeze( {
+        sourceSeed,
+        domain: Object.freeze( {
+            radius: domain.radius,
+            size: domain.size,
+            resolution: domain.resolution,
+            geometrySegments: domain.geometrySegments
+        } ),
+        sourceCount: sources.length,
+        primaryTrunkCount,
+        terminalCapillaryCount,
+        tributaryCount: terminalCapillaryCount,
+        sources: Object.freeze( sources )
+    } );
+}
+
+function resolveCapillaryNetworkOptions( value )
+{
+    if ( value === null || value === undefined || value === false )
+    {
+        return {
+            enabled: false,
+            reviewMode: 'all',
+            selectedSourceIndex: 0
+        };
+    }
+    if ( typeof value !== 'object' )
+    {
+        throw new TypeError(
+            'Sluice capillary network options must be an object.'
+        );
+    }
+    const enabled = value.enabled === true;
+    const reviewMode = value.reviewMode ?? 'selected';
+    if ( !capillaryReviewModes.includes( reviewMode ) )
+    {
+        throw new Error(
+            `Unknown Sluice capillary review mode '${reviewMode}'.`
+        );
+    }
+    const selectedSourceIndex = Number(
+        value.selectedSourceIndex ?? 0
+    );
+    if ( !Number.isInteger( selectedSourceIndex )
+        || selectedSourceIndex < 0 )
+    {
+        throw new RangeError(
+            'Sluice selected capillary source index must be a non-negative integer.'
+        );
+    }
+    return { enabled, reviewMode, selectedSourceIndex };
+}
+
 export function snapshotSluiceSourceEmission( {
     source,
     sourceIndex,
@@ -109,7 +434,7 @@ export function snapshotSluiceSourceEmission( {
     simulationTime
 } )
 {
-    return Object.freeze( {
+    const snapshot = {
         sourceIndex,
         sourceLabel: source.label,
         sourcePosition: Object.freeze( [ ...source.position ] ),
@@ -126,7 +451,23 @@ export function snapshotSluiceSourceEmission( {
         ] ),
         colorHex: source.color.getHex(),
         simulationTime
-    } );
+    };
+    if ( Number.isInteger( parcel.capillaryIdentity ) )
+    {
+        snapshot.parcelIdentity = parcel.capillaryIdentity;
+        snapshot.capillaryRouteId = parcel.capillaryRoute.id;
+        snapshot.capillaryPrimaryIndex = parcel.capillaryRoute.primaryIndex;
+        snapshot.capillaryTerminalIndex = parcel.capillaryRoute.terminalIndex;
+        snapshot.capillaryInlet = Object.freeze( [
+            ...parcel.capillaryRoute.inlet
+        ] );
+        snapshot.capillaryBranchPoint = Object.freeze( [
+            ...parcel.capillaryRoute.branchPoint
+        ] );
+        snapshot.confluence = Object.freeze( [ ...source.position ] );
+        snapshot.identityPreserved = true;
+    }
+    return Object.freeze( snapshot );
 }
 
 function generateGateSystem(
@@ -329,7 +670,8 @@ export function createSluiceGateLayer( {
     onSourceLayoutChange = null,
     onSourceEmission = null,
     getSourceHeatState = null,
-    moltenContactBoundary: initialMoltenContactBoundary = null
+    moltenContactBoundary: initialMoltenContactBoundary = null,
+    capillaryNetwork = null
 } )
 {
 const { scene, renderer } = world;
@@ -345,6 +687,10 @@ if ( getSourceHeatState !== null && typeof getSourceHeatState !== 'function' )
 {
     throw new TypeError( 'Source heat state must be supplied by a function.' );
 }
+const capillary = resolveCapillaryNetworkOptions( capillaryNetwork );
+const moltenDomain = capillary.enabled
+    ? sluiceCapillaryDomainDefaults
+    : sluiceMoltenDomainDefaults;
 
 const parcelCountElement = control( 'parcel-count' );
 const interactionCountElement = control( 'interaction-count' );
@@ -359,7 +705,7 @@ const simulation = {
     fixedStep: 1 / 60,
     accumulator: 0,
     previousTime: 0,
-    maximumParcels: 700,
+    maximumParcels: capillary.enabled ? 1000 : 700,
     interactionRadius: 0.78,
     separationRadius: 0.16,
     receiverRadius: 0.34,
@@ -406,12 +752,12 @@ if ( includeEnvironment )
     scene.add( membraneSurface );
 }
 
-const fieldCellCount = sluiceMoltenDomainDefaults.resolution
-    * sluiceMoltenDomainDefaults.resolution;
+const fieldCellCount = moltenDomain.resolution
+    * moltenDomain.resolution;
 const field = {
-    resolution: sluiceMoltenDomainDefaults.resolution,
-    radius: sluiceMoltenDomainDefaults.radius,
-    size: sluiceMoltenDomainDefaults.size,
+    resolution: moltenDomain.resolution,
+    radius: moltenDomain.radius,
+    size: moltenDomain.size,
     density: new Float32Array( fieldCellCount ),
     heat: new Float32Array( fieldCellCount ),
     flowX: new Float32Array( fieldCellCount ),
@@ -511,7 +857,7 @@ function updateSurfaceMask()
 updateSurfaceMask();
 
 const moltenGeometry = createMembraneGeometry(
-    sluiceMoltenDomainDefaults.geometrySegments,
+    moltenDomain.geometrySegments,
     { size: field.size }
 );
 const moltenMaterial = new THREE.ShaderMaterial( {
@@ -589,12 +935,12 @@ const moltenMaterial = new THREE.ShaderMaterial( {
                 perimeterAngle * 0.63 + 3.4
             ) );
             float perimeterLimit = mix(
-                ${sluiceMoltenDomainDefaults.maskLimitMin.toFixed( 3 )},
-                ${sluiceMoltenDomainDefaults.maskLimitMax.toFixed( 3 )},
+                ${moltenDomain.maskLimitMin.toFixed( 3 )},
+                ${moltenDomain.maskLimitMax.toFixed( 3 )},
                 perimeterNoise
             );
             float perimeterCoverage = 1.0 - smoothstep(
-                perimeterLimit - ${sluiceMoltenDomainDefaults.maskFadeWidth.toFixed( 3 )},
+                perimeterLimit - ${moltenDomain.maskFadeWidth.toFixed( 3 )},
                 perimeterLimit,
                 length( perimeterPoint )
             );
@@ -711,6 +1057,137 @@ if ( includeEnvironment && !hasOpening ) scene.add( receiver );
 
 let sourceDefinitions = [];
 let rimReservoir = [];
+let capillaryLayout = null;
+const capillaryDiagnostics = {
+    nextParcelId: 1,
+    inletEmissionCount: 0,
+    confluenceEventCount: 0,
+    identityPreservedCount: 0,
+    inletMass: 0,
+    confluenceMass: 0
+};
+
+function capillarySourceIsActive( sourceIndex )
+{
+    if ( !capillary.enabled ) return false;
+    if ( capillary.reviewMode === 'all' ) return true;
+    if ( sourceIndex === capillary.selectedSourceIndex ) return true;
+    if ( capillary.reviewMode !== 'cluster'
+        || sourceDefinitions.length < 2 ) return false;
+    const previousSourceIndex = (
+        capillary.selectedSourceIndex - 1 + sourceDefinitions.length
+    ) % sourceDefinitions.length;
+    const nextSourceIndex = (
+        capillary.selectedSourceIndex + 1
+    ) % sourceDefinitions.length;
+    return sourceIndex === previousSourceIndex
+        || sourceIndex === nextSourceIndex;
+}
+
+function rebuildCapillaryLayout()
+{
+    if ( !capillary.enabled )
+    {
+        capillaryLayout = null;
+        return;
+    }
+    capillary.selectedSourceIndex = Math.min(
+        capillary.selectedSourceIndex,
+        Math.max( 0, sourceDefinitions.length - 1 )
+    );
+    capillaryLayout = generateSluiceCapillaryLayout( {
+        sourceLayout: sourceDefinitions,
+        sourceSeed: parameters.sourceSeed,
+        domain: moltenDomain
+    } );
+    const sourceRoutes = new Map(
+        capillaryLayout.sources.map( ( source ) => [
+            source.sourceIndex,
+            source.tributaries
+        ] )
+    );
+    sourceDefinitions.forEach( ( source, sourceIndex ) => {
+        source.capillaryTributaries = sourceRoutes.get( sourceIndex )
+            ?? Object.freeze( [] );
+        source.capillaryCursor = 0;
+    } );
+}
+
+function getCapillarySnapshot()
+{
+    const sources = capillaryLayout?.sources ?? [];
+    const activeSourceIndices = capillary.enabled && sources.length > 0
+        ? resolveSluiceCapillaryActiveSourceIndices( {
+            reviewMode: capillary.reviewMode,
+            selectedSourceIndex: capillary.selectedSourceIndex,
+            sourceCount: sources.length
+        } )
+        : Object.freeze( [] );
+    const selectedSource = sources.find(
+        ( source ) => source.sourceIndex === capillary.selectedSourceIndex
+    ) ?? null;
+    const activeSources = sources.filter(
+        ( source ) => activeSourceIndices.includes( source.sourceIndex )
+    );
+    const activePrimaryTrunkCount = activeSources.reduce(
+        ( total, source ) => total + source.primaryTrunks.length,
+        0
+    );
+    const activeTerminalCapillaryCount = activeSources.reduce(
+        ( total, source ) => total + source.terminalCapillaries.length,
+        0
+    );
+    const activeCapillaryParcels = simulation.parcels.filter(
+        ( parcel ) => parcel.capillaryPhase === 'upstream'
+    );
+    const inTransitMass = activeCapillaryParcels.reduce(
+        ( total, parcel ) => total + parcel.mass,
+        0
+    );
+    const massBalance = capillaryDiagnostics.inletMass
+        - capillaryDiagnostics.confluenceMass
+        - inTransitMass;
+    return Object.freeze( {
+        enabled: capillary.enabled,
+        reviewMode: capillary.reviewMode,
+        sourceCount: sources.length,
+        selectedSourceIndex: capillary.selectedSourceIndex,
+        activeSourceCount: activeSources.length,
+        activeSourceIndices,
+        primaryTrunkCount: capillaryLayout?.primaryTrunkCount ?? 0,
+        terminalCapillaryCount:
+            capillaryLayout?.terminalCapillaryCount ?? 0,
+        activePrimaryTrunkCount,
+        activeTerminalCapillaryCount,
+        selectedPrimaryTrunkCount:
+            selectedSource?.primaryTrunks.length ?? 0,
+        selectedTerminalCapillaryCount:
+            selectedSource?.terminalCapillaries.length ?? 0,
+        tributaryCount: capillaryLayout?.tributaryCount ?? 0,
+        activeTributaryCount: activeTerminalCapillaryCount,
+        selectedPrimaryTrunks: selectedSource?.primaryTrunks
+            ?? Object.freeze( [] ),
+        selectedTerminalCapillaries: selectedSource?.terminalCapillaries
+            ?? Object.freeze( [] ),
+        selectedTributaries: selectedSource?.tributaries
+            ?? Object.freeze( [] ),
+        activeCapillaryParcelCount: activeCapillaryParcels.length,
+        inletEmissionCount: capillaryDiagnostics.inletEmissionCount,
+        confluenceEventCount: capillaryDiagnostics.confluenceEventCount,
+        identityPreservedCount: capillaryDiagnostics.identityPreservedCount,
+        inletMass: capillaryDiagnostics.inletMass,
+        confluenceMass: capillaryDiagnostics.confluenceMass,
+        inTransitMass,
+        massBalance,
+        syntheticMass: 0,
+        domain: capillaryLayout?.domain ?? Object.freeze( {
+            radius: moltenDomain.radius,
+            size: moltenDomain.size,
+            resolution: moltenDomain.resolution,
+            geometrySegments: moltenDomain.geometrySegments
+        } )
+    } );
+}
 
 let gates = [];
 const gateGroup = new THREE.Group();
@@ -830,6 +1307,7 @@ function regenerateSources()
     );
     sourceDefinitions = generated.sources;
     gates = generated.generatedGates;
+    rebuildCapillaryLayout();
     buildGateMeshes();
     rebuildSourcePresentation();
     seedValueElement.value = parameters.sourceSeed.toString();
@@ -881,7 +1359,7 @@ function spawnParcel( source, sourceIndex )
 {
     if ( simulation.parcels.length >= simulation.maximumParcels )
     {
-        return;
+        return null;
     }
 
     const speed = parameters.lavaVelocity * source.speedFactor;
@@ -890,12 +1368,43 @@ function spawnParcel( source, sourceIndex )
     const positionJitter = ( random() - 0.5 ) * 0.5;
     const velocityJitter = ( random() - 0.5 ) * 0.34;
     const massVariation = random();
+    const capillaryRoute = capillarySourceIsActive( sourceIndex )
+        ? source.capillaryTributaries[
+            source.capillaryCursor % source.capillaryTributaries.length
+        ]
+        : null;
+    if ( capillaryRoute ) source.capillaryCursor += 1;
+    const inlet = capillaryRoute?.points[0] ?? null;
+    const inletTarget = capillaryRoute?.points[1] ?? null;
+    const inletDirectionLength = inlet && inletTarget
+        ? Math.hypot(
+            inletTarget[0] - inlet[0],
+            inletTarget[1] - inlet[1]
+        )
+        : 1;
+    const inletDirectionX = inlet && inletTarget
+        ? ( inletTarget[0] - inlet[0] ) / inletDirectionLength
+        : source.direction[0];
+    const inletDirectionZ = inlet && inletTarget
+        ? ( inletTarget[1] - inlet[1] ) / inletDirectionLength
+        : source.direction[1];
+    const capillarySpeed = Math.max( 3.4, speed * 2.35 );
+    const initialX = capillaryRoute
+        ? inlet[0] - inletDirectionZ * positionJitter * 0.18
+        : source.position[0] + perpendicularX * positionJitter;
+    const initialZ = capillaryRoute
+        ? inlet[1] + inletDirectionX * positionJitter * 0.18
+        : source.position[1] + perpendicularZ * positionJitter;
 
     const parcel = {
-        x: source.position[0] + perpendicularX * positionJitter,
-        z: source.position[1] + perpendicularZ * positionJitter,
-        vx: source.direction[0] * speed + perpendicularX * velocityJitter,
-        vz: source.direction[1] * speed + perpendicularZ * velocityJitter,
+        x: initialX,
+        z: initialZ,
+        vx: capillaryRoute
+            ? inletDirectionX * capillarySpeed
+            : source.direction[0] * speed + perpendicularX * velocityJitter,
+        vz: capillaryRoute
+            ? inletDirectionZ * capillarySpeed
+            : source.direction[1] * speed + perpendicularZ * velocityJitter,
         mass: source.mass * THREE.MathUtils.lerp( 0.72, 1.02, massVariation ),
         footprint: THREE.MathUtils.lerp( 0.34, 0.52, massVariation ),
         temperature: THREE.MathUtils.lerp( 0.85, 1, random() ),
@@ -905,10 +1414,22 @@ function spawnParcel( source, sourceIndex )
         heldByGate: -1,
         storageSlot: -1,
         ax: 0,
-        az: 0
+        az: 0,
+        capillaryPhase: capillaryRoute ? 'upstream' : null,
+        capillaryRoute,
+        capillarySegmentIndex: 0,
+        capillaryIdentity: capillaryRoute
+            ? capillaryDiagnostics.nextParcelId
+            : null
     };
+    if ( capillaryRoute )
+    {
+        capillaryDiagnostics.nextParcelId += 1;
+        capillaryDiagnostics.inletEmissionCount += 1;
+        capillaryDiagnostics.inletMass += parcel.mass;
+    }
     simulation.parcels.push( parcel );
-    if ( onSourceEmission )
+    if ( onSourceEmission && !capillaryRoute )
     {
         onSourceEmission( snapshotSluiceSourceEmission( {
             source,
@@ -923,11 +1444,24 @@ function spawnParcel( source, sourceIndex )
 function emitParcels( timeStep )
 {
     sourceDefinitions.forEach( ( source, sourceIndex ) => {
+        if ( capillary.enabled && !capillarySourceIsActive( sourceIndex ) )
+        {
+            source.emissionAccumulator = 0;
+            return;
+        }
         source.emissionAccumulator += parameters.emissionRate * source.cadence * timeStep / sourceDefinitions.length;
 
         while ( source.emissionAccumulator >= 1 )
         {
-            spawnParcel( source, sourceIndex );
+            const parcel = spawnParcel( source, sourceIndex );
+            if ( !parcel )
+            {
+                source.emissionAccumulator = Math.min(
+                    source.emissionAccumulator,
+                    1
+                );
+                break;
+            }
             source.emissionAccumulator -= 1;
         }
     } );
@@ -1083,7 +1617,8 @@ function buildSpatialHash()
     const hash = new Map();
 
     simulation.parcels.forEach( ( parcel, index ) => {
-        if ( parcel.heldByGate !== -1 ) return;
+        if ( parcel.heldByGate !== -1
+            || parcel.capillaryPhase === 'upstream' ) return;
         const key = hashKey( parcel.x, parcel.z );
         if ( !hash.has( key ) )
         {
@@ -1098,6 +1633,12 @@ function buildSpatialHash()
 function applySurfaceForces()
 {
     simulation.parcels.forEach( ( parcel ) => {
+        if ( parcel.capillaryPhase === 'upstream' )
+        {
+            parcel.ax = 0;
+            parcel.az = 0;
+            return;
+        }
         if ( parcel.heldByGate !== -1 )
         {
             parcel.ax = 0;
@@ -1113,7 +1654,9 @@ function applySurfaceForces()
 
 function applyPairInteraction( first, second )
 {
-    if ( first.heldByGate !== -1 || second.heldByGate !== -1 ) return;
+    if ( first.heldByGate !== -1 || second.heldByGate !== -1
+        || first.capillaryPhase === 'upstream'
+        || second.capillaryPhase === 'upstream' ) return;
     const dx = second.x - first.x;
     const dz = second.z - first.z;
     const distanceSquared = dx * dx + dz * dz;
@@ -1165,6 +1708,7 @@ function applyNeighbourForces( spatialHash )
     const cellSize = simulation.interactionRadius;
 
     simulation.parcels.forEach( ( parcel, parcelIndex ) => {
+        if ( parcel.capillaryPhase === 'upstream' ) return;
         const cellX = Math.floor( parcel.x / cellSize );
         const cellZ = Math.floor( parcel.z / cellSize );
 
@@ -1702,11 +2246,90 @@ function clearMoltenField()
     simulation.reconstructionAccumulator = 0;
 }
 
+function acceptCapillaryParcel( parcel )
+{
+    const source = sourceDefinitions[parcel.sourceIndex];
+    parcel.x = source.position[0];
+    parcel.z = source.position[1];
+    const speed = parameters.lavaVelocity * source.speedFactor;
+    parcel.vx = source.direction[0] * speed;
+    parcel.vz = source.direction[1] * speed;
+    parcel.ax = 0;
+    parcel.az = 0;
+    parcel.capillaryPhase = null;
+    parcel.age = 0;
+    capillaryDiagnostics.confluenceEventCount += 1;
+    capillaryDiagnostics.identityPreservedCount += 1;
+    capillaryDiagnostics.confluenceMass += parcel.mass;
+    if ( onSourceEmission )
+    {
+        onSourceEmission( snapshotSluiceSourceEmission( {
+            source,
+            sourceIndex: parcel.sourceIndex,
+            parcel,
+            simulationTime: simulation.elapsed
+        } ) );
+    }
+}
+
+function integrateCapillaryParcel( parcel, timeStep )
+{
+    const points = parcel.capillaryRoute.points;
+    const source = sourceDefinitions[parcel.sourceIndex];
+    const speed = Math.max(
+        3.4,
+        parameters.lavaVelocity * source.speedFactor * 2.35
+    );
+    let remainingDistance = speed * timeStep;
+    parcel.age += timeStep;
+
+    while ( remainingDistance > Number.EPSILON
+        && parcel.capillaryPhase === 'upstream' )
+    {
+        const target = points[parcel.capillarySegmentIndex + 1];
+        if ( !target )
+        {
+            acceptCapillaryParcel( parcel );
+            break;
+        }
+        const dx = target[0] - parcel.x;
+        const dz = target[1] - parcel.z;
+        const distance = Math.hypot( dx, dz );
+        if ( distance <= remainingDistance + Number.EPSILON )
+        {
+            parcel.x = target[0];
+            parcel.z = target[1];
+            parcel.capillarySegmentIndex += 1;
+            remainingDistance -= distance;
+            if ( parcel.capillarySegmentIndex >= points.length - 1 )
+            {
+                acceptCapillaryParcel( parcel );
+            }
+            continue;
+        }
+        const directionX = dx / distance;
+        const directionZ = dz / distance;
+        parcel.x += directionX * remainingDistance;
+        parcel.z += directionZ * remainingDistance;
+        parcel.vx = directionX * speed;
+        parcel.vz = directionZ * speed;
+        remainingDistance = 0;
+    }
+    parcel.temperature = Math.max( 0.72, parcel.temperature - timeStep * 0.004 );
+}
+
 function integrateParcels( timeStep )
 {
     simulation.parcels.forEach( ( parcel ) => {
         const previousX = parcel.x;
         const previousZ = parcel.z;
+
+        if ( parcel.capillaryPhase === 'upstream' )
+        {
+            integrateCapillaryParcel( parcel, timeStep );
+            depositTrail( parcel, previousX, previousZ, timeStep );
+            return;
+        }
 
         if ( parcel.heldByGate !== -1 )
         {
@@ -1765,6 +2388,7 @@ function integrateParcels( timeStep )
     } );
 
     simulation.parcels = simulation.parcels.filter( ( parcel ) => {
+        if ( parcel.capillaryPhase === 'upstream' ) return true;
         if ( parcel.heldByGate !== -1 ) return true;
         const radius = Math.hypot( parcel.x, parcel.z );
         const source = sourceDefinitions[parcel.sourceIndex];
@@ -1865,9 +2489,16 @@ function resetParcels()
     contactDiagnostics.settledParcelCount = 0;
     contactDiagnostics.settledMass = 0;
     contactDiagnostics.divertedImpulse = 0;
+    capillaryDiagnostics.nextParcelId = 1;
+    capillaryDiagnostics.inletEmissionCount = 0;
+    capillaryDiagnostics.confluenceEventCount = 0;
+    capillaryDiagnostics.identityPreservedCount = 0;
+    capillaryDiagnostics.inletMass = 0;
+    capillaryDiagnostics.confluenceMass = 0;
     simulation.randomState = ( 0x2f6e2b1 ^ parameters.sourceSeed ^ parameters.streamCount ^ ( parameters.gateCount << 8 ) ) >>> 0;
     sourceDefinitions.forEach( ( source ) => {
         source.emissionAccumulator = random();
+        source.capillaryCursor = 0;
         source.captured = 0;
         source.lost = 0;
     } );
@@ -2060,6 +2691,36 @@ function getMoltenContactDiagnostics()
     } );
 }
 
+function setCapillaryReviewMode( mode )
+{
+    if ( !capillaryReviewModes.includes( mode ) )
+    {
+        throw new Error(
+            `Unknown Sluice capillary review mode '${mode}'.`
+        );
+    }
+    if ( capillary.reviewMode === mode ) return mode;
+    capillary.reviewMode = mode;
+    resetParcels();
+    return mode;
+}
+
+function setSelectedCapillarySourceIndex( sourceIndex )
+{
+    const resolved = Number( sourceIndex );
+    if ( !Number.isInteger( resolved ) || resolved < 0
+        || resolved >= sourceDefinitions.length )
+    {
+        throw new RangeError(
+            `Selected Sluice capillary source must be between 0 and ${Math.max( 0, sourceDefinitions.length - 1 )}.`
+        );
+    }
+    if ( capillary.selectedSourceIndex === resolved ) return resolved;
+    capillary.selectedSourceIndex = resolved;
+    if ( capillary.reviewMode !== 'all' ) resetParcels();
+    return resolved;
+}
+
 return {
     parameters,
     simulation,
@@ -2077,7 +2738,7 @@ return {
         receiver
     },
     moltenField: Object.freeze( {
-        domain: sluiceMoltenDomainDefaults,
+        domain: moltenDomain,
         sample: sampleMoltenState,
         samplePresentation: sampleMoltenPresentation,
         surface: moltenSurface,
@@ -2086,6 +2747,9 @@ return {
     } ),
     setMoltenContactBoundary,
     getMoltenContactDiagnostics,
+    getCapillarySnapshot,
+    setCapillaryReviewMode,
+    setSelectedCapillarySourceIndex,
     updateSurface,
     setVisible( visible ) {
         layerVisible = visible;

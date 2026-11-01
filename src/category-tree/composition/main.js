@@ -3,11 +3,8 @@ import {
     cosmicCircuitryDefaults,
     createCastingPitWorld,
     createCosmicCircuitryLayer,
-    createForgeSourceLayer,
     createGaussianMembrane,
     createSluiceGateLayer,
-    forgeSourceDefaults,
-    forgeSourceRanges,
     sluiceGateDefaults
 } from '../../lib/casting-pit/index.js';
 import {
@@ -40,32 +37,41 @@ const world = createCastingPitWorld(
     document.querySelector( '#scene' ),
     { background: 0x050607, stencil: true }
 );
-world.orbitControls.maxDistance = 60;
+world.orbitControls.maxDistance = 90;
+world.camera.far = 120;
+world.camera.updateProjectionMatrix();
 const membrane = createGaussianMembrane( parameters );
-const forge = createForgeSourceLayer( {
-    parameters: forgeSourceDefaults,
-    maxSources: 18
+
+const controlsPanel = document.querySelector( '#composition-controls' );
+const controlsToggle = document.querySelector( '#composition-controls-toggle' );
+const controlsToggleGlyph = controlsToggle.querySelector( '[aria-hidden="true"]' );
+
+function setControlsCollapsed( collapsed )
+{
+    document.body.classList.toggle( 'controls-collapsed', collapsed );
+    controlsPanel.inert = collapsed;
+    controlsPanel.setAttribute( 'aria-hidden', collapsed ? 'true' : 'false' );
+    controlsToggle.setAttribute( 'aria-expanded', collapsed ? 'false' : 'true' );
+    const label = collapsed ? 'Show controls' : 'Hide controls';
+    controlsToggle.setAttribute( 'aria-label', label );
+    controlsToggle.title = label;
+    controlsToggleGlyph.textContent = collapsed ? '\u203a' : '\u2039';
+}
+
+controlsToggle.addEventListener( 'click', () => {
+    setControlsCollapsed(
+        !document.body.classList.contains( 'controls-collapsed' )
+    );
 } );
-
-function updateForgeReadouts()
-{
-    const snapshot = forge.getSnapshot();
-    document.querySelector( '#composition-source-ring-state' ).value =
-        `${snapshot.manifestedSourceCount}/${snapshot.sourceCount} sources`
-        + ` · actual r ${snapshot.sourceRingRadius.toFixed( 2 )}`;
-    document.querySelector( '#composition-source-heat-state' ).value =
-        `${snapshot.activeSourceCount}/${snapshot.manifestedSourceCount} active`
-        + ` · p ${snapshot.maximumPressure.toFixed( 2 )}`;
-    document.querySelector( '#composition-source-event-state' ).value =
-        `${snapshot.manifestedEmissionCount}`
-        + ` / ${snapshot.emissionEventCount} manifested`;
-}
-
-function handleForgeSourceLayout( snapshot )
-{
-    forge.setSourceLayout( snapshot );
-    updateForgeReadouts();
-}
+document.addEventListener( 'keydown', ( event ) => {
+    if ( event.key === 'Escape'
+        && document.body.classList.contains( 'controls-collapsed' ) )
+    {
+        setControlsCollapsed( false );
+        controlsToggle.focus();
+    }
+} );
+setControlsCollapsed( false );
 
 const universe = createSluiceGateLayer( {
     world,
@@ -75,9 +81,11 @@ const universe = createSluiceGateLayer( {
     controlPrefix: 'u-',
     moltenRenderOrder: 5,
     includeEnvironment: false,
-    onSourceLayoutChange: handleForgeSourceLayout,
-    onSourceEmission: forge.consumeEmission,
-    getSourceHeatState: forge.getFieldState
+    capillaryNetwork: {
+        enabled: true,
+        reviewMode: 'all',
+        selectedSourceIndex: 0
+    }
 } );
 world.scene.add(
     universe.environment.diagnostic,
@@ -85,6 +93,52 @@ world.scene.add(
     universe.environment.keyLight,
     universe.environment.rimLight
 );
+
+let capillaryReadoutElapsed = 0;
+let previousCapillaryReadoutTime = null;
+
+function updateCompositionCapillaryReadouts()
+{
+    const snapshot = universe.getCapillarySnapshot();
+    const measuredMassBalance = Number.isFinite( snapshot.massBalance )
+        ? snapshot.massBalance
+        : 0;
+    const massBalance = Math.abs( measuredMassBalance ) < 0.0005
+        ? 0
+        : measuredMassBalance;
+    const massBalanceText = `${massBalance >= 0 ? '+' : ''}${massBalance.toFixed( 3 )}`;
+    document.querySelector( '#composition-capillary-network-state' ).value =
+        `${snapshot.activePrimaryTrunkCount} trunks`
+        + ` → ${snapshot.activeTerminalCapillaryCount} tips`
+        + ` · ${snapshot.activeSourceCount}/${snapshot.sourceCount} feeds`;
+    document.querySelector( '#composition-capillary-parcel-state' ).value =
+        `${snapshot.activeCapillaryParcelCount} upstream`;
+    document.querySelector( '#composition-capillary-handoff-state' ).value =
+        `${snapshot.confluenceEventCount}/${snapshot.inletEmissionCount} accepted`;
+    document.querySelector( '#composition-capillary-mass-state' ).value =
+        `Δ ${massBalanceText} · synthetic ${snapshot.syntheticMass}`;
+    document.querySelector( '#composition-capillary-domain-state' ).value =
+        `${snapshot.domain.size} × ${snapshot.domain.size}`
+        + ` · ${snapshot.domain.resolution}²`;
+}
+
+function updateCompositionCapillaryReadoutClock( time )
+{
+    if ( previousCapillaryReadoutTime === null )
+    {
+        previousCapillaryReadoutTime = time;
+    }
+    capillaryReadoutElapsed += Math.min(
+        ( time - previousCapillaryReadoutTime ) / 1000,
+        0.1
+    );
+    previousCapillaryReadoutTime = time;
+    if ( capillaryReadoutElapsed >= 0.25 )
+    {
+        updateCompositionCapillaryReadouts();
+        capillaryReadoutElapsed = 0;
+    }
+}
 
 const cosmos = createCosmicCircuitryLayer( {
     world,
@@ -297,8 +351,8 @@ const cameraViews = {
         position: new THREE.Vector3( 6, -8.5, 9.5 ),
         target: new THREE.Vector3( 0, -5.7, 0 )
     },
-    'source-ring': {
-        position: new THREE.Vector3( 0, 46, 26 ),
+    'supply-plexus': {
+        position: new THREE.Vector3( 0, 55, 35 ),
         target: new THREE.Vector3( 0, 0.9, 0 )
     }
 };
@@ -363,10 +417,6 @@ function setLayerMode( modeId )
     if ( !mode ) throw new Error( `Unknown composition mode '${modeId}'.` );
     activeLayerModeId = modeId;
     universe.setVisible( mode.universe );
-    forge.setVisible(
-        mode.universe
-        && document.querySelector( '#composition-source-heat-visible' ).checked
-    );
     cosmos.setVisible( mode.cosmos );
     tree.setVisible( mode.tree );
     universe.environment.diagnostic.visible = mode.universe
@@ -393,41 +443,6 @@ document.querySelector( '#u-diagnostic' ).addEventListener( 'change', ( event ) 
     universe.environment.diagnostic.visible = mode.universe
         && event.currentTarget.checked;
 } );
-
-document.querySelector( '#composition-source-heat-visible' ).addEventListener(
-    'change',
-    ( event ) => {
-        const mode = layerModes[activeLayerModeId];
-        forge.setVisible( mode.universe && event.currentTarget.checked );
-        updateForgeReadouts();
-    }
-);
-
-const forgeRangeControls = Object.freeze( {
-    'composition-heat-intensity': { property: 'heatIntensity', decimals: 2 },
-    'composition-heat-reach': { property: 'heatReach', decimals: 2 },
-    'composition-settling-time': { property: 'settlingTime', decimals: 2 }
-} );
-
-for ( const [ id, descriptor ] of Object.entries( forgeRangeControls ) )
-{
-    const control = document.querySelector( `#${id}` );
-    const output = document.querySelector( `#${id}-value` );
-    const range = forgeSourceRanges[descriptor.property];
-    control.min = range.min;
-    control.max = range.max;
-    control.step = range.step;
-    control.value = forgeSourceDefaults[descriptor.property];
-    output.value = Number( control.value ).toFixed( descriptor.decimals );
-    control.addEventListener( 'input', () => {
-        const value = forge.setParameter(
-            descriptor.property,
-            Number( control.value )
-        );
-        output.value = value.toFixed( descriptor.decimals );
-        updateForgeReadouts();
-    } );
-}
 
 const treeRangeControls = Object.freeze( {
     'tree-crown-spread': {
@@ -457,6 +472,14 @@ const treeRangeControls = Object.freeze( {
     'tree-structural-response': {
         property: 'structuralResponse',
         decimals: 2
+    },
+    'tree-gust-interval-base': {
+        property: 'gustIntervalBase',
+        format: ( value ) => {
+            const base = Math.round( value );
+            const ceiling = Math.round( base + 15 + base / 13 );
+            return `${base}–${ceiling} s`;
+        }
     },
     'tree-packet-speed': {
         property: 'packetSpeed',
@@ -606,7 +629,6 @@ for ( const controlId of [ 'u-depth', 'u-width' ] )
 {
     document.querySelector( `#${controlId}` ).addEventListener( 'input', () => {
         cosmos.updateSurface();
-        forge.refreshSurface();
         tree.updatePlacement();
         compositionSubstrate.refreshSurface();
         updateAnchorReadout();
@@ -646,21 +668,17 @@ function updateTreeReadouts()
 }
 
 world.addFrameCallback( ( time ) => {
-    forge.update( time );
     tree.update( time );
     compositionSubstrate.update( time );
     moltenContact.update( time );
-    updateForgeReadouts();
+    updateCompositionCapillaryReadoutClock( time );
     updateTreeReadouts();
 } );
 
 updateAnchorReadout();
 updateTerrainDepthReadouts();
 updateSubstrateReadouts();
+updateCompositionCapillaryReadouts();
 setLayerMode( 'complete' );
-document.querySelector( '#u-reset' ).addEventListener( 'click', () => {
-    forge.clearActivity();
-    updateForgeReadouts();
-} );
 setCameraView( 'composition' );
 world.start( () => tree.render() );

@@ -27,6 +27,10 @@ const treeHtml = readFileSync(
     new URL( '../../src/category-tree/tree/index.html', import.meta.url ),
     'utf8'
 );
+const treeMain = readFileSync(
+    new URL( '../../src/category-tree/tree/main.js', import.meta.url ),
+    'utf8'
+);
 const pitHtml = readFileSync(
     new URL(
         '../../src/category-tree/casting-pit/universe-cosmos/index.html',
@@ -125,9 +129,12 @@ test( 'the composition plants the unchanged local root within a bounded placemen
 } );
 
 test( 'the composition carries the committed Tree baseline without importing its app', () => {
-    assert.equal( treeBaselineDefaults.packetFrequency, 1 );
+    assert.equal( treeBaselineDefaults.crownSpread, 0.8 );
+    assert.equal( treeBaselineDefaults.packetFrequency, 4 );
     assert.equal( treeBaselineDefaults.packetSpeed, 1.55 );
-    assert.equal( treeBaselineDefaults.growthTiers, 3 );
+    assert.equal( treeBaselineDefaults.windSweep, 0 );
+    assert.equal( treeBaselineDefaults.growthTiers, 6 );
+    assert.equal( treeBaselineDefaults.structuralResponse, 0.5 );
     assert.equal( treeBaselineDefaults.internalRouterTiers, 4 );
     assert.equal( treeBaselineDefaults.internalRouterPresentationEnabled, true );
     assert.equal( treeBaselineDefaults.internalRouterJunctionFormEnabled, true );
@@ -142,6 +149,17 @@ test( 'the composition carries the committed Tree baseline without importing its
         /world\.start\(\s*\(\)\s*=>\s*tree\.render\(\)\s*\)/ );
 } );
 
+test( 'review sections start closed under the final Tree recursion identity', () => {
+    const detailTags = Array.from(
+        compositionHtml.matchAll( /<details\b[^>]*>/g ),
+        ( match ) => match[0]
+    );
+    assert.equal( detailTags.length, 7 );
+    detailTags.forEach( ( tag ) => assert.doesNotMatch( tag, /\bopen\b/ ) );
+    assert.match( compositionHtml, /<summary>Tree · recursion<\/summary>/ );
+    assert.doesNotMatch( compositionHtml, /Tree · accepted baseline/i );
+} );
+
 test( 'every Tree baseline slider is retained with the same range and default', () => {
     const mappings = {
         'crown-spread': 'tree-crown-spread',
@@ -151,6 +169,7 @@ test( 'every Tree baseline slider is retained with the same range and default', 
         'wind-sweep': 'tree-wind-sweep',
         'surface-relief': 'tree-surface-relief',
         'structural-response': 'tree-structural-response',
+        'gust-interval-base': 'tree-gust-interval-base',
         'packet-speed': 'tree-packet-speed',
         'packet-frequency': 'tree-packet-frequency',
         'junction-circumference': 'tree-junction-circumference',
@@ -165,6 +184,94 @@ test( 'every Tree baseline slider is retained with the same range and default', 
             `${compositionId} must retain the Tree baseline contract`
         );
     }
+    assert.deepEqual(
+        rangeContract( treeHtml, 'wind-sweep' ),
+        { min: '-1.20', max: '1.20', step: '0.01', value: '0' }
+    );
+    assert.match( treeMain, /windSweep: 0,/ );
+} );
+
+test( 'rooted sway keeps one bounded control and exact reset parity', () => {
+    assert.deepEqual(
+        rangeContract( compositionHtml, 'tree-structural-response' ),
+        rangeContract( treeHtml, 'structural-response' )
+    );
+    assert.deepEqual(
+        rangeContract( treeHtml, 'structural-response' ),
+        { min: '0', max: '0.65', step: '0.01', value: '0.50' }
+    );
+    assert.match(
+        treeHtml,
+        /for="structural-response"><span>Rooted sway<\/span>/
+    );
+    assert.match(
+        compositionHtml,
+        /for="tree-structural-response"><span>Rooted sway<\/span>/
+    );
+    assert.match( treeHtml, /for="freeze-motion"><span>Freeze sway<\/span>/ );
+    assert.match(
+        compositionHtml,
+        /for="tree-freeze-motion"><span>Freeze sway<\/span>/
+    );
+    assert.match(
+        treeMain,
+        /form\.motionFrozen = formDefaults\.motionFrozen;[\s\S]*?#freeze-motion'[\s\S]*?\.checked = form\.motionFrozen/
+    );
+    assert.match(
+        compositionMain,
+        /tree\.resetForm\(\)[\s\S]*?#tree-freeze-motion' \)\.checked = false/
+    );
+} );
+
+test( 'the P8.1 moving-gust candidate is shared by Tree and Composition', () => {
+    assert.match(
+        treeMain,
+        /const formDefaults = \{[\s\S]*?canopyGustCandidate: true,[\s\S]*?\};\s*const form = \{ \.\.\.formDefaults \};/
+    );
+    assert.equal( treeBaselineDefaults.canopyGustCandidate, true );
+    assert.equal( treeBaselineDefaults.gustIntervalBase, 0 );
+    assert.match(
+        compositionTreeInstance,
+        /const form = \{ \.\.\.treeBaselineDefaults \};/
+    );
+    assert.doesNotMatch( treeHtml, /canopy-gust|gust-candidate/i );
+    assert.doesNotMatch( compositionHtml, /canopy-gust|gust-candidate/i );
+    assert.deepEqual(
+        rangeContract( treeHtml, 'gust-interval-base' ),
+        { min: '0', max: '13', step: '1', value: '0' }
+    );
+    assert.match(
+        treeHtml,
+        /for="gust-interval-base"><span>Gust interval base<\/span><output id="gust-interval-base-value">0–15 s<\/output>/
+    );
+    assert.match(
+        treeMain,
+        /gustIntervalBase: 0,[\s\S]*?bindRange\(\s*'gust-interval-base',\s*'gustIntervalBase',[\s\S]*?base \+ 15 \+ base \/ 13/
+    );
+    assert.match(
+        treeMain,
+        /gustIntervalBase: 'gust-interval-base'/
+    );
+    assert.deepEqual(
+        rangeContract( compositionHtml, 'tree-gust-interval-base' ),
+        rangeContract( treeHtml, 'gust-interval-base' )
+    );
+    assert.match(
+        compositionHtml,
+        /for="tree-gust-interval-base"><span>Gust interval base<\/span><output id="tree-gust-interval-base-value">0–15 s<\/output>/
+    );
+    assert.match(
+        compositionMain,
+        /'tree-gust-interval-base': \{[\s\S]*?property: 'gustIntervalBase',[\s\S]*?base \+ 15 \+ base \/ 13/
+    );
+    assert.match(
+        compositionMain,
+        /tree\.resetForm\(\)[\s\S]*?treeBaselineDefaults\[descriptor\.property\][\s\S]*?displayTreeControlValue/
+    );
+    assert.doesNotMatch(
+        compositionTreeInstance,
+        /const layoutProperties = new Set\( \[[\s\S]*?'gustIntervalBase'/
+    );
 } );
 
 test( 'every Universe and Cosmos baseline slider is retained unchanged', () => {

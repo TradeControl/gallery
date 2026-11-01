@@ -15,6 +15,7 @@ import {
 import {
     createTrunkVisibilityRenderer
 } from '../../src/lib/tree/trunk-visibility-renderer.js';
+import { rootedMotionFieldId } from '../../src/lib/tree/rooted-motion.js';
 
 const expectedModes = [
     'off',
@@ -463,7 +464,11 @@ test( 'C2 visibility modes leave maximum-frequency transport byte deterministic'
 } );
 
 test( 'C2 renderer uses trunk-only ownership passes and records bounded costs', () => {
-    const { layer } = createMatureLayer();
+    const { layer, parameters } = createMatureLayer( {
+        canopyGustCandidate: true,
+        gustIntervalBase: 7
+    } );
+    layer.update( 2.75, parameters );
     const scene = new THREE.Scene();
     scene.add( layer.group );
     const camera = new THREE.PerspectiveCamera( 48, 640 / 360, 0.1, 80 );
@@ -536,6 +541,24 @@ test( 'C2 renderer uses trunk-only ownership passes and records bounded costs', 
     );
     assert.equal( renderer.renders[1].participants[0].material.side, THREE.FrontSide );
     assert.equal( renderer.renders[2].participants[0].material.side, THREE.BackSide );
+    for ( const pass of renderer.renders.slice( 1 ) )
+    {
+        assert.equal(
+            pass.participants[0].material.userData.deformationFieldId,
+            rootedMotionFieldId,
+            'every C2 renderer-owned manifestation must share rooted motion'
+        );
+        assert.equal(
+            pass.participants[0].material.uniforms.treeGustMix.value,
+            1,
+            'every C2 renderer-owned manifestation must share the gust candidate'
+        );
+        assert.equal(
+            pass.participants[0].material.uniforms.treeGustIntervalBase.value,
+            7,
+            'every C2 renderer-owned manifestation must share its gust interval'
+        );
+    }
 
     const ownershipMaterial = renderer.renders[3].participants[0].material;
     assert.equal( ownershipMaterial.depthFunc, THREE.EqualDepth );
@@ -646,6 +669,14 @@ test( 'renderer rebinds bounded proxies when switching between active roots and 
         renderer.renders[5].participants[0].geometry,
         runeResources.geometry
     );
+    for ( const pass of renderer.renders.slice( 1 ) )
+    {
+        assert.equal(
+            pass.participants[0].material.userData.deformationFieldId,
+            rootedMotionFieldId,
+            'shell, rune depth and rune light must remain co-registered'
+        );
+    }
 
     renderer.resetRecording();
     layer.setTrunkVisibilityMode( 'attenuation' );
@@ -788,6 +819,15 @@ test( 'a detached external occluder owns D4 pixels without visible presentation'
     assert.equal( occluderMaterial.colorWrite, true );
     assert.equal( occluderMaterial.depthTest, true );
     assert.equal( occluderMaterial.depthWrite, true );
+    for ( const passIndex of [ 1, 2, 3, 5 ] )
+    {
+        assert.equal(
+            renderer.renders[passIndex].participants[0].material.userData
+                .deformationFieldId,
+            rootedMotionFieldId,
+            'D4 shell, packet depth and packet light must share rooted motion'
+        );
+    }
     assert.equal( occluderMaterial.depthFunc, THREE.LessEqualDepth );
     assert.equal( occluderMaterial.transparent, false );
     assert.equal( occluderMaterial.side, THREE.DoubleSide );

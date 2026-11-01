@@ -583,7 +583,7 @@ test( 'traffic updates preserve the accepted graphite Tree geometry', () => {
     assert.equal( layer.group.userData.routedLight.coreMeshCount, 1 );
 } );
 
-test( 'packet frequency restores the signed-off review cadence', () => {
+test( 'packet frequency restores the active review cadence', () => {
     const markup = readFileSync(
         new URL( '../../src/category-tree/tree/index.html', import.meta.url ),
         'utf8'
@@ -600,8 +600,8 @@ test( 'packet frequency restores the signed-off review cadence', () => {
     assert.match( frequencyControl, /min="0\.05"/ );
     assert.match( frequencyControl, /max="11(?:\.0+)?"/ );
     assert.match( frequencyControl, /step="0\.01"/ );
-    assert.match( frequencyControl, /value="1\.00"/ );
-    assert.match( mainSource, /packetFrequency:\s*1/ );
+    assert.match( frequencyControl, /value="4\.00"/ );
+    assert.match( mainSource, /packetFrequency:\s*4/ );
     assert.doesNotMatch( markup, /start-tier|Start tier/ );
     assert.doesNotMatch( mainSource, /informationStartTier|start-tier/ );
 } );

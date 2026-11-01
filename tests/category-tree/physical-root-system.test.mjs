@@ -23,6 +23,7 @@ import {
 import {
     createEngineeredTreeLayer
 } from '../../src/lib/tree/engineered-tree-layer.js';
+import { rootedMotionFieldId } from '../../src/lib/tree/rooted-motion.js';
 
 function createFixture()
 {
@@ -317,7 +318,39 @@ test( 'the composition derives a physical root system without mutating Tree', ()
     roots.mesh.material.onBeforeCompile( shader, {} );
     assert.match( shader.vertexShader, /attribute float rootMotionWeight/ );
     assert.match( shader.vertexShader,
+        /#define TREE_MOTION_WEIGHT rootMotionWeight/ );
+    assert.match( shader.vertexShader, /uniform float treeGustMix/ );
+    assert.match( shader.vertexShader, /uniform float treeGustIntervalBase/ );
+    assert.equal(
+        shader.uniforms.treeGustMix,
+        trunk.material.userData.deformationUniforms.gustMix,
+        'the exact shared gust selector must reach the root shoulder seam'
+    );
+    assert.equal(
+        shader.uniforms.treeGustMix.value,
+        1,
+        'Composition must initialise the shared root shoulder on the gust candidate'
+    );
+    assert.equal(
+        shader.uniforms.treeGustIntervalBase,
+        trunk.material.userData.deformationUniforms.intervalBase,
+        'the exact shared gust interval must reach the root shoulder seam'
+    );
+    assert.equal(
+        shader.uniforms.treeGustIntervalBase.value,
+        0,
+        'Composition must initialise the shared gust interval at the zero base'
+    );
+    assert.doesNotMatch( shader.vertexShader,
         /motionReach\s*=\s*smoothstep\([^;]+\)\s*\*\s*rootMotionWeight/ );
+    assert.match( roots.mesh.material.customProgramCacheKey(),
+        /physical-root-weight-v4$/ );
+    assert.equal( roots.mesh.material.userData.deformationFieldId,
+        rootedMotionFieldId );
+    assert.equal(
+        roots.mesh.material.userData.physicalRootMaterial.deformationFieldId,
+        rootedMotionFieldId
+    );
     assert.equal( snapshot.principalRootCount, 5 );
     assert.equal( snapshot.continuationCount, 5 );
     assert.equal( snapshot.shoulderClearanceSatisfied, true );
@@ -647,6 +680,28 @@ test( 'root geometry follows live transforms and diagnostics restore safely', ()
         roots.mesh.geometry.uuid,
         stableRootUuid,
         'ordinary animation frames must not rebuild physical roots'
+    );
+
+    const motionUniforms = tree.layer.getTrunkVisibilityResources()
+        .trunkMesh.material.userData.deformationUniforms;
+    tree.setFormValue( 'gustIntervalBase', 13 );
+    tree.update( 1032 );
+    assert.equal( motionUniforms.gustMix.value, 1 );
+    assert.equal( motionUniforms.intervalBase.value, 13 );
+    assert.equal(
+        roots.mesh.geometry.uuid,
+        stableRootUuid,
+        'the gust interval control must update uniforms without rebuilding roots'
+    );
+    tree.setFormValue( 'motionFrozen', true );
+    tree.update( 1048 );
+    assert.equal( motionUniforms.response.value, 0 );
+    assert.equal( motionUniforms.gustMix.value, 1 );
+    assert.equal( motionUniforms.intervalBase.value, 13 );
+    assert.equal(
+        roots.mesh.geometry.uuid,
+        stableRootUuid,
+        'Freeze sway must remain a presentation-only comparison'
     );
 
     assert.equal( roots.diagnostic.visible, false );

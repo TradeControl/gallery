@@ -2,8 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
-    forgeSourceDefaults,
-    forgeSourceRanges,
     sluiceGateDefaults,
     sluiceSourceRadiusRange
 } from '../../src/lib/casting-pit/index.js';
@@ -41,20 +39,8 @@ function inputRange( id )
     ) );
 }
 
-test( 'the endpoint exposes bounded source-heat controls and the real ring radius', () => {
-    const controls = {
-        heatIntensity: 'forge-heat-intensity',
-        heatReach: 'forge-heat-reach',
-        settlingTime: 'forge-settling-time'
-    };
-    for ( const [ property, id ] of Object.entries( controls ) )
-    {
-        assert.deepEqual( inputRange( id ), {
-            ...forgeSourceRanges[property],
-            value: forgeSourceDefaults[property]
-        } );
-    }
-    assert.deepEqual( inputRange( 'forge-source-index' ), {
+test( 'the standalone endpoint reviews a three-feed capillary cluster first', () => {
+    assert.deepEqual( inputRange( 'capillary-source-index' ), {
         min: 1,
         max: 12,
         step: 1,
@@ -66,72 +52,90 @@ test( 'the endpoint exposes bounded source-heat controls and the real ring radiu
         step: sluiceSourceRadiusRange.step,
         value: sluiceGateDefaults.sourceRadius
     } );
-    assert.match( html, />Lava-source ring radius</ );
-    assert.doesNotMatch( html, /circumference|mini-henge/i );
-    assert.doesNotMatch( html, /fountain|firework|spark|streak/i );
+    assert.match(
+        html,
+        /data-capillary-mode="selected" aria-pressed="false"/
+    );
+    assert.match(
+        html,
+        /data-capillary-mode="cluster" aria-pressed="true"/
+    );
+    assert.match( html, /data-capillary-mode="all"/ );
+    assert.match( html, />Selected feed</ );
+    assert.match( html, />Cluster</ );
+    assert.match( html, />Whole system</ );
+    assert.match( html, /data-view="cluster" aria-pressed="true"/ );
+    assert.match( html, /data-view="capillary-field"/ );
+    assert.match( html, /data-view="confluence"/ );
+    assert.match( html, />Network</ );
+    assert.match( html, /trunks → 0 tips/ );
+    assert.match( html, />Review centre [/] confluence</ );
+    assert.match( html, />Confluence ring radius</ );
+    assert.match( html, /id="parcel-count">0 \/ 1000</ );
 } );
 
-test( 'the review defaults to one thermal origin per real feed', () => {
+test( 'the capillary study replaces the thermal source-ring presentation', () => {
+    assert.match( html, /Real molten parcels enter through terminal capillaries/ );
+    assert.match( html, /pair into[\s\S]*?primary trunks/ );
+    assert.match( html, /continue into the\s+accepted stream/ );
+    assert.match( html, /without changing[\s\S]*?identity or mass/ );
+    assert.match( html, /Capillary and\s+downstream flow share one field/ );
+    assert.match( html, /replaces the thermal source ring/ );
     assert.match(
         html,
-        /data-forge-mode="all" aria-pressed="true"/
+        /no source[\s\S]*?bulb,[\s\S]*?separate material or synthetic parcel/i
     );
-    assert.match( html, /data-forge-mode="off"/ );
-    assert.match( html, /data-forge-mode="all"/ );
-    assert.match( html, /data-view="forge-ring"/ );
-    assert.match( html, /data-view="forge-source"/ );
-    assert.match( html, /Every real lava feed is its own forge/ );
-    assert.match( html, /existing stream's/ );
-    assert.match(
-        html,
-        /no[\s\S]*?separate source silhouette or material/i
-    );
-    assert.match( html, /Synthetic mass<\/dt><dd>0<\/dd>/ );
-    assert.match(
-        html,
-        /adds no footprint,[\s\S]*?parcel or synthetic mass/
-    );
-    assert.doesNotMatch( html, /lake|bulb|source reservoirs/i );
+    assert.match( html, /Mass continuity/ );
+    assert.match( html, /Molten domain/ );
+    assert.doesNotMatch( html, /data-forge-mode|forge-heat|forge-source-index/ );
+    assert.doesNotMatch( html, /fountain|firework|source lake|reservoir bulb/i );
 } );
 
-test( 'the endpoint joins source state to the Sluice molten field in one loop', () => {
-    const forgeConstruction = main.indexOf( 'createForgeSourceLayer' );
-    const universeConstruction = main.indexOf( 'createSluiceGateLayer' );
-    assert.ok( forgeConstruction >= 0 );
-    assert.ok( universeConstruction > forgeConstruction );
-    assert.match( main, /onSourceLayoutChange:\s*handleSourceLayout/ );
-    assert.match( main, /onSourceEmission:\s*forge\.consumeEmission/ );
-    assert.match( main, /getSourceHeatState:\s*forge\.getFieldState/ );
-    assert.match( main, /includeEnvironment:\s*false/ );
+test( 'the endpoint opts one shared Sluice field into cluster capillary review', () => {
     assert.doesNotMatch(
         main,
-        /membraneSurface\.visible|terrainApron\.visible|receiver\.visible/
+        /createForgeSourceLayer|forgeSourceDefaults|forgeSourceRanges/
     );
+    assert.match(
+        main,
+        /createSluiceGateLayer\( \{[\s\S]*?includeEnvironment:\s*false,[\s\S]*?capillaryNetwork:\s*\{[\s\S]*?enabled:\s*true,[\s\S]*?reviewMode:\s*capillaryReviewMode,[\s\S]*?selectedSourceIndex/
+    );
+    assert.match( main, /let capillaryReviewMode = 'cluster'/ );
+    assert.match( main, /onSourceLayoutChange:\s*handleSourceLayout/ );
+    assert.doesNotMatch( main, /onSourceEmission:|getSourceHeatState:/ );
     assert.match(
         main,
         /world\.scene\.add\([\s\S]*?universe\.environment\.diagnostic,[\s\S]*?universe\.environment\.hemisphereLight,[\s\S]*?universe\.environment\.keyLight,[\s\S]*?universe\.environment\.rimLight/
     );
-    assert.match( main, /world\.addFrameCallback[\s\S]*forge\.update\( time \)/ );
     assert.equal( Array.from( main.matchAll( /world\.start\(\)/g ) ).length, 1 );
     assert.equal( Array.from( main.matchAll( /setAnimationLoop/g ) ).length, 0 );
 } );
 
-test( 'layout changes rebuild and clear source-heat state deterministically', () => {
+test( 'review controls change scope while retaining one simulation loop', () => {
     assert.match(
         main,
-        /function handleSourceLayout[\s\S]*forge\.setSourceLayout\( snapshot \)[\s\S]*forge\.setSelectedSourceIndex\( selected \)/
+        /function setCapillaryMode[\s\S]*?setCapillaryReviewMode\( mode \)/
     );
-    assert.match( main, /forge\.setSelectedSourceIndex\( selected \)/ );
-    assert.match( main, /function refreshForgeCameras/ );
-    assert.match( main, /activeCameraView === 'forge-ring'/ );
-    assert.match( main, /activeCameraView === 'forge-source'/ );
-    assert.match( main, /world\.orbitControls\.maxDistance = 50/ );
-
-    const maximumSourceRadius = sluiceSourceRadiusRange.max
-        + sluiceSourceRadiusRange.variation;
-    const requestedDistance = Math.hypot(
-        maximumSourceRadius * 1.55 - 0.9,
-        maximumSourceRadius * 1.85
+    assert.match(
+        main,
+        /setSelectedCapillarySourceIndex\([\s\S]*?Number\( event\.currentTarget\.value \) - 1/
     );
-    assert.ok( requestedDistance < 50 );
+    assert.match( main, /getCapillarySnapshot\(\)/ );
+    assert.match( main, /activeCameraView === 'cluster'/ );
+    assert.match( main, /activeCameraView === 'capillary-field'/ );
+    assert.match( main, /activeCameraView === 'confluence'/ );
+    assert.match( main, /setCameraView\( 'cluster' \)/ );
+    assert.match( main, /activePrimaryTrunkCount/ );
+    assert.match( main, /activeTerminalCapillaryCount/ );
+    assert.match( main, /activeSourceIndices/ );
+    assert.match( main, /trunks → \$\{activeTerminalCapillaryCount\} tips/ );
+    assert.match( main, /world\.orbitControls\.maxDistance = 75/ );
+    assert.match(
+        main,
+        /world\.addFrameCallback\([\s\S]*?updateCapillaryReadouts\(\)/
+    );
+    assert.doesNotMatch(
+        main,
+        /membraneSurface\.visible|terrainApron\.visible|receiver\.visible/
+    );
 } );

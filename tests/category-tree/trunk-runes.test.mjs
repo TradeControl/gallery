@@ -27,6 +27,7 @@ import {
     trunkRuneSites,
     trunkRuneTransducerSite
 } from '../../src/lib/tree/trunk-rune-layer.js';
+import { rootedMotionFieldId } from '../../src/lib/tree/rooted-motion.js';
 
 function createFixture( overrides = {} )
 {
@@ -1476,6 +1477,10 @@ test( 'E2 is axial, camera-independent and only narrowly revealed through graphi
 test( 'C4b-O1 is one narrow taper-following exterior spiral across three trunk spans', () => {
     const first = createOpticalFixture();
     const repeated = createOpticalFixture();
+    first.form.canopyGustCandidate = true;
+    repeated.form.canopyGustCandidate = true;
+    first.form.gustIntervalBase = 7;
+    repeated.form.gustIntervalBase = 7;
     first.layer.update( 0, first.form );
     repeated.layer.update( 0, repeated.form );
     const resources = first.layer.getTrunkRuneResources();
@@ -1659,6 +1664,8 @@ test( 'C4b-O1 is one narrow taper-following exterior spiral across three trunk s
     assert.equal( resources.material.userData.mostlyInvisibleAtIdle, true );
     assert.equal( resources.material.userData.motionModel,
         'shared-tree-deformation' );
+    assert.equal( resources.material.userData.deformationFieldId,
+        rootedMotionFieldId );
     assert.equal(
         resources.material.userData.deformationUniforms.time,
         resources.deformationUniforms.time
@@ -1667,8 +1674,32 @@ test( 'C4b-O1 is one narrow taper-following exterior spiral across three trunk s
         resources.material.userData.deformationUniforms.response,
         resources.deformationUniforms.response
     );
+    assert.equal(
+        resources.material.userData.deformationUniforms.gustMix,
+        resources.deformationUniforms.gustMix
+    );
+    assert.equal(
+        resources.material.userData.deformationUniforms.intervalBase,
+        resources.deformationUniforms.intervalBase
+    );
+    assert.equal( resources.deformationUniforms.gustMix.value, 1 );
+    assert.equal( resources.deformationUniforms.intervalBase.value, 7 );
+    const runeShader = {
+        uniforms: {},
+        vertexShader: '#include <common>\n#include <begin_vertex>',
+        fragmentShader: '#include <common>\n#include <emissivemap_fragment>'
+    };
+    resources.material.onBeforeCompile( runeShader );
+    assert.equal(
+        runeShader.uniforms.treeGustMix,
+        resources.deformationUniforms.gustMix
+    );
+    assert.equal(
+        runeShader.uniforms.treeGustIntervalBase,
+        resources.deformationUniforms.intervalBase
+    );
     assert.equal( resources.material.customProgramCacheKey(),
-        'causal-exterior-optical-fibre-c4b' );
+        'causal-exterior-optical-fibre-c4b-rooted-motion-v4' );
 
     for ( const name of [
         'position',

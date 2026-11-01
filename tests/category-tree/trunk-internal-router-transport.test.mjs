@@ -20,6 +20,7 @@ import {
     createInternalRouterTransport,
     internalRouterTransportCandidateId
 } from '../../src/lib/tree/internal-router-transport.js';
+import { rootedMotionFieldId } from '../../src/lib/tree/rooted-motion.js';
 
 const routedTerminalId = 'process-readiness-state';
 
@@ -229,7 +230,7 @@ test( 'D3 dispatches the same D2 gold identity down exactly one frozen seed-firs
     assert.equal( junction.ingressMesh.material.isShaderMaterial, true );
     assert.equal( junction.ingressTrace.material.isShaderMaterial, true );
     assert.equal( junction.outputMesh.material.userData.deformationFieldId,
-        'engineered-tree-shared-sway-v1' );
+        rootedMotionFieldId );
     assert.equal( junction.outputMesh.material.userData.deformationFieldId,
         visible.packetMesh.material.userData.deformationFieldId );
     const outputOffset = junction.outputMesh.material.uniforms
@@ -247,7 +248,11 @@ test( 'D3 dispatches the same D2 gold identity down exactly one frozen seed-firs
 } );
 
 test( 'D3 keeps the live D2 ingress attached to the same deformation field', () => {
-    const fixture = createFixture( { packetFrequency: 0.01 } );
+    const fixture = createFixture( {
+        packetFrequency: 0.01,
+        canopyGustCandidate: true,
+        gustIntervalBase: 7
+    } );
     fixture.layer.setInternalRouterJunctionDiagnosticVisible( true );
     fixture.layer.setInternalRouterTransportDiagnosticVisible( true );
     fixture.layer.update( 0, fixture.form );
@@ -267,13 +272,94 @@ test( 'D3 keeps the live D2 ingress attached to the same deformation field', () 
     assert.equal( junction.ingressMesh.material.uniforms.treeResponse.value,
         fixture.form.structuralResponse ?? 0.22 );
     assert.equal( junction.ingressMesh.material.userData.deformationFieldId,
-        'engineered-tree-shared-sway-v1' );
+        rootedMotionFieldId );
     assert.equal( junction.ingressTrace.material.userData.deformationFieldId,
-        'engineered-tree-shared-sway-v1' );
+        rootedMotionFieldId );
+    assert.equal( junction.ingressMesh.material.uniforms.treeGustMix.value, 1 );
+    assert.equal( junction.ingressTrace.material.uniforms.treeGustMix.value, 1 );
+    assert.equal( transport.packetMesh.material.uniforms.treeGustMix.value, 1 );
+    assert.equal( transport.guide.material.uniforms.treeGustMix.value, 1 );
+    assert.equal( junction.ingressMesh.material.uniforms
+        .treeGustIntervalBase.value, 7 );
+    assert.equal( junction.ingressTrace.material.uniforms
+        .treeGustIntervalBase.value, 7 );
+    assert.equal( transport.packetMesh.material.uniforms
+        .treeGustIntervalBase.value, 7 );
+    assert.equal( transport.guide.material.uniforms
+        .treeGustIntervalBase.value, 7 );
     assert.equal( junction.ingressMesh.material.userData.deformationFieldId,
         transport.packetMesh.material.userData.deformationFieldId );
     assert.equal( junction.ingressTrace.material.userData.deformationFieldId,
         transport.guide.material.userData.deformationFieldId );
+} );
+
+test( 'freezing rooted sway leaves packet transport and absolute time live', () => {
+    const fixture = createFixture( {
+        packetFrequency: 0.01,
+        structuralResponse: 0.65,
+        canopyGustCandidate: true,
+        gustIntervalBase: 7
+    } );
+    fixture.layer.update( 0, fixture.form );
+    const source = fixture.layer.group.userData.routedLight.activePackets[0];
+    const boundary = boundaryFor( fixture, source.terminalId );
+    const arrival = source.emittedAt + boundary.distance / fixture.form.packetSpeed;
+    const frozenForm = { ...fixture.form, motionFrozen: true };
+
+    fixture.layer.update( arrival, frozenForm );
+    const initialTransport = transportState( fixture );
+    const initialPacket = initialTransport.diagnostics.activePackets[0];
+    assert.ok( initialPacket );
+    const trunk = fixture.layer.group.getObjectByName( 'monumental trunk' );
+    const junction = fixture.layer.getInternalRouterJunctionResources();
+    assert.equal(
+        trunk.material.userData.deformationUniforms.response.value,
+        0
+    );
+    assert.equal( junction.outputMesh.material.uniforms.treeResponse.value, 0 );
+    assert.equal( initialTransport.packetMesh.material.uniforms.treeResponse.value,
+        0 );
+    assert.equal( initialTransport.guide.material.uniforms.treeResponse.value, 0 );
+    assert.equal(
+        trunk.material.userData.deformationUniforms.gustMix.value,
+        1,
+        'Freeze must zero response without stopping the gust schedule'
+    );
+    assert.equal(
+        trunk.material.userData.deformationUniforms.intervalBase.value,
+        7,
+        'Freeze must preserve the selected gust interval'
+    );
+    assert.equal( junction.outputMesh.material.uniforms.treeGustMix.value, 1 );
+    assert.equal(
+        initialTransport.packetMesh.material.uniforms.treeGustMix.value,
+        1
+    );
+    assert.equal( initialTransport.guide.material.uniforms.treeGustMix.value, 1 );
+    assert.equal( junction.outputMesh.material.uniforms
+        .treeGustIntervalBase.value, 7 );
+    assert.equal( initialTransport.packetMesh.material.uniforms
+        .treeGustIntervalBase.value, 7 );
+    assert.equal( initialTransport.guide.material.uniforms
+        .treeGustIntervalBase.value, 7 );
+
+    const later = arrival + 0.2;
+    fixture.layer.update( later, frozenForm );
+    const advancedTransport = transportState( fixture );
+    const advancedPacket = advancedTransport.diagnostics.activePackets.find(
+        ( packet ) => packet.id === initialPacket.id
+    );
+    assert.ok( advancedPacket );
+    assert.ok( advancedPacket.headDistance > initialPacket.headDistance );
+    assert.equal(
+        trunk.material.userData.deformationUniforms.time.value,
+        later
+    );
+    assert.equal(
+        advancedTransport.packetMesh.material.uniforms.treeTime.value,
+        later
+    );
+    assertConserved( advancedTransport.diagnostics );
 } );
 
 test( 'D3 speed changes re-anchor motion without a jump', () => {

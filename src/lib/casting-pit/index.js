@@ -8,7 +8,10 @@ export { seededGenerator } from './random.js';
 export { castingPitCameraViews, createCastingPitWorld } from './world.js';
 export {
     createSluiceGateLayer,
+    generateSluiceCapillaryLayout,
     generateSluiceSourceLayout,
+    resolveSluiceCapillaryActiveSourceIndices,
+    sluiceCapillaryDomainDefaults,
     sluiceGateDefaults,
     sluiceMoltenDomainDefaults,
     sluiceSourceRadiusRange

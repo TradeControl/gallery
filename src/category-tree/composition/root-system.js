@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { rootedMotionFieldId } from '../../lib/tree/rooted-motion.js';
 
 const TAU = Math.PI * 2;
 const principalSegments = 24;
@@ -1037,22 +1038,18 @@ function createRootMaterial( trunkMaterial )
         {
             trunkMaterial.userData.shader = previousSourceShader;
         }
-        const source = 'float motionReach = smoothstep( 0.25, 5.6,'
-            + ' max( position.y, 0.0 ) );';
-        const replacement = `${source.slice( 0, -1 )} * rootMotionWeight;`;
-        if ( !shader.vertexShader.includes( source ) )
-        {
-            throw new Error( 'The Tree deformation field no longer exposes motionReach.' );
-        }
         shader.vertexShader = `attribute float rootMotionWeight;\n`
-            + shader.vertexShader.replace( source, replacement );
+            + `#define TREE_MOTION_WEIGHT rootMotionWeight\n`
+            + shader.vertexShader;
         material.userData.shader = shader;
     };
     material.customProgramCacheKey = () =>
-        `${trunkProgramKey()}-physical-root-weight-v1`;
+        `${trunkProgramKey()}-physical-root-weight-v4`;
+    material.userData.deformationFieldId = rootedMotionFieldId;
     material.userData.physicalRootMaterial = Object.freeze( {
         sourceMaterialUuid: trunkMaterial.uuid,
-        deformation: 'shared-shoulder-to-static-root'
+        deformation: 'shared-shoulder-to-static-root',
+        deformationFieldId: rootedMotionFieldId
     } );
     material.needsUpdate = true;
     return material;

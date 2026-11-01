@@ -10,3 +10,4 @@ export * from './internal-router-tree.js';
 export * from './internal-router-junction.js';
 export * from './internal-router-junction-form.js';
 export * from './internal-router-transport.js';
+export * from './rooted-motion.js';

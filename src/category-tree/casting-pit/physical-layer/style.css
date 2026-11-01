@@ -157,8 +157,8 @@ button[aria-pressed="true"] {
   border-color: #68a2b8;
 }
 
-.forge-mode {
-  grid-template-columns: repeat(3, 1fr);
+.capillary-mode {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 fieldset .wide {
@@ -243,11 +243,11 @@ fieldset .wide {
   margin: 0;
 }
 
-.forge-stats {
+.capillary-stats {
   margin-top: 0.7rem;
 }
 
-.forge-stats output {
+.capillary-stats output {
   color: inherit;
   font: inherit;
 }

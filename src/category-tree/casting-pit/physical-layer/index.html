@@ -3,73 +3,57 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Casting Pit · Continuous lava-source study</title>
+    <title>Casting Pit · Capillary confluence study</title>
     <link rel="stylesheet" href="./style.css">
   </head>
   <body>
-    <main id="scene" aria-label="Casting Pit continuous lava-source study"></main>
+    <main id="scene" aria-label="Casting Pit capillary confluence study"></main>
 
-    <aside class="controls" aria-label="Continuous lava-source and parcel dynamics controls">
+    <aside class="controls" aria-label="Capillary confluence and parcel dynamics controls">
       <header>
-        <p>F3 · stream-origin heat</p>
-        <h1>Casting Pit <span>causal source study</span></h1>
+        <p>F4 · capillary confluence</p>
+        <h1>Casting Pit <span>upstream material study</span></h1>
         <p class="statement">
-          Every real lava feed is its own forge. Only the existing stream's
-          first molten pixels receive a pressure-responsive thermal lift; no
-          separate source silhouette or material is created.
+          Real molten parcels enter through terminal capillaries, pair into
+          primary trunks, then converge at each forge and continue into the
+          accepted stream without changing identity or mass. Capillary and
+          downstream flow share one field.
         </p>
       </header>
 
-      <div class="section-label">Thermal source ring</div>
+      <div class="section-label">Capillary supply</div>
 
-      <fieldset class="forge-mode">
-        <legend>Manifestation</legend>
-        <button type="button" data-forge-mode="off" aria-pressed="false">Off</button>
-        <button type="button" data-forge-mode="selected" aria-pressed="false">Selected</button>
-        <button class="active" type="button" data-forge-mode="all" aria-pressed="true">Whole ring</button>
+      <fieldset class="capillary-mode">
+        <legend>Review scope</legend>
+        <button type="button" data-capillary-mode="selected" aria-pressed="false">Selected feed</button>
+        <button class="active" type="button" data-capillary-mode="cluster" aria-pressed="true">Cluster</button>
+        <button type="button" data-capillary-mode="all" aria-pressed="false">Whole system</button>
       </fieldset>
 
       <label class="control" for="source-radius">
-        <span>Lava-source ring radius</span>
+        <span>Confluence ring radius</span>
         <output id="source-radius-value" for="source-radius">13.00</output>
         <input id="source-radius" type="range" min="9" max="16" step="0.25" value="13">
       </label>
 
-      <label class="control" for="forge-source-index">
-        <span>Selected feed</span>
-        <output id="forge-source-index-value" for="forge-source-index">1 / 12</output>
-        <input id="forge-source-index" type="range" min="1" max="12" step="1" value="1">
+      <label class="control" for="capillary-source-index">
+        <span>Review centre / confluence</span>
+        <output id="capillary-source-index-value" for="capillary-source-index">1 / 12</output>
+        <input id="capillary-source-index" type="range" min="1" max="12" step="1" value="1">
       </label>
 
-      <label class="control" for="forge-heat-intensity">
-        <span>Source heat</span>
-        <output id="forge-heat-intensity-value" for="forge-heat-intensity">0.40</output>
-        <input id="forge-heat-intensity" type="range" min="0" max="1" step="0.05" value="0.4">
-      </label>
-
-      <label class="control" for="forge-heat-reach">
-        <span>Heat reach</span>
-        <output id="forge-heat-reach-value" for="forge-heat-reach">2.25</output>
-        <input id="forge-heat-reach" type="range" min="0.5" max="5" step="0.05" value="2.25">
-      </label>
-
-      <label class="control" for="forge-settling-time">
-        <span>Pressure settling</span>
-        <output id="forge-settling-time-value" for="forge-settling-time">1.25</output>
-        <input id="forge-settling-time" type="range" min="0.4" max="2.5" step="0.05" value="1.25">
-      </label>
-
-      <dl class="stats forge-stats" aria-label="Forge-source statistics">
-        <div><dt>Source</dt><dd><output id="forge-selected-readout">no source</output></dd></div>
-        <div><dt>Active source heat</dt><dd><output id="forge-heat-readout">0 / 12 active</output></dd></div>
-        <div><dt>Accepted events</dt><dd><output id="forge-emission-readout">0 / 0 manifested</output></dd></div>
-        <div><dt>Thermal sources</dt><dd><output id="forge-ring-readout">0 sources</output></dd></div>
-        <div><dt>Synthetic mass</dt><dd>0</dd></div>
+      <dl class="stats capillary-stats" aria-label="Capillary confluence statistics">
+        <div><dt>Centre</dt><dd><output id="capillary-selected-readout">awaiting layout</output></dd></div>
+        <div><dt>Network</dt><dd><output id="capillary-branch-readout">3 trunks → 0 tips · 3/12 feeds</output></dd></div>
+        <div><dt>Upstream parcels</dt><dd><output id="capillary-parcel-readout">0</output></dd></div>
+        <div><dt>Handoffs</dt><dd><output id="capillary-handoff-readout">0</output></dd></div>
+        <div><dt>Mass continuity</dt><dd><output id="capillary-mass-readout">identity preserved</output></dd></div>
+        <div><dt>Molten domain</dt><dd><output id="capillary-domain-readout">54 × 54 · 384²</output></dd></div>
       </dl>
 
       <p class="provisional-note">
-        Source heat changes only the existing stream's thermal presentation.
-        It adds no footprint, parcel or synthetic mass.
+        This experiment replaces the thermal source ring. It adds no source
+        bulb, separate material or synthetic parcel at the confluence.
       </p>
 
       <div class="section-label">Membrane</div>
@@ -211,10 +195,11 @@
 
       <fieldset>
         <legend>Camera</legend>
+        <button class="active wide" type="button" data-view="cluster" aria-pressed="true">Cluster</button>
+        <button type="button" data-view="confluence" aria-pressed="false">Selected confluence</button>
+        <button type="button" data-view="capillary-field" aria-pressed="false">Whole field</button>
         <button type="button" data-view="monumental">Monumental</button>
         <button type="button" data-view="elevated">Elevated</button>
-        <button class="active" type="button" data-view="forge-ring" aria-pressed="true">Source ring</button>
-        <button type="button" data-view="forge-source" aria-pressed="false">Selected source</button>
       </fieldset>
 
       <div class="button-row">
@@ -234,14 +219,14 @@
       <p class="seed">Rim reservoir <output id="reservoir-count">0</output></p>
 
       <dl class="stats" aria-label="Simulation statistics">
-        <div><dt>Parcels</dt><dd id="parcel-count">0 / 500</dd></div>
+        <div><dt>Parcels</dt><dd id="parcel-count">0 / 1000</dd></div>
         <div><dt>Neighbour pairs</dt><dd id="interaction-count">0</dd></div>
         <div><dt>Cross-source pairs</dt><dd id="cross-source-count">0</dd></div>
         <div><dt>Reconstruction</dt><dd id="reconstruction-time">0.00 ms</dd></div>
         <div><dt>Simulation</dt><dd id="simulation-time">0.00 ms</dd></div>
       </dl>
 
-      <p class="hint">One continuous molten field · subtle source heat · no synthetic lava</p>
+      <p class="hint">One continuous molten field · real upstream parcels · no synthetic lava</p>
     </aside>
 
     <script type="module" src="./main.js"></script>

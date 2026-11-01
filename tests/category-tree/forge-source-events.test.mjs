@@ -167,18 +167,21 @@ test( 'every shared Sluice endpoint exposes the same physical source-radius cont
     const endpoints = [
         [
             '../../src/category-tree/casting-pit/physical-layer/index.html',
-            'source-radius'
+            'source-radius',
+            /Confluence ring radius/
         ],
         [
             '../../src/category-tree/casting-pit/universe-cosmos/index.html',
-            'u-source-radius'
+            'u-source-radius',
+            /Lava-source ring radius/
         ],
         [
             '../../src/category-tree/composition/index.html',
-            'u-source-radius'
+            'u-source-radius',
+            /Confluence ring radius/
         ]
     ];
-    for ( const [ path, id ] of endpoints )
+    for ( const [ path, id, label ] of endpoints )
     {
         const html = readFileSync( new URL( path, import.meta.url ), 'utf8' );
         assert.deepEqual( inputRange( html, id ), {
@@ -187,7 +190,7 @@ test( 'every shared Sluice endpoint exposes the same physical source-radius cont
             step: sluiceSourceRadiusRange.step,
             value: sluiceGateDefaults.sourceRadius
         } );
-        assert.match( html, /Lava-source ring radius/ );
+        assert.match( html, label );
     }
 } );
 

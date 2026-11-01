@@ -2,50 +2,54 @@ import * as THREE from 'three';
 import {
     castingPitCameraViews,
     createCastingPitWorld,
-    createForgeSourceLayer,
     createGaussianMembrane,
     createSluiceGateLayer,
-    forgeSourceDefaults,
-    forgeSourceRanges,
     sluiceGateDefaults
 } from '../../../lib/casting-pit/index.js';
 
 const parameters = { ...sluiceGateDefaults };
 const world = createCastingPitWorld( document.querySelector( '#scene' ), { background: 0x050607 } );
-world.orbitControls.maxDistance = 50;
+world.orbitControls.maxDistance = 75;
 const membrane = createGaussianMembrane( parameters );
-const forge = createForgeSourceLayer( {
-    maxSources: 18
-} );
 
-const forgeSourceCameraView = {
-    position: new THREE.Vector3( 0, 5.6, 18 ),
-    target: new THREE.Vector3( 0, 1.4, 12 )
+const confluenceCameraView = {
+    position: new THREE.Vector3( 0, 8.5, 23 ),
+    target: new THREE.Vector3( 0, 1.2, 13 )
 };
-const forgeRingCameraView = {
-    position: new THREE.Vector3( 0, 17, 20 ),
+const clusterCameraView = {
+    position: new THREE.Vector3( 0, 28, 37 ),
+    target: new THREE.Vector3( 0, 0.9, 19 )
+};
+const capillaryFieldCameraView = {
+    position: new THREE.Vector3( 0, 34, 42 ),
     target: new THREE.Vector3( 0, 0.9, 0 )
 };
 const cameraViews = {
     ...castingPitCameraViews,
-    'forge-ring': forgeRingCameraView,
-    'forge-source': forgeSourceCameraView
+    cluster: clusterCameraView,
+    'capillary-field': capillaryFieldCameraView,
+    confluence: confluenceCameraView
 };
-let activeCameraView = 'forge-ring';
+let activeCameraView = 'cluster';
 let latestSourceLayout = null;
+let selectedSourceIndex = 0;
+let capillaryReviewMode = 'cluster';
 let readoutElapsed = 0;
 let previousReadoutTime = null;
+let universe = null;
 
 function selectedSource()
 {
-    return forge.getSources().find(
-        ( source ) => source.sourceIndex === forge.parameters.selectedSourceIndex
+    return latestSourceLayout?.sources.find(
+        ( source ) => source.sourceIndex === selectedSourceIndex
     ) ?? null;
 }
 
-function refreshForgeCameras()
+function refreshCapillaryCameras()
 {
     const source = selectedSource();
+    const capillarySnapshot = universe?.getCapillarySnapshot();
+    const domainRadius = capillarySnapshot?.domain.radius ?? 27;
     if ( source )
     {
         const [ x, z ] = source.position;
@@ -53,34 +57,53 @@ function refreshForgeCameras()
         const lateralX = -directionZ;
         const lateralZ = directionX;
         const sourceHeight = membrane.height( x, z );
-        forgeSourceCameraView.position.set(
-            x - directionX * 8 + lateralX * 1.8,
-            sourceHeight + 6.8,
-            z - directionZ * 8 + lateralZ * 1.8
+        const sourceRadius = Math.max( Math.hypot( x, z ), 0.001 );
+        const outwardX = x / sourceRadius;
+        const outwardZ = z / sourceRadius;
+        const clusterTargetOffset = Math.max(
+            4.5,
+            ( domainRadius - sourceRadius ) * 0.48
         );
-        forgeSourceCameraView.target.set(
-            x + directionX * 0.75,
-            sourceHeight + 1.8,
-            z + directionZ * 0.75
+        const clusterTargetX = x + outwardX * clusterTargetOffset;
+        const clusterTargetZ = z + outwardZ * clusterTargetOffset;
+        confluenceCameraView.position.set(
+            x - directionX * 5.5 + lateralX * 8.5,
+            sourceHeight + 8.2,
+            z - directionZ * 5.5 + lateralZ * 8.5
+        );
+        confluenceCameraView.target.set(
+            x - directionX * 1.5,
+            sourceHeight + 1.2,
+            z - directionZ * 1.5
+        );
+        clusterCameraView.position.set(
+            clusterTargetX + outwardX * 18,
+            sourceHeight + 28,
+            clusterTargetZ + outwardZ * 18
+        );
+        clusterCameraView.target.set(
+            clusterTargetX,
+            sourceHeight + 0.9,
+            clusterTargetZ
         );
     }
-    const ringRadius = Math.max(
-        forge.getSnapshot().maximumSourceRadius,
-        parameters.sourceRadius
-    );
-    forgeRingCameraView.position.set(
+    capillaryFieldCameraView.position.set(
         0,
-        Math.max( 16, ringRadius * 1.55 ),
-        Math.max( 21, ringRadius * 1.85 )
+        Math.max( 30, domainRadius * 1.2 ),
+        Math.max( 38, domainRadius * 1.55 )
     );
-    forgeRingCameraView.target.set( 0, 0.9, 0 );
-    if ( activeCameraView === 'forge-source' && source )
+    capillaryFieldCameraView.target.set( 0, 0.9, 0 );
+    if ( activeCameraView === 'confluence' && source )
     {
-        world.setCameraView( forgeSourceCameraView );
+        world.setCameraView( confluenceCameraView );
     }
-    else if ( activeCameraView === 'forge-ring' )
+    else if ( activeCameraView === 'cluster' && source )
     {
-        world.setCameraView( forgeRingCameraView );
+        world.setCameraView( clusterCameraView );
+    }
+    else if ( activeCameraView === 'capillary-field' )
+    {
+        world.setCameraView( capillaryFieldCameraView );
     }
 }
 
@@ -89,9 +112,13 @@ function setCameraView( viewId )
     const view = cameraViews[viewId];
     if ( !view ) throw new Error( `Unknown Casting Pit camera '${viewId}'.` );
     activeCameraView = viewId;
-    if ( viewId === 'forge-source' || viewId === 'forge-ring' )
+    if (
+        viewId === 'confluence'
+        || viewId === 'cluster'
+        || viewId === 'capillary-field'
+    )
     {
-        refreshForgeCameras();
+        refreshCapillaryCameras();
     }
     else world.setCameraView( view );
     document.querySelectorAll( '[data-view]' ).forEach( ( button ) => {
@@ -101,61 +128,92 @@ function setCameraView( viewId )
     } );
 }
 
-function updateForgeReadouts()
+function updateCapillaryReadouts()
 {
-    const snapshot = forge.getSnapshot();
+    if ( !universe ) return;
+    const snapshot = universe.getCapillarySnapshot();
     const source = selectedSource();
-    document.querySelector( '#forge-selected-readout' ).value = source
-        ? `${source.label} · ${snapshot.selectedSourceIndex + 1}/${snapshot.sourceCount}`
-        : 'no source';
-    document.querySelector( '#forge-heat-readout' ).value =
-        `${snapshot.activeSourceCount}/${snapshot.manifestedSourceCount} active`
-        + ` · p ${snapshot.maximumPressure.toFixed( 2 )}`;
-    document.querySelector( '#forge-emission-readout' ).value =
-        `${snapshot.manifestedEmissionCount}/${snapshot.emissionEventCount} manifested`;
-    document.querySelector( '#forge-ring-readout' ).value =
-        `${snapshot.manifestedSourceCount}/${snapshot.sourceCount} sources`
-        + ` · r ${snapshot.sourceRingRadius.toFixed( 2 )}`;
+    const selectedTributaryCount = snapshot.selectedTributaries?.length ?? 0;
+    const sourceCount = Number.isFinite( snapshot.sourceCount )
+        ? snapshot.sourceCount
+        : latestSourceLayout?.sources.length ?? 0;
+    const activeSourceCount = Array.isArray( snapshot.activeSourceIndices )
+        ? snapshot.activeSourceIndices.length
+        : snapshot.activeSourceCount ?? 0;
+    const activePrimaryTrunkCount = Number.isFinite( snapshot.activePrimaryTrunkCount )
+        ? snapshot.activePrimaryTrunkCount
+        : activeSourceCount;
+    const activeTerminalCapillaryCount = Number.isFinite( snapshot.activeTerminalCapillaryCount )
+        ? snapshot.activeTerminalCapillaryCount
+        : snapshot.activeTributaryCount ?? selectedTributaryCount;
+    const measuredMassBalance = Number.isFinite( snapshot.massBalance )
+        ? snapshot.massBalance
+        : 0;
+    const massBalance = Math.abs( measuredMassBalance ) < 0.0005
+        ? 0
+        : measuredMassBalance;
+    const massBalanceText = `${massBalance >= 0 ? '+' : ''}${massBalance.toFixed( 3 )}`;
+    document.querySelector( '#capillary-selected-readout' ).value = source
+        ? `${source.label} · ${snapshot.selectedSourceIndex + 1}/${sourceCount}`
+        : 'no confluence';
+    document.querySelector( '#capillary-branch-readout' ).value =
+        `${activePrimaryTrunkCount} trunks → ${activeTerminalCapillaryCount} tips`
+        + ` · ${activeSourceCount}/${sourceCount} feeds`;
+    document.querySelector( '#capillary-parcel-readout' ).value =
+        `${snapshot.activeCapillaryParcelCount} travelling`;
+    document.querySelector( '#capillary-handoff-readout' ).value =
+        `${snapshot.confluenceEventCount}/${snapshot.inletEmissionCount} accepted`;
+    document.querySelector( '#capillary-mass-readout' ).value =
+        `Δ ${massBalanceText} · synthetic ${snapshot.syntheticMass}`;
+    document.querySelector( '#capillary-domain-readout' ).value =
+        `${snapshot.domain.size} × ${snapshot.domain.size}`
+        + ` · ${snapshot.domain.resolution}²`;
 }
 
-function setForgeMode( mode )
+function setCapillaryMode( mode )
 {
-    forge.setMode( mode );
-    document.querySelectorAll( '[data-forge-mode]' ).forEach( ( button ) => {
-        const active = button.dataset.forgeMode === mode;
+    capillaryReviewMode = universe.setCapillaryReviewMode( mode );
+    document.querySelectorAll( '[data-capillary-mode]' ).forEach( ( button ) => {
+        const active = button.dataset.capillaryMode === capillaryReviewMode;
         button.classList.toggle( 'active', active );
         button.setAttribute( 'aria-pressed', active ? 'true' : 'false' );
     } );
-    updateForgeReadouts();
+    refreshCapillaryCameras();
+    updateCapillaryReadouts();
 }
 
 function handleSourceLayout( snapshot )
 {
     latestSourceLayout = snapshot;
-    forge.setSourceLayout( snapshot );
-    const control = document.querySelector( '#forge-source-index' );
+    const control = document.querySelector( '#capillary-source-index' );
     control.max = Math.max( 1, snapshot.sources.length );
-    const selected = Math.min(
-        forge.parameters.selectedSourceIndex,
+    selectedSourceIndex = Math.min(
+        selectedSourceIndex,
         Math.max( 0, snapshot.sources.length - 1 )
     );
-    forge.setSelectedSourceIndex( selected );
-    control.value = selected + 1;
-    document.querySelector( '#forge-source-index-value' ).value =
-        `${selected + 1} / ${snapshot.sources.length}`;
-    refreshForgeCameras();
-    updateForgeReadouts();
+    control.value = selectedSourceIndex + 1;
+    document.querySelector( '#capillary-source-index-value' ).value =
+        `${selectedSourceIndex + 1} / ${snapshot.sources.length}`;
+    if ( universe )
+    {
+        universe.setSelectedCapillarySourceIndex( selectedSourceIndex );
+        updateCapillaryReadouts();
+    }
+    refreshCapillaryCameras();
 }
 
-const universe = createSluiceGateLayer( {
+universe = createSluiceGateLayer( {
     world,
     membrane,
     parameters,
     root: document,
     onSourceLayoutChange: handleSourceLayout,
-    onSourceEmission: forge.consumeEmission,
-    getSourceHeatState: forge.getFieldState,
-    includeEnvironment: false
+    includeEnvironment: false,
+    capillaryNetwork: {
+        enabled: true,
+        reviewMode: capillaryReviewMode,
+        selectedSourceIndex
+    }
 } );
 world.scene.add(
     universe.environment.diagnostic,
@@ -164,58 +222,22 @@ world.scene.add(
     universe.environment.rimLight
 );
 
-const forgeControls = Object.freeze( {
-    'forge-heat-intensity': Object.freeze( {
-        property: 'heatIntensity',
-        decimals: 2
-    } ),
-    'forge-heat-reach': Object.freeze( {
-        property: 'heatReach',
-        decimals: 2
-    } ),
-    'forge-settling-time': Object.freeze( {
-        property: 'settlingTime',
-        decimals: 2
-    } )
-} );
-
-for ( const [ id, descriptor ] of Object.entries( forgeControls ) )
-{
-    const control = document.querySelector( `#${id}` );
-    const output = document.querySelector( `#${id}-value` );
-    const range = forgeSourceRanges[descriptor.property];
-    control.min = range.min;
-    control.max = range.max;
-    control.step = range.step;
-    control.value = forgeSourceDefaults[descriptor.property];
-    output.value = forgeSourceDefaults[descriptor.property].toFixed(
-        descriptor.decimals
-    );
-    control.addEventListener( 'input', () => {
-        const value = forge.setParameter(
-            descriptor.property,
-            Number( control.value )
-        );
-        output.value = value.toFixed( descriptor.decimals );
-        updateForgeReadouts();
-    } );
-}
-
-document.querySelectorAll( '[data-forge-mode]' ).forEach( ( button ) => {
-    button.addEventListener( 'click', () => setForgeMode(
-        button.dataset.forgeMode
+document.querySelectorAll( '[data-capillary-mode]' ).forEach( ( button ) => {
+    button.addEventListener( 'click', () => setCapillaryMode(
+        button.dataset.capillaryMode
     ) );
 } );
 
-document.querySelector( '#forge-source-index' ).addEventListener(
+document.querySelector( '#capillary-source-index' ).addEventListener(
     'input',
     ( event ) => {
-        const selected = Number( event.currentTarget.value ) - 1;
-        forge.setSelectedSourceIndex( selected );
-        document.querySelector( '#forge-source-index-value' ).value =
-            `${selected + 1} / ${latestSourceLayout?.sources.length ?? 0}`;
-        refreshForgeCameras();
-        updateForgeReadouts();
+        selectedSourceIndex = universe.setSelectedCapillarySourceIndex(
+            Number( event.currentTarget.value ) - 1
+        );
+        document.querySelector( '#capillary-source-index-value' ).value =
+            `${selectedSourceIndex + 1} / ${latestSourceLayout?.sources.length ?? 0}`;
+        refreshCapillaryCameras();
+        updateCapillaryReadouts();
     }
 );
 
@@ -228,28 +250,23 @@ document.querySelectorAll( '[data-view]' ).forEach( ( button ) => {
 for ( const id of [ 'depth', 'width' ] )
 {
     document.querySelector( `#${id}` ).addEventListener( 'input', () => {
-        forge.refreshSurface();
-        refreshForgeCameras();
+        refreshCapillaryCameras();
     } );
 }
-document.querySelector( '#reset' ).addEventListener(
-    'click',
-    () => forge.clearActivity()
-);
 
 world.addFrameCallback( ( time ) => {
-    forge.update( time );
     if ( previousReadoutTime === null ) previousReadoutTime = time;
     readoutElapsed += Math.min( ( time - previousReadoutTime ) / 1000, 0.1 );
     previousReadoutTime = time;
     if ( readoutElapsed >= 0.25 )
     {
-        updateForgeReadouts();
+        updateCapillaryReadouts();
         readoutElapsed = 0;
     }
 } );
 
-setForgeMode( forgeSourceDefaults.mode );
-setCameraView( 'forge-ring' );
-updateForgeReadouts();
+setCapillaryMode( capillaryReviewMode );
+universe.setSelectedCapillarySourceIndex( selectedSourceIndex );
+setCameraView( 'cluster' );
+updateCapillaryReadouts();
 world.start();

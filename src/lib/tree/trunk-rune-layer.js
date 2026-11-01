@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import {
+    registerRootedMotionMaterial,
+    rootedMotionShaderApplication,
+    rootedMotionShaderDeclarations
+} from './rooted-motion.js';
 
 export const trunkRuneTransducerSite = Object.freeze( {
     id: 'meaning-passage',
@@ -1952,6 +1957,8 @@ export function createTrunkRuneMaterial(
     const uniforms = {
         time: deformationUniforms.time ?? { value: 0 },
         response: deformationUniforms.response ?? { value: 0.22 },
+        gustMix: deformationUniforms.gustMix ?? { value: 0 },
+        intervalBase: deformationUniforms.intervalBase ?? { value: 0 },
         sourceColour: {
             value: new THREE.Color( 0x249cff ).multiplyScalar(
                 usesContinuousColour ? 3.15 : 2.25
@@ -1979,13 +1986,14 @@ export function createTrunkRuneMaterial(
     material.onBeforeCompile = ( shader ) => {
         shader.uniforms.treeTime = uniforms.time;
         shader.uniforms.treeResponse = uniforms.response;
+        shader.uniforms.treeGustMix = uniforms.gustMix;
+        shader.uniforms.treeGustIntervalBase = uniforms.intervalBase;
         shader.uniforms.runeSourceColour = uniforms.sourceColour;
         shader.uniforms.runeOutputColour = uniforms.outputColour;
         shader.vertexShader = shader.vertexShader.replace(
             '#include <common>',
             `#include <common>
-            uniform float treeTime;
-            uniform float treeResponse;
+            ${rootedMotionShaderDeclarations}
             attribute float runeSignal;
             attribute float runeWarmth;
             varying float filigreeSignal;
@@ -1995,14 +2003,7 @@ export function createTrunkRuneMaterial(
             `#include <begin_vertex>
             filigreeSignal = runeSignal;
             filigreeWarmth = runeWarmth;
-            float motionReach = smoothstep( 0.25, 5.6, max( position.y, 0.0 ) );
-            float swayX = sin( treeTime * 0.72 + position.y * 0.38 + position.z * 0.12 );
-            float swayZ = sin( treeTime * 0.56 + position.y * 0.31 + position.x * 0.10 + 1.7 );
-            float flutter = sin( treeTime * 1.17 + position.y * 0.81 + position.z * 0.19 );
-            transformed.x += ( swayX * 0.25 + flutter * 0.035 )
-                * treeResponse * motionReach;
-            transformed.z += ( swayZ * 0.19 + flutter * 0.028 )
-                * treeResponse * motionReach;`
+            ${rootedMotionShaderApplication( 'position' )}`
         );
         shader.fragmentShader = shader.fragmentShader.replace(
             '#include <common>',
@@ -2025,10 +2026,10 @@ export function createTrunkRuneMaterial(
         material.userData.shader = shader;
     };
     material.customProgramCacheKey = () => isInternalArborescence
-        ? 'causal-internal-arborescence-c4c'
+        ? 'causal-internal-arborescence-c4c-rooted-motion-v4'
         : isOpticalFibre
-            ? 'causal-exterior-optical-fibre-c4b'
-            : 'visible-filigree-transducer-c4a';
+            ? 'causal-exterior-optical-fibre-c4b-rooted-motion-v4'
+            : 'visible-filigree-transducer-c4a-rooted-motion-v4';
     material.name = isInternalArborescence
         ? 'renderer-owned internal information arborescence'
         : isOpticalFibre
@@ -2048,10 +2049,15 @@ export function createTrunkRuneMaterial(
         ? 'rootward'
         : null;
     material.userData.motionModel = 'shared-tree-deformation';
-    material.userData.deformationUniforms = {
-        time: uniforms.time,
-        response: uniforms.response
-    };
+    registerRootedMotionMaterial(
+        material,
+        uniforms,
+        isInternalArborescence
+            ? 'internal-information-arborescence'
+            : isOpticalFibre
+                ? 'exterior-optical-fibre'
+                : 'functional-rune-transducer'
+    );
     material.userData.inspiration = isInternalArborescence
         ? 'root-system-within-monumental-graphite'
         : isOpticalFibre
