@@ -58,6 +58,8 @@ test( 'the public engine builds one fixed opaque textureless surface', () => {
     assert.equal( snapshot.packetCount, 2 );
     assert.equal( snapshot.lightingModel, 'material-local' );
     assert.equal( snapshot.sceneLightDependencyCount, 0 );
+    assert.equal( snapshot.illuminationScale, 1 );
+    assert.equal( snapshot.warmthScale, 1 );
     assert.ok( sea.mesh.material.isMeshStandardMaterial );
     assert.equal( sea.mesh.material.transparent, false );
     assert.equal( sea.mesh.material.depthTest, true );
@@ -77,6 +79,51 @@ test( 'the public engine builds one fixed opaque textureless surface', () => {
         assert.equal( sea.mesh.material[property], null );
     }
     sea.dispose();
+} );
+
+test( 'local lighting can be subdued per instance without scene lights', () => {
+    const fixture = createFixture( {
+        illuminationScale: 0.42,
+        warmthScale: 0.08
+    } );
+    const shader = {
+        uniforms: {},
+        vertexShader: [
+            '#include <common>',
+            '#include <beginnormal_vertex>',
+            '#include <begin_vertex>'
+        ].join( '\n' ),
+        fragmentShader: [
+            '#include <common>',
+            '#include <color_fragment>',
+            '#include <roughnessmap_fragment>',
+            '#include <normal_fragment_maps>',
+            '#include <lights_fragment_end>'
+        ].join( '\n' )
+    };
+    fixture.sea.mesh.material.onBeforeCompile( shader );
+    assert.equal( fixture.sea.getSnapshot().illuminationScale, 0.42 );
+    assert.equal( fixture.sea.getSnapshot().warmthScale, 0.08 );
+    assert.equal( shader.uniforms.substrateIlluminationScale.value, 0.42 );
+    assert.equal( shader.uniforms.substrateWarmthScale.value, 0.08 );
+    assert.match(
+        shader.fragmentShader,
+        /reflectedLight\.directDiffuse\s*\*=\s*substrateIlluminationScale/
+    );
+    assert.match(
+        shader.fragmentShader,
+        /substrateWarmColour[\s\S]*substrateWarmthScale/
+    );
+    fixture.sea.dispose();
+
+    assert.throws(
+        () => createFixture( { illuminationScale: 1.01 } ),
+        /illumination scale must be between 0 and 1/
+    );
+    assert.throws(
+        () => createFixture( { warmthScale: -0.01 } ),
+        /warmth scale must be between 0 and 1/
+    );
 } );
 
 test( 'the shader contains real multi-band geometry and optical compression', () => {

@@ -152,6 +152,8 @@ const surfaceFragmentShader = /* glsl */`
     uniform float substrateFineActivity;
     uniform float substrateReflection;
     uniform float substrateCrossCurrent;
+    uniform float substrateIlluminationScale;
+    uniform float substrateWarmthScale;
     varying vec2 vSubstratePoint;
     varying float vSubstrateEnergy;
     varying float vSubstrateCompression;
@@ -310,11 +312,14 @@ function createMaterial( uniforms )
                     substrateRightHeight - substrateLeftHeight,
                     substrateUpHeight - substrateDownHeight
                 ) / ( 2.0 * substrateNormalStep );
-                objectNormal = normalize( vec3(
-                    -substrateGradient.x,
-                    1.0,
-                    -substrateGradient.y
-                ) );
+                objectNormal = normalize(
+                    objectNormal
+                    + vec3(
+                        -substrateGradient.x,
+                        0.0,
+                        -substrateGradient.y
+                    )
+                );
             ` )
             .replace( '#include <begin_vertex>', `
                 #include <begin_vertex>
@@ -413,7 +418,8 @@ function createMaterial( uniforms )
                 );
                 vec3 substrateKeyColour = vec3( 0.807, 0.905, 1.0 ) * 4.03;
                 vec3 substrateCrossColour = vec3( 0.266, 0.497, 0.658 ) * 2.35;
-                vec3 substrateWarmColour = vec3( 0.680, 0.254, 0.098 ) * 1.29;
+                vec3 substrateWarmColour = vec3( 0.680, 0.254, 0.098 )
+                    * 1.29 * substrateWarmthScale;
                 directLight.visible = true;
                 directLight.direction = substrateKeyDirection;
                 directLight.color = substrateKeyColour;
@@ -483,6 +489,10 @@ function createMaterial( uniforms )
                     * vSubstrateCompression
                     * substrateReflection
                     * ( 0.07 + substrateFresnel * 0.93 );
+                reflectedLight.directDiffuse *= substrateIlluminationScale;
+                reflectedLight.directSpecular *= substrateIlluminationScale;
+                reflectedLight.indirectDiffuse *= substrateIlluminationScale;
+                reflectedLight.indirectSpecular *= substrateIlluminationScale;
             ` );
         material.userData.compiledShader = shader;
     };
@@ -502,7 +512,9 @@ export function createEnergeticSeaLayer( {
     scene,
     parameters: parameterOverrides = {},
     extent = defaultExtent,
-    segments = defaultSegments
+    segments = defaultSegments,
+    illuminationScale = 1,
+    warmthScale = 1
 } )
 {
     if ( !scene?.isObject3D || typeof scene.add !== 'function' )
@@ -514,6 +526,20 @@ export function createEnergeticSeaLayer( {
     if ( !Number.isInteger( segments ) || segments < 2 )
     {
         throw new RangeError( 'Energetic sea segments must be an integer of at least 2.' );
+    }
+    validateFinite( illuminationScale, 'Energetic sea illumination scale' );
+    if ( illuminationScale < 0 || illuminationScale > 1 )
+    {
+        throw new RangeError(
+            'Energetic sea illumination scale must be between 0 and 1.'
+        );
+    }
+    validateFinite( warmthScale, 'Energetic sea warmth scale' );
+    if ( warmthScale < 0 || warmthScale > 1 )
+    {
+        throw new RangeError(
+            'Energetic sea warmth scale must be between 0 and 1.'
+        );
     }
 
     const parameters = resolveParameters( parameterOverrides );
@@ -533,7 +559,9 @@ export function createEnergeticSeaLayer( {
         substrateCrestTension: { value: parameters.crestTension },
         substrateCrossCurrent: { value: parameters.crossCurrent },
         substrateFineActivity: { value: parameters.fineActivity },
-        substrateReflection: { value: parameters.reflection }
+        substrateReflection: { value: parameters.reflection },
+        substrateIlluminationScale: { value: illuminationScale },
+        substrateWarmthScale: { value: warmthScale }
     };
     const material = createMaterial( uniforms );
     const mesh = new THREE.Mesh( geometry, material );
@@ -565,6 +593,8 @@ export function createEnergeticSeaLayer( {
             packetCount: 2,
             lightingModel: 'material-local',
             sceneLightDependencyCount: 0,
+            illuminationScale,
+            warmthScale,
             phaseRateScale,
             geometryUuid: geometry.uuid,
             materialUuid: material.uuid

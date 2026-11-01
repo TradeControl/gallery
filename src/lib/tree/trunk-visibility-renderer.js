@@ -437,6 +437,8 @@ function createPacketTrailSubsurfaceMaterial()
             frontDepth: { value: null },
             backDepth: { value: null },
             trailDepth: { value: null },
+            externalDepth: { value: null },
+            externalOcclusionEnabled: { value: 0 },
             viewport: { value: new THREE.Vector2( 1, 1 ) },
             cameraNear: { value: 0.1 },
             cameraFar: { value: 80 },
@@ -462,6 +464,8 @@ function createPacketTrailSubsurfaceMaterial()
             uniform sampler2D frontDepth;
             uniform sampler2D backDepth;
             uniform sampler2D trailDepth;
+            uniform sampler2D externalDepth;
+            uniform float externalOcclusionEnabled;
             uniform vec2 viewport;
             uniform float cameraNear;
             uniform float cameraFar;
@@ -488,8 +492,23 @@ function createPacketTrailSubsurfaceMaterial()
                 float nearestTrail = unpackRGBAToDepth(
                     texture2D( trailDepth, uv )
                 );
+                float externalTerrainDepth = externalOcclusionEnabled > 0.5
+                    ? unpackRGBAToDepth( texture2D( externalDepth, uv ) )
+                    : 1.0;
                 if ( front >= 0.99999 || back >= 0.99999
                     || nearestTrail >= 0.99999 ) discard;
+
+                // The packed terrain depth is independent of ordinary scene
+                // depth. This preserves a packet genuinely in front of the
+                // terrain while rejecting one behind the near well wall,
+                // even when nearer lava has already written the main depth
+                // buffer. The small clip-depth tolerance prevents a
+                // coplanar packet from flickering at the contact boundary.
+                if ( externalTerrainDepth < 0.99999
+                    && gl_FragCoord.z > externalTerrainDepth + 0.00004 )
+                {
+                    discard;
+                }
 
                 float frontDistance = viewDistance( front );
                 float backDistance = viewDistance( back );
@@ -539,12 +558,7 @@ function createPacketTrailSubsurfaceMaterial()
         side: THREE.DoubleSide,
         blending: THREE.NormalBlending,
         toneMapped: false,
-        stencilWrite: false,
-        stencilRef: 2,
-        stencilFunc: THREE.NotEqualStencilFunc,
-        stencilFail: THREE.KeepStencilOp,
-        stencilZFail: THREE.KeepStencilOp,
-        stencilZPass: THREE.KeepStencilOp
+        stencilWrite: false
     } );
     material.name = 'D4 route-local gold head-and-wake transmission';
     material.userData.presentationCandidateId =
@@ -739,30 +753,38 @@ function createPackedDepthTarget()
     return target;
 }
 
-function createExternalOccluderMaterial( source )
+function createExternalOccluderDepthMaterial( source )
 {
     const sourceMaterial = Array.isArray( source.material )
         ? source.material[0]
         : source.material;
-    const material = new THREE.MeshBasicMaterial( {
+    const material = new THREE.ShaderMaterial( {
+        vertexShader: `
+            void main()
+            {
+                gl_Position = projectionMatrix * modelViewMatrix
+                    * vec4( position, 1.0 );
+            }
+        `,
+        fragmentShader: `
+            #include <packing>
+            void main()
+            {
+                gl_FragColor = packDepthToRGBA( gl_FragCoord.z );
+            }
+        `,
         side: THREE.DoubleSide,
         depthTest: true,
-        depthWrite: false,
+        depthWrite: true,
         depthFunc: THREE.LessEqualDepth,
-        colorWrite: false,
+        colorWrite: true,
         polygonOffset: sourceMaterial?.polygonOffset ?? false,
         polygonOffsetFactor: sourceMaterial?.polygonOffsetFactor ?? 0,
         polygonOffsetUnits: sourceMaterial?.polygonOffsetUnits ?? 0,
         toneMapped: false,
-        blending: THREE.NoBlending,
-        stencilWrite: true,
-        stencilRef: 2,
-        stencilFunc: THREE.AlwaysStencilFunc,
-        stencilFail: THREE.KeepStencilOp,
-        stencilZFail: THREE.KeepStencilOp,
-        stencilZPass: THREE.ReplaceStencilOp
+        blending: THREE.NoBlending
     } );
-    material.name = 'external Tree occluder ownership mask';
+    material.name = 'external Tree occluder packed terrain depth';
     return material;
 }
 
@@ -787,12 +809,6 @@ export function createTrunkVisibilityRenderer(
     }
     const stencilAvailable = renderer.getContext()
         .getContextAttributes().stencil;
-    if ( externalOccluders.length > 0 && !stencilAvailable )
-    {
-        throw new Error(
-            'External Tree occluders require a stencil-enabled renderer.'
-        );
-    }
     const proxyScene = new THREE.Scene();
     const ownershipScene = new THREE.Scene();
     const carrierScene = new THREE.Scene();
@@ -840,7 +856,7 @@ export function createTrunkVisibilityRenderer(
         ( source, index ) => {
             const proxy = new THREE.Mesh(
                 source.geometry,
-                createExternalOccluderMaterial( source )
+                createExternalOccluderDepthMaterial( source )
             );
             proxy.name = `External Tree occluder ${index + 1}`;
             proxy.matrixAutoUpdate = false;
@@ -852,6 +868,9 @@ export function createTrunkVisibilityRenderer(
     const frontDepthTarget = createPackedDepthTarget();
     const backDepthTarget = createPackedDepthTarget();
     const runeDepthTarget = createPackedDepthTarget();
+    const externalDepthTarget = externalOccluders.length > 0
+        ? createPackedDepthTarget()
+        : null;
     const drawingBufferSize = new THREE.Vector2();
     let resourceRevision = -1;
     let runeResourceRevision = -1;
@@ -869,6 +888,7 @@ export function createTrunkVisibilityRenderer(
         packetLocusOverlayPasses: 0,
         externalOccluderCount: 0,
         externalOcclusionPasses: 0,
+        externalDepthPasses: 0,
         subsurfaceActive: false,
         renderTargetPixels: 0,
         renderTargetWidth: 0,
@@ -888,6 +908,7 @@ export function createTrunkVisibilityRenderer(
         frontDepthTarget.setSize( width, height );
         backDepthTarget.setSize( width, height );
         runeDepthTarget.setSize( width, height );
+        externalDepthTarget?.setSize( width, height );
     }
 
     function isHierarchyVisible( object )
@@ -1072,12 +1093,13 @@ export function createTrunkVisibilityRenderer(
         renderer.render( ownershipScene, camera );
     }
 
-    function renderExternalOcclusionMask()
+    function renderExternalDepth()
     {
         const visibleCount = updateExternalOccluders();
         if ( visibleCount === 0 ) return { visibleCount, passCount: 0 };
-        renderer.setRenderTarget( null );
-        renderer.clear( false, false, true );
+        renderer.setRenderTarget( externalDepthTarget );
+        renderer.setClearColor( 0xffffff, 1 );
+        renderer.clear( true, true, false );
         renderer.render( externalOccluderScene, camera );
         return { visibleCount, passCount: 1 };
     }
@@ -1174,6 +1196,7 @@ export function createTrunkVisibilityRenderer(
                 packetLocusOverlayPasses: 0,
                 externalOccluderCount: 0,
                 externalOcclusionPasses: 0,
+                externalDepthPasses: 0,
                 subsurfaceActive: false,
                 activeTraversalCount: 0,
                 activePacketTrailCount: 0,
@@ -1226,15 +1249,18 @@ export function createTrunkVisibilityRenderer(
             renderPackedDepth( frontDepthTarget, frontDepthMaterial );
             renderPackedDepth( backDepthTarget, backDepthMaterial );
             renderPacketLocusDepth();
-            const externalOcclusion = renderExternalOcclusionMask();
-            packetLocusSubsurfaceMaterial.stencilWrite =
-                externalOcclusion.passCount > 0;
+            const externalDepth = renderExternalDepth();
             packetLocusSubsurfaceMaterial.uniforms.frontDepth.value =
                 frontDepthTarget.texture;
             packetLocusSubsurfaceMaterial.uniforms.backDepth.value =
                 backDepthTarget.texture;
             packetLocusSubsurfaceMaterial.uniforms.trailDepth.value =
                 runeDepthTarget.texture;
+            packetLocusSubsurfaceMaterial.uniforms.externalDepth.value =
+                externalDepthTarget?.texture ?? frontDepthTarget.texture;
+            packetLocusSubsurfaceMaterial.uniforms
+                .externalOcclusionEnabled.value =
+                    externalDepth.passCount > 0 ? 1 : 0;
             packetLocusSubsurfaceMaterial.uniforms.viewport.value.copy(
                 drawingBufferSize
             );
@@ -1243,6 +1269,7 @@ export function createTrunkVisibilityRenderer(
             renderer.autoClear = true;
             const targetPixels = frontDepthTarget.width
                 * frontDepthTarget.height;
+            const renderTargetCount = 3 + ( externalDepthTarget ? 1 : 0 );
             const cpuSubmissionMs = performance.now() - started;
             cpuSubmissionEmaMs = cpuSubmissionEmaMs === 0
                 ? cpuSubmissionMs
@@ -1251,7 +1278,7 @@ export function createTrunkVisibilityRenderer(
                 ...diagnostics,
                 mode: 'd4-packet-subsurface',
                 requestedMode: mode,
-                passCount: 5 + externalOcclusion.passCount,
+                passCount: 5 + externalDepth.passCount,
                 cpuSubmissionMs,
                 cpuSubmissionEmaMs,
                 packedDepthPasses: 2,
@@ -1261,8 +1288,9 @@ export function createTrunkVisibilityRenderer(
                 runeOverlayPasses: 0,
                 packetLocusDepthPasses: 1,
                 packetLocusOverlayPasses: 1,
-                externalOccluderCount: externalOcclusion.visibleCount,
-                externalOcclusionPasses: externalOcclusion.passCount,
+                externalOccluderCount: externalDepth.visibleCount,
+                externalOcclusionPasses: externalDepth.passCount,
+                externalDepthPasses: externalDepth.passCount,
                 subsurfaceActive: true,
                 activeTraversalCount: 0,
                 activePacketTrailCount:
@@ -1282,12 +1310,13 @@ export function createTrunkVisibilityRenderer(
                         .internalRouterPresentation.junctionFormVertexCount
                     : 0,
                 opticalModel:
-                    'route-local head-and-wake front-depth burial attenuation',
+                    'route-local head-and-wake shell and terrain-depth attenuation',
                 crossingOrder: 'nearest active packet trail depth',
-                renderTargetPixels: targetPixels * 3,
+                renderTargetPixels: targetPixels * renderTargetCount,
                 renderTargetWidth: frontDepthTarget.width,
                 renderTargetHeight: frontDepthTarget.height,
-                estimatedRenderTargetBytes: targetPixels * 8 * 3
+                estimatedRenderTargetBytes:
+                    targetPixels * 8 * renderTargetCount
             };
             engineeredTree.group.userData.trunkVisibilityRenderer = diagnostics;
             packetLocusResources.diagnostics.rendererActive = true;
@@ -1297,8 +1326,9 @@ export function createTrunkVisibilityRenderer(
                 shellDepthPasses: 2,
                 nearestSignalDepthPasses: 1,
                 ownershipPasses: 0,
-                externalOcclusionPasses: externalOcclusion.passCount,
-                externalOccluderCount: externalOcclusion.visibleCount,
+                externalOcclusionPasses: externalDepth.passCount,
+                externalDepthPasses: externalDepth.passCount,
+                externalOccluderCount: externalDepth.visibleCount,
                 overlayPasses: 1,
                 burialDependent: true,
                 rearTransmissionFloor: 0,
@@ -1337,6 +1367,9 @@ export function createTrunkVisibilityRenderer(
                         'shared-d4-depth-aware-subsurface-junction-knot',
                     shellDepthPasses: 2,
                     nearestSignalDepthPasses: 1,
+                    externalOcclusionPasses: externalDepth.passCount,
+                    externalDepthPasses: externalDepth.passCount,
+                    externalOccluderCount: externalDepth.visibleCount,
                     overlayPasses: 1,
                     burialDependent: true,
                     rearTransmissionFloor: 0,
@@ -1402,6 +1435,7 @@ export function createTrunkVisibilityRenderer(
                 packetLocusOverlayPasses: 0,
                 externalOccluderCount: 0,
                 externalOcclusionPasses: 0,
+                externalDepthPasses: 0,
                 subsurfaceActive: true,
                 activePacketTrailCount: 0,
                 activePacketTrailSampleCount: 0,
@@ -1496,6 +1530,7 @@ export function createTrunkVisibilityRenderer(
             packetLocusOverlayPasses: 0,
             externalOccluderCount: 0,
             externalOcclusionPasses: 0,
+            externalDepthPasses: 0,
             subsurfaceActive: false,
             activeTraversalCount: 0,
             activePacketTrailCount: 0,
@@ -1547,6 +1582,7 @@ export function createTrunkVisibilityRenderer(
             frontDepthTarget.dispose();
             backDepthTarget.dispose();
             runeDepthTarget.dispose();
+            externalDepthTarget?.dispose();
             frontDepthMaterial.dispose();
             backDepthMaterial.dispose();
             ownershipMaterial.dispose();

@@ -17,6 +17,16 @@ import {
     treePlacementRanges
 } from './tree-instance.js';
 import { createCompositionMoltenContact } from './molten-contact.js';
+import {
+    compositionSubstrateDefaults,
+    compositionSubstrateRanges,
+    compositionSubstrateSurfaceDefaults,
+    compositionSubstrateSurfaceRanges,
+    createCompositionSubstrate
+} from './substrate-instance.js';
+import {
+    createCompositionTerrainDepthOwner
+} from './terrain-depth-owner.js';
 
 const parameters = {
     ...cosmicCircuitryDefaults,
@@ -94,6 +104,167 @@ const tree = createCompositionTree( {
     membrane,
     externalOccluders: [ universe.environment.membraneSurface ]
 } );
+
+const compositionSubstrate = createCompositionSubstrate( {
+    scene: world.scene,
+    membrane,
+    plantingEnvelope: tree.plantingEnvelope
+} );
+
+const compositionTerrainDepth = createCompositionTerrainDepthOwner( {
+    scene: world.scene,
+    terrainSurface: universe.environment.membraneSurface
+} );
+
+function updateTerrainDepthReadouts()
+{
+    const snapshot = compositionTerrainDepth.getSnapshot();
+    document.querySelector( '#composition-terrain-depth-state' ).value =
+        `${snapshot.status} · ordinary depth`;
+    document.querySelector( '#composition-terrain-depth-coverage' ).value =
+        `live membrane · ${snapshot.vertexCount} vertices`;
+    document.querySelector( '#composition-terrain-depth-construction' ).value =
+        `0 colour · ${snapshot.triangleCount} borrowed triangles`;
+}
+
+document.querySelector( '#composition-terrain-depth-visible' ).addEventListener(
+    'change',
+    ( event ) => {
+        compositionTerrainDepth.setVisible( event.currentTarget.checked );
+        updateTerrainDepthReadouts();
+    }
+);
+
+function updateSubstrateReadouts()
+{
+    const snapshot = compositionSubstrate.getSnapshot();
+    document.querySelector( '#composition-substrate-state' ).value =
+        `${snapshot.status} · ${snapshot.depthSource}`;
+    document.querySelector( '#composition-substrate-boundary' ).value =
+        `outer ${snapshot.outerSurfaceLevel.toFixed( 2 )}`
+        + ` · deep ≥${snapshot.deepMediumDepth.toFixed( 2 )}`;
+    document.querySelector( '#composition-substrate-construction' ).value =
+        `${snapshot.vertexCount} vertices · 0 textures`;
+}
+
+document.querySelector( '#composition-substrate-visible' ).addEventListener(
+    'change',
+    ( event ) => {
+        compositionSubstrate.setVisible( event.currentTarget.checked );
+        updateSubstrateReadouts();
+    }
+);
+
+const substrateLevelControl = document.querySelector(
+    '#composition-substrate-level'
+);
+const substrateLevelOutput = document.querySelector(
+    '#composition-substrate-level-value'
+);
+const substrateLevelRange = compositionSubstrateRanges.outerDepth;
+substrateLevelControl.min = substrateLevelRange.min;
+substrateLevelControl.max = substrateLevelRange.max;
+substrateLevelControl.step = substrateLevelRange.step;
+substrateLevelControl.value = compositionSubstrateDefaults.outerDepth;
+substrateLevelOutput.value = Number( substrateLevelControl.value ).toFixed( 2 );
+substrateLevelControl.addEventListener( 'input', () => {
+    const value = compositionSubstrate.setOuterDepth(
+        Number( substrateLevelControl.value )
+    );
+    substrateLevelOutput.value = value.toFixed( 2 );
+    updateSubstrateReadouts();
+} );
+
+const substrateControlDescriptors = Object.freeze( {
+    'composition-substrate-swell-height': Object.freeze( {
+        property: 'swellHeight',
+        decimals: 2
+    } ),
+    'composition-substrate-energy': Object.freeze( {
+        property: 'energy',
+        decimals: 2
+    } ),
+    'composition-substrate-crest-tension': Object.freeze( {
+        property: 'crestTension',
+        decimals: 2
+    } ),
+    'composition-substrate-cross-current': Object.freeze( {
+        property: 'crossCurrent',
+        decimals: 2
+    } ),
+    'composition-substrate-fine-activity': Object.freeze( {
+        property: 'fineActivity',
+        decimals: 2
+    } ),
+    'composition-substrate-reflection': Object.freeze( {
+        property: 'reflection',
+        decimals: 2
+    } ),
+    'composition-substrate-current-speed': Object.freeze( {
+        property: 'currentSpeed',
+        decimals: 2
+    } )
+} );
+
+function setSubstrateControlPresentation( id, descriptor, value )
+{
+    const control = document.querySelector( `#${id}` );
+    control.value = value;
+    document.querySelector( `#${id}-value` ).value = Number( value ).toFixed(
+        descriptor.decimals
+    );
+}
+
+for ( const [ id, descriptor ] of Object.entries(
+    substrateControlDescriptors
+) )
+{
+    const control = document.querySelector( `#${id}` );
+    const range = compositionSubstrateSurfaceRanges[descriptor.property];
+    control.min = range.min;
+    control.max = range.max;
+    control.step = range.step;
+    setSubstrateControlPresentation(
+        id,
+        descriptor,
+        compositionSubstrateSurfaceDefaults[descriptor.property]
+    );
+    control.addEventListener( 'input', () => {
+        const value = compositionSubstrate.setParameter(
+            descriptor.property,
+            Number( control.value )
+        );
+        setSubstrateControlPresentation( id, descriptor, value );
+        updateSubstrateReadouts();
+    } );
+}
+
+const substrateFreezeControl = document.querySelector(
+    '#composition-substrate-freeze-motion'
+);
+substrateFreezeControl.addEventListener( 'change', ( event ) => {
+    compositionSubstrate.setFrozen( event.currentTarget.checked );
+    updateSubstrateReadouts();
+} );
+
+document.querySelector( '#composition-substrate-reset' ).addEventListener(
+    'click',
+    () => {
+        const resetParameters = compositionSubstrate.reset();
+        for ( const [ id, descriptor ] of Object.entries(
+            substrateControlDescriptors
+        ) )
+        {
+            setSubstrateControlPresentation(
+                id,
+                descriptor,
+                resetParameters[descriptor.property]
+            );
+        }
+        substrateFreezeControl.checked = false;
+        updateSubstrateReadouts();
+    }
+);
 
 const moltenContact = createCompositionMoltenContact( {
     scene: world.scene,
@@ -390,6 +561,7 @@ for ( const [ id, descriptor ] of Object.entries( placementControls ) )
     control.addEventListener( 'input', () => {
         const value = Number( control.value );
         tree.setPlacementValue( descriptor.property, value );
+        compositionSubstrate.refreshSurface();
         document.querySelector( `#${id}-value` ).value = descriptor.format
             ? descriptor.format( value )
             : value.toFixed( descriptor.decimals );
@@ -436,6 +608,7 @@ for ( const controlId of [ 'u-depth', 'u-width' ] )
         cosmos.updateSurface();
         forge.refreshSurface();
         tree.updatePlacement();
+        compositionSubstrate.refreshSurface();
         updateAnchorReadout();
     } );
 }
@@ -475,12 +648,15 @@ function updateTreeReadouts()
 world.addFrameCallback( ( time ) => {
     forge.update( time );
     tree.update( time );
+    compositionSubstrate.update( time );
     moltenContact.update( time );
     updateForgeReadouts();
     updateTreeReadouts();
 } );
 
 updateAnchorReadout();
+updateTerrainDepthReadouts();
+updateSubstrateReadouts();
 setLayerMode( 'complete' );
 document.querySelector( '#u-reset' ).addEventListener( 'click', () => {
     forge.clearActivity();

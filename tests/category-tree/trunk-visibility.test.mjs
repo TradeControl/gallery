@@ -751,33 +751,104 @@ test( 'a detached external occluder owns D4 pixels without visible presentation'
     assert.equal( diagnostics.externalOccluderCount, 1 );
     assert.equal( diagnostics.externalOcclusionPasses, 1 );
     assert.equal( renderer.renders.length, 6 );
-    const occluderPass = renderer.renders[4];
-    assert.equal( occluderPass.target, null );
-    assert.equal( occluderPass.participants.length, 1 );
-    assert.equal( occluderPass.participants[0].geometry, terrainGeometry );
+    const targetPixels = renderer.width * renderer.height;
+    assert.equal( diagnostics.renderTargetWidth, renderer.width );
+    assert.equal( diagnostics.renderTargetHeight, renderer.height );
+    assert.equal( diagnostics.renderTargetPixels, targetPixels * 4 );
+    assert.equal( diagnostics.estimatedRenderTargetBytes,
+        targetPixels * 8 * 4 );
+
+    const occluderDepthPass = renderer.renders[4];
+    const externalDepthTarget = occluderDepthPass.target;
+    assert.ok( externalDepthTarget?.isWebGLRenderTarget );
+    assert.equal( externalDepthTarget.width, renderer.width );
+    assert.equal( externalDepthTarget.height, renderer.height );
+    assert.equal( externalDepthTarget.depthBuffer, true );
+    assert.equal( externalDepthTarget.stencilBuffer, false );
+    assert.equal( externalDepthTarget.texture.minFilter, THREE.NearestFilter );
+    assert.equal( externalDepthTarget.texture.magFilter, THREE.NearestFilter );
+    assert.equal( externalDepthTarget.texture.format, THREE.RGBAFormat );
+    assert.equal( externalDepthTarget.texture.type, THREE.UnsignedByteType );
+    assert.equal( externalDepthTarget.texture.colorSpace, THREE.NoColorSpace );
+    assert.equal( externalDepthTarget.texture.generateMipmaps, false );
+    assert.ok( renderer.clears.some( ( clear ) =>
+        clear.target === externalDepthTarget
+        && clear.colour === true
+        && clear.depth === true
+        && clear.stencil === false ) );
+
+    assert.equal( occluderDepthPass.participants.length, 1 );
+    assert.equal( occluderDepthPass.participants[0].geometry, terrainGeometry );
     assert.deepEqual(
-        occluderPass.participants[0].matrix.elements,
+        occluderDepthPass.participants[0].matrix.elements,
         terrain.matrixWorld.elements
     );
-    const occluderMaterial = occluderPass.participants[0].material;
-    assert.equal( occluderMaterial.name,
-        'external Tree occluder ownership mask' );
-    assert.equal( occluderMaterial.colorWrite, false );
-    assert.equal( occluderMaterial.depthWrite, false );
+    const occluderMaterial = occluderDepthPass.participants[0].material;
+    assert.equal( occluderMaterial.isShaderMaterial, true );
+    assert.equal( occluderMaterial.colorWrite, true );
+    assert.equal( occluderMaterial.depthTest, true );
+    assert.equal( occluderMaterial.depthWrite, true );
     assert.equal( occluderMaterial.depthFunc, THREE.LessEqualDepth );
-    assert.equal( occluderMaterial.stencilWrite, true );
-    assert.equal( occluderMaterial.stencilRef, 2 );
-    assert.equal( occluderMaterial.stencilZPass, THREE.ReplaceStencilOp );
+    assert.equal( occluderMaterial.transparent, false );
+    assert.equal( occluderMaterial.side, THREE.DoubleSide );
+    assert.equal( occluderMaterial.blending, THREE.NoBlending );
+    assert.equal( occluderMaterial.toneMapped, false );
+    assert.equal( occluderMaterial.polygonOffset, true );
+    assert.equal( occluderMaterial.polygonOffsetFactor, 1 );
+    assert.equal( occluderMaterial.polygonOffsetUnits, 1 );
+    assert.equal( occluderMaterial.stencilWrite, false );
+    assert.match( occluderMaterial.fragmentShader, /packDepthToRGBA/ );
+
+    const overlayPass = renderer.renders[5];
+    assert.equal( overlayPass.target, null );
     const overlayMaterial = renderer.renders[5].participants[0].material;
     assert.equal( overlayMaterial.name,
         'D4 route-local gold head-and-wake transmission' );
-    assert.equal( overlayMaterial.stencilWrite, true );
-    assert.equal( overlayMaterial.stencilFunc, THREE.NotEqualStencilFunc );
-    assert.equal( overlayMaterial.stencilRef, 2 );
-    assert.ok( renderer.clears.some( ( clear ) => clear.target === null
-        && clear.colour === false
-        && clear.depth === false
-        && clear.stencil === true ) );
+    assert.equal( overlayMaterial.stencilWrite, false );
+    const externalTextureUniform = Object.entries( overlayMaterial.uniforms )
+        .find( ( [ name, uniform ] ) =>
+            /external|occlud/i.test( name )
+            && uniform.value === externalDepthTarget.texture );
+    assert.ok(
+        externalTextureUniform,
+        'D4 must sample the exact packed depth produced by the terrain pass'
+    );
+    assert.match( overlayMaterial.fragmentShader, /unpackRGBAToDepth/ );
+    assert.match( overlayMaterial.fragmentShader, /gl_FragCoord\.z/ );
+    assert.match( overlayMaterial.fragmentShader,
+        /float externalTerrainDepth/ );
+    assert.doesNotMatch( overlayMaterial.fragmentShader,
+        /\bfloat\s+external\b/ );
+    assert.match( overlayMaterial.fragmentShader, /discard/ );
+
+    const externalTargetUuid = externalDepthTarget.texture.uuid;
+    const externalMaterialUuid = occluderMaterial.uuid;
+    const replacementTerrainGeometry = new THREE.PlaneGeometry(
+        18,
+        18,
+        3,
+        3
+    );
+    terrain.geometry = replacementTerrainGeometry;
+    terrain.position.set( -0.75, 0.4, 1.1 );
+    terrain.rotation.y = 0.3;
+    terrain.updateMatrixWorld( true );
+    camera.position.set( -5.5, 5.2, 13.5 );
+    camera.lookAt( 0.2, 0.6, -0.4 );
+    camera.updateMatrixWorld();
+    renderer.resetRecording();
+    comparison.render();
+    const movedPass = renderer.renders[4];
+    assert.equal( movedPass.target, externalDepthTarget );
+    assert.equal( movedPass.target.texture.uuid, externalTargetUuid );
+    assert.equal( movedPass.participants[0].material.uuid,
+        externalMaterialUuid );
+    assert.equal( movedPass.participants[0].geometry,
+        replacementTerrainGeometry );
+    assert.deepEqual(
+        movedPass.participants[0].matrix.elements,
+        terrain.matrixWorld.elements
+    );
 
     terrain.visible = false;
     renderer.resetRecording();
@@ -787,17 +858,86 @@ test( 'a detached external occluder owns D4 pixels without visible presentation'
     assert.equal( hiddenDiagnostics.externalOccluderCount, 0 );
     assert.equal( hiddenDiagnostics.externalOcclusionPasses, 0 );
     assert.equal( renderer.renders.length, 5 );
-    assert.equal(
-        renderer.renders[4].participants[0].material.stencilWrite,
-        false
+    const hiddenOverlayMaterial = renderer.renders[4]
+        .participants[0].material;
+    assert.equal( hiddenOverlayMaterial, overlayMaterial );
+    assert.equal( hiddenOverlayMaterial.stencilWrite, false );
+    const externalControl = Object.entries( hiddenOverlayMaterial.uniforms )
+        .find( ( [ name, uniform ] ) =>
+            /external|occlud/i.test( name )
+            && uniform.value !== externalDepthTarget.texture
+            && ( typeof uniform.value === 'boolean'
+                || typeof uniform.value === 'number' )
+    );
+    const hiddenTargetWasCleared = renderer.clears.some( ( clear ) =>
+        clear.target === externalDepthTarget
+        && clear.colour === true
+        && clear.depth === true );
+    assert.ok(
+        hiddenTargetWasCleared
+            || externalControl?.[1].value === false
+            || externalControl?.[1].value === 0,
+        'a hidden source must not leave stale terrain depth active'
     );
 
+    let targetDisposals = 0;
+    let ownedMaterialDisposals = 0;
+    let sourceGeometryDisposals = 0;
+    let replacementGeometryDisposals = 0;
+    let sourceMaterialDisposals = 0;
+    externalDepthTarget.addEventListener( 'dispose', () => {
+        targetDisposals += 1;
+    } );
+    occluderMaterial.addEventListener( 'dispose', () => {
+        ownedMaterialDisposals += 1;
+    } );
+    terrainGeometry.addEventListener( 'dispose', () => {
+        sourceGeometryDisposals += 1;
+    } );
+    replacementTerrainGeometry.addEventListener( 'dispose', () => {
+        replacementGeometryDisposals += 1;
+    } );
+    terrainMaterial.addEventListener( 'dispose', () => {
+        sourceMaterialDisposals += 1;
+    } );
+
     comparison.dispose();
+    assert.equal( targetDisposals, 1 );
+    assert.equal( ownedMaterialDisposals, 1 );
+    assert.equal( sourceGeometryDisposals, 0 );
+    assert.equal( replacementGeometryDisposals, 0 );
+    assert.equal( sourceMaterialDisposals, 0 );
+
+    const standaloneRenderer = new RecordingRenderer();
+    const standaloneComparison = createTrunkVisibilityRenderer(
+        standaloneRenderer,
+        scene,
+        camera,
+        layer
+    );
+    standaloneComparison.render();
+    const standaloneDiagnostics = standaloneComparison.getDiagnostics();
+    assert.equal( standaloneDiagnostics.mode, 'd4-packet-subsurface' );
+    assert.equal( standaloneDiagnostics.passCount, 5 );
+    assert.equal( standaloneDiagnostics.externalOccluderCount, 0 );
+    assert.equal( standaloneDiagnostics.externalOcclusionPasses, 0 );
+    assert.equal( standaloneDiagnostics.externalDepthPasses, 0 );
+    assert.equal( standaloneDiagnostics.renderTargetPixels,
+        standaloneRenderer.width * standaloneRenderer.height * 3 );
+    assert.equal(
+        standaloneRenderer.renders.filter( ( pass ) => pass.target !== null )
+            .length,
+        3,
+        'standalone D4 must not allocate or submit an external-depth pass'
+    );
+    standaloneComparison.dispose();
+
     terrainGeometry.dispose();
+    replacementTerrainGeometry.dispose();
     terrainMaterial.dispose();
 } );
 
-test( 'external Tree occluders require a stencil buffer', () => {
+test( 'external Tree packed depth remains independent of the stencil buffer', () => {
     const { layer } = createMatureLayer();
     const scene = new THREE.Scene();
     scene.add( layer.group );
@@ -811,17 +951,16 @@ test( 'external Tree occluders require a stencil buffer', () => {
     } );
     const camera = new THREE.PerspectiveCamera();
 
-    assert.throws(
-        () => createTrunkVisibilityRenderer(
-            renderer,
-            scene,
-            camera,
-            layer,
-            { externalOccluders: [ terrain ] }
-        ),
-        /require a stencil-enabled renderer/
+    const comparison = createTrunkVisibilityRenderer(
+        renderer,
+        scene,
+        camera,
+        layer,
+        { externalOccluders: [ terrain ] }
     );
+    assert.equal( comparison.getDiagnostics().stencilAvailable, false );
 
+    comparison.dispose();
     terrainGeometry.dispose();
     terrainMaterial.dispose();
 } );

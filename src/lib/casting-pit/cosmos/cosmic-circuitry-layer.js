@@ -5,17 +5,17 @@ import { seededGenerator } from '../random.js';
 export const cosmicCircuitryDefaults = {
     depth: 7.1,
     width: 3.7,
-    intensity: 0.65,
-    arterialConnectivity: 0.45,
+    intensity: 0.2,
+    arterialConnectivity: 1,
     districtDensity: 0.6,
     intricacy: 7,
-    districtFootprint: 1.7,
+    districtFootprint: 1.87,
     territoryX: 0,
     territoryZ: 4,
-    surfaceBinding: 0.82,
-    signalDensity: 110,
-    signalSpeed: 2.5,
-    signalBrightness: 0.85,
+    surfaceBinding: 1,
+    signalDensity: 136,
+    signalSpeed: 3.75,
+    signalBrightness: 0.25,
     seed: 2
 };
 
