@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Category Tree — Emergent Superstrate Study</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main id="scene" aria-label="Disconnected metaphysical superstrate study"></main>
+
+    <button id="controls-toggle" type="button" aria-controls="superstrate-controls" aria-expanded="true" aria-label="Hide controls">‹</button>
+
+    <aside id="superstrate-controls" class="controls" aria-label="Metaphysical superstrate controls">
+      <header>
+        <p>M2 · localized superstrate</p>
+        <h1>Metaphysical superstrate <span>causal confluence study</span></h1>
+      </header>
+      <p class="statement">Four localized causal fields move independently. Where they overlap, a fifth field becomes conceivable: Confluence. No stars, textures or astronomical bodies.</p>
+
+      <div class="section-label">Manifestation</div>
+      <label class="control" for="presence"><span>Presence</span><output id="presence-value">0.68</output><input id="presence" type="range" min="0" max="1.4" step="0.01" value="0.68"></label>
+      <label class="control" for="breath"><span>Breath</span><output id="breath-value">0.42</output><input id="breath" type="range" min="0" max="1.2" step="0.01" value="0.42"></label>
+      <label class="control" for="coherence"><span>Coherence</span><output id="coherence-value">0.56</output><input id="coherence" type="range" min="0" max="1" step="0.01" value="0.56"></label>
+
+      <div class="section-label">Causal magnets</div>
+      <p class="explanation">Each magnet acts around its own directional source. Composition can later replace these diagnostic positions with the accepted lower fields.</p>
+      <label class="control" for="substrate-magnet"><span>Substrate magnet</span><output id="substrate-magnet-value">0.34</output><input id="substrate-magnet" type="range" min="0" max="1" step="0.01" value="0.34"></label>
+      <label class="control" for="physical-magnet"><span>Physical magnet</span><output id="physical-magnet-value">0.28</output><input id="physical-magnet" type="range" min="0" max="1" step="0.01" value="0.28"></label>
+      <label class="control" for="information-magnet"><span>Information magnet</span><output id="information-magnet-value">0.42</output><input id="information-magnet" type="range" min="0" max="1" step="0.01" value="0.42"></label>
+      <label class="control" for="living-magnet"><span>Living / Tree magnet</span><output id="living-magnet-value">0.36</output><input id="living-magnet" type="range" min="0" max="1" step="0.01" value="0.36"></label>
+
+      <div class="section-label">Emergence</div>
+      <p class="explanation">Confluence is not another source. It manifests only where two or more causal fields interact.</p>
+      <label class="control" for="confluence"><span>Confluence</span><output id="confluence-value">0.72</output><input id="confluence" type="range" min="0" max="1" step="0.01" value="0.72"></label>
+
+      <div class="section-label">Review</div>
+      <label class="switch" for="freeze-emergence"><span>Freeze emergence</span><input id="freeze-emergence" type="checkbox"></label>
+
+      <fieldset class="field-controls">
+        <legend>Field isolation</legend>
+        <button type="button" data-field-view="complete" aria-pressed="true">Complete</button>
+        <button type="button" data-field-view="substrate" aria-pressed="false">Substrate</button>
+        <button type="button" data-field-view="physical" aria-pressed="false">Physical</button>
+        <button type="button" data-field-view="information" aria-pressed="false">Information</button>
+        <button type="button" data-field-view="living" aria-pressed="false">Living</button>
+        <button type="button" data-field-view="confluence" aria-pressed="false">Confluence</button>
+      </fieldset>
+
+      <fieldset class="camera-controls">
+        <legend>Framing</legend>
+        <button type="button" data-view="composition" aria-pressed="true">Composition</button>
+        <button type="button" data-view="veil" aria-pressed="false">Veil</button>
+        <button type="button" data-view="void" aria-pressed="false">Void</button>
+      </fieldset>
+
+      <button id="reset" class="wide-button" type="button">Reset emergent study</button>
+
+      <dl class="stats" aria-label="Emergent superstrate statistics">
+        <div><dt>Fields</dt><dd><output id="field-stats">measuring</output></dd></div>
+        <div><dt>Motion phase</dt><dd><output id="phase-value">0.00</output></dd></div>
+        <div><dt>Apparition</dt><dd><output id="pulse-value">0.50</output></dd></div>
+        <div><dt>Construction</dt><dd>procedural · 0 textures · 0 stars · 0 lights</dd></div>
+      </dl>
+      <p class="hint">Independent reference study · 4 localized sources + 1 nonlinear Confluence · no Composition adapter</p>
+    </aside>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
