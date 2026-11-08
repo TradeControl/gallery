@@ -26,6 +26,11 @@
       </header>
       <p class="statement">Genuine molten parcels consumed at the planted root boundary can now continue upward as a sparse physical counter-flow. Existing cyan and gold information packets remain the return.</p>
 
+      <fieldset id="composition-scene-controls" class="scene-controls">
+        <legend>Scenes</legend>
+      </fieldset>
+      <p class="mode-readout">Scene <output id="active-scene">loading</output></p>
+
       <fieldset class="mode-switch">
         <legend>Inspection mode</legend>
         <button type="button" data-layer-mode="pit" aria-pressed="false">Pit</button>
@@ -234,6 +239,41 @@
         </div>
       </details>
 
+      <details>
+        <summary>Superstrate · causal confluence</summary>
+        <label class="switch" for="composition-superstrate-visible"><span>Show metaphysical field</span><input id="composition-superstrate-visible" type="checkbox" checked></label>
+
+        <div class="section-label">Emergence</div>
+        <label class="control" for="composition-superstrate-presence"><span>Presence</span><output id="composition-superstrate-presence-value">0.52</output><input id="composition-superstrate-presence" type="range" min="0" max="1.4" step="0.01" value="0.52"></label>
+        <label class="control" for="composition-superstrate-breath"><span>Breath</span><output id="composition-superstrate-breath-value">0.36</output><input id="composition-superstrate-breath" type="range" min="0" max="1.2" step="0.01" value="0.36"></label>
+        <label class="control" for="composition-superstrate-coherence"><span>Coherence</span><output id="composition-superstrate-coherence-value">0.56</output><input id="composition-superstrate-coherence" type="range" min="0" max="1" step="0.01" value="0.56"></label>
+        <label class="control" for="composition-superstrate-confluence"><span>Confluence</span><output id="composition-superstrate-confluence-value">0.54</output><input id="composition-superstrate-confluence" type="range" min="0" max="1" step="0.01" value="0.54"></label>
+
+        <div class="section-label">Causal magnets</div>
+        <label class="control" for="composition-superstrate-substrate-magnet"><span>Substrate</span><output id="composition-superstrate-substrate-magnet-value">0.24</output><input id="composition-superstrate-substrate-magnet" type="range" min="0" max="1" step="0.01" value="0.24"></label>
+        <label class="control" for="composition-superstrate-physical-magnet"><span>Physical</span><output id="composition-superstrate-physical-magnet-value">0.20</output><input id="composition-superstrate-physical-magnet" type="range" min="0" max="1" step="0.01" value="0.20"></label>
+        <label class="control" for="composition-superstrate-information-magnet"><span>Information</span><output id="composition-superstrate-information-magnet-value">0.28</output><input id="composition-superstrate-information-magnet" type="range" min="0" max="1" step="0.01" value="0.28"></label>
+        <label class="control" for="composition-superstrate-living-magnet"><span>Living</span><output id="composition-superstrate-living-magnet-value">0.26</output><input id="composition-superstrate-living-magnet" type="range" min="0" max="1" step="0.01" value="0.26"></label>
+
+        <label class="switch" for="composition-superstrate-freeze-motion"><span>Freeze emergence</span><input id="composition-superstrate-freeze-motion" type="checkbox"></label>
+        <fieldset class="superstrate-view-switch">
+          <legend>Field isolation</legend>
+          <button type="button" data-superstrate-field-view="complete" aria-pressed="true">All fields</button>
+          <button type="button" data-superstrate-field-view="substrate" aria-pressed="false">Substrate</button>
+          <button type="button" data-superstrate-field-view="physical" aria-pressed="false">Physical</button>
+          <button type="button" data-superstrate-field-view="information" aria-pressed="false">Information</button>
+          <button type="button" data-superstrate-field-view="living" aria-pressed="false">Living</button>
+          <button type="button" data-superstrate-field-view="confluence" aria-pressed="false">Confluence</button>
+        </fieldset>
+        <div class="button-row"><button id="composition-superstrate-reset" type="button">Reset superstrate</button></div>
+        <dl class="stats" aria-label="Composition superstrate statistics">
+          <div><dt>State</dt><dd><output id="composition-superstrate-state">emerging</output></dd></div>
+          <div><dt>Fields</dt><dd><output id="composition-superstrate-fields">4 causes + 1 confluence</output></dd></div>
+          <div><dt>Construction</dt><dd><output id="composition-superstrate-construction">1 shell · 0 textures</output></dd></div>
+        </dl>
+        <p class="seed">Four situated causal fields meet in one nonlinear confluence · no stars · no image textures · no independent light</p>
+      </details>
+
       <fieldset class="camera-controls">
         <legend>Camera</legend>
         <button type="button" data-view="composition">Composition</button>
@@ -243,7 +283,7 @@
         <button type="button" data-view="subterrain">Subterrain</button>
         <button type="button" data-view="supply-plexus">Supply plexus</button>
       </fieldset>
-      <p class="hint">One world · dark substrate · colourless terrain depth · planted roots · live molten well</p>
+      <p class="hint">One world · emergent superstrate · dark substrate · colourless terrain depth · planted roots · live molten well</p>
     </aside>
 
     <script type="module" src="./main.js"></script>

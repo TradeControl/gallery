@@ -12,7 +12,9 @@ header p, .hint { margin: 0; color: #9b8d77; font-size: .65rem; letter-spacing: 
 h1 { margin: .1rem 0 0; font-size: 1.04rem; font-weight: 560; }
 h1 span { color: #c89d52; font-size: .7rem; }
 .statement { margin: 0 0 .65rem; color: #aaa49a; font-size: .7rem; line-height: 1.45; }
-.mode-switch, .camera-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: .35rem; margin: .7rem 0 .35rem; padding: 0; border: 0; }
+.mode-switch, .camera-controls, .scene-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: .35rem; margin: .7rem 0 .35rem; padding: 0; border: 0; }
+.scene-controls { grid-template-columns: 1fr; }
+.superstrate-view-switch { display: grid; grid-template-columns: repeat(2, 1fr); gap: .35rem; margin: .7rem 0 .35rem; padding: 0; border: 0; }
 .mode-switch button:last-child { grid-column: 1 / -1; }
 .camera-controls { grid-template-columns: repeat(2, 1fr); }
 .camera-controls button:last-child { grid-column: 1 / -1; }

@@ -20,7 +20,7 @@ import {
 } from './rooted-motion.js';
 
 export const physicalUptakeCandidateId =
-    'p10-2-contact-bound-peripheral-liquid-uptake-v4';
+    'p10-2-contact-bound-peripheral-liquid-uptake-v6';
 
 export const physicalUptakeVisualProfile = Object.freeze( {
     colour: 0x5e1805,
@@ -28,11 +28,14 @@ export const physicalUptakeVisualProfile = Object.freeze( {
     bodyColour: Object.freeze( [ 0.46, 0.038, 0.006 ] ),
     headColour: Object.freeze( [ 0.95, 0.25, 0.018 ] ),
     headIntensity: 0.95,
+    headCoreIntensity: 1.06,
     tailIntensity: 0.42,
     bodyMixMaximum: 0.28,
-    headMixMaximum: 0.34,
-    bodyIntensityMinimum: 0.58,
-    bodyIntensityMaximum: 0.88,
+    headMixMaximum: 0.48,
+    headCoreMixMaximum: 0.38,
+    bodyIntensityMinimum: 0.52,
+    bodyIntensityMaximum: 0.72,
+    wakeOpacityMaximum: 0.58,
     opacity: 0.92,
     maximumActivePackets: 96,
     maximumPendingTransfers: 1,
@@ -54,6 +57,10 @@ export const physicalUptakeVisualProfile = Object.freeze( {
     wakeAmplitude: informationPacketVisualProfile.wakeAmplitude,
     wakeDecay: informationPacketVisualProfile.wakeDecay,
     discardThreshold: informationPacketVisualProfile.discardThreshold,
+    filmRadiusMinimum: 0.3,
+    filmRadiusMaximum: 0.58,
+    headRadiusContribution: 0.42,
+    facingIntensityMinimum: 0.42,
     defaultSpeed: 1.55,
     defaultFrequency: 0.2,
     maximumFrequency: 20
@@ -202,7 +209,14 @@ function createLiquidMaterial()
             value: new THREE.Vector3().fromArray( profile.headColour )
                 .multiplyScalar( profile.headIntensity )
         },
-        opacity: { value: profile.opacity }
+        headCoreColour: {
+            value: new THREE.Vector3().fromArray( profile.headColour )
+                .multiplyScalar( profile.headCoreIntensity )
+        },
+        opacity: { value: profile.opacity },
+        externalDepth: { value: null },
+        externalOcclusionEnabled: { value: 0 },
+        viewport: { value: new THREE.Vector2( 1, 1 ) }
     };
     const material = new THREE.ShaderMaterial( {
         uniforms: {
@@ -214,39 +228,99 @@ function createLiquidMaterial()
             lavaCooledColour: uniforms.cooledColour,
             lavaBodyColour: uniforms.bodyColour,
             lavaHeadColour: uniforms.headColour,
-            uptakeOpacity: uniforms.opacity
+            lavaHeadCoreColour: uniforms.headCoreColour,
+            uptakeOpacity: uniforms.opacity,
+            externalDepth: uniforms.externalDepth,
+            externalOcclusionEnabled: uniforms.externalOcclusionEnabled,
+            viewport: uniforms.viewport
         },
         vertexShader: `
             ${rootedMotionShaderDeclarations}
+            uniform sampler2D trafficTexture;
             attribute vec2 trafficUv;
+            attribute vec3 liquidCentre;
             varying vec2 physicalTrafficUv;
+            varying float physicalLiquidFacing;
 
             void main()
             {
                 physicalTrafficUv = trafficUv;
-                vec3 transformed = position;
+                vec2 trafficSignals = texture2D(
+                    trafficTexture,
+                    trafficUv
+                ).rg;
+                float filmRadius = mix(
+                    ${profile.filmRadiusMinimum.toFixed( 3 )},
+                    ${profile.filmRadiusMaximum.toFixed( 3 )},
+                    smoothstep( 0.04, 0.72, trafficSignals.r )
+                );
+                float headRadius = smoothstep(
+                    0.08,
+                    0.96,
+                    trafficSignals.g
+                ) * ${profile.headRadiusContribution.toFixed( 3 )};
+                float liquidRadius = min( 1.0, filmRadius + headRadius );
+                vec3 transformed = mix(
+                    liquidCentre,
+                    position,
+                    liquidRadius
+                );
                 ${rootedMotionShaderApplication( 'position' )}
-                gl_Position = projectionMatrix * modelViewMatrix
-                    * vec4( transformed, 1.0 );
+                vec3 viewPosition = ( modelViewMatrix
+                    * vec4( transformed, 1.0 ) ).xyz;
+                vec3 viewNormal = normalize( normalMatrix * normal );
+                physicalLiquidFacing = abs( dot(
+                    viewNormal,
+                    normalize( -viewPosition )
+                ) );
+                gl_Position = projectionMatrix * vec4( viewPosition, 1.0 );
             }
         `,
         fragmentShader: `
+            #include <packing>
             uniform sampler2D trafficTexture;
+            uniform sampler2D externalDepth;
             uniform vec3 lavaCooledColour;
             uniform vec3 lavaBodyColour;
             uniform vec3 lavaHeadColour;
+            uniform vec3 lavaHeadCoreColour;
             uniform float uptakeOpacity;
+            uniform float externalOcclusionEnabled;
+            uniform vec2 viewport;
             varying vec2 physicalTrafficUv;
+            varying float physicalLiquidFacing;
 
             void main()
             {
-                float signal = texture2D(
+                vec2 trafficSignals = texture2D(
                     trafficTexture,
                     physicalTrafficUv
-                ).r;
-                if ( signal < ${profile.discardThreshold.toFixed( 6 )} ) discard;
-                float bodyHeat = smoothstep( 0.18, 0.90, signal );
-                float headHeat = smoothstep( 0.82, 1.0, signal );
+                ).rg;
+                float flowSignal = trafficSignals.r;
+                float headSignal = trafficSignals.g;
+                if ( flowSignal < ${profile.discardThreshold.toFixed( 6 )} ) discard;
+                float externalTerrainDepth = externalOcclusionEnabled > 0.5
+                    ? unpackRGBAToDepth( texture2D(
+                        externalDepth,
+                        gl_FragCoord.xy / viewport
+                    ) )
+                    : 1.0;
+                if ( externalTerrainDepth < 0.99999
+                    && gl_FragCoord.z > externalTerrainDepth + 0.00004 )
+                {
+                    discard;
+                }
+                float bodyHeat = smoothstep( 0.18, 0.90, flowSignal );
+                float headSheath = smoothstep( 0.08, 0.78, headSignal );
+                float headCore = smoothstep( 0.62, 0.98, headSignal );
+                float liquidFacing = pow(
+                    clamp( physicalLiquidFacing, 0.0, 1.0 ),
+                    1.6
+                );
+                float coreFacing = pow(
+                    clamp( physicalLiquidFacing, 0.0, 1.0 ),
+                    1.8
+                );
                 vec3 colour = mix(
                     lavaCooledColour * ${profile.tailIntensity.toFixed( 3 )},
                     lavaBodyColour,
@@ -255,14 +329,37 @@ function createLiquidMaterial()
                 colour = mix(
                     colour,
                     lavaHeadColour,
-                    headHeat * ${profile.headMixMaximum.toFixed( 3 )}
+                    headSheath * ${profile.headMixMaximum.toFixed( 3 )}
                 );
-                colour *= mix(
+                colour = mix(
+                    colour,
+                    lavaHeadCoreColour,
+                    headCore * coreFacing
+                        * ${profile.headCoreMixMaximum.toFixed( 3 )}
+                );
+                float bodyIntensity = mix(
                     ${profile.bodyIntensityMinimum.toFixed( 3 )},
                     ${profile.bodyIntensityMaximum.toFixed( 3 )},
                     bodyHeat
                 );
-                gl_FragColor = vec4( colour, signal * uptakeOpacity );
+                float thermalLift = max(
+                    headSheath * 0.55,
+                    headCore * 0.82
+                );
+                colour *= mix( bodyIntensity, 1.0, thermalLift );
+                colour *= mix(
+                    ${profile.facingIntensityMinimum.toFixed( 3 )},
+                    1.0,
+                    liquidFacing
+                );
+                float liquidOpacity = max(
+                    flowSignal * ${profile.wakeOpacityMaximum.toFixed( 3 )},
+                    headSheath * 0.95
+                );
+                gl_FragColor = vec4(
+                    colour,
+                    liquidOpacity * uptakeOpacity
+                );
             }
         `,
         transparent: true,
@@ -282,16 +379,20 @@ function createLiquidMaterial()
     );
     material.userData.physicalUptake = Object.freeze( {
         candidateId: physicalUptakeCandidateId,
-        representation: 'connected-head-and-wake',
+        representation: 'continuous-film-with-thermal-gradient-head',
         placement: 'three-peripheral-bark-lanes',
         cadenceSource: 'information-packet-frequency',
         cooledColour: profile.cooledColour,
         bodyColour: profile.bodyColour,
         headColour: profile.headColour,
+        headCoreColour: Object.freeze( profile.headColour.map(
+            ( component ) => component * profile.headCoreIntensity
+        ) ),
         lightCount: 0,
         bloom: false,
         autonomousEmission: false,
-        sugarReturn: false
+        sugarReturn: false,
+        externalTerrainDepthOcclusion: true
     } );
     return { material, uniforms };
 }
@@ -317,6 +418,15 @@ function smoothstep01( value )
 {
     const bounded = THREE.MathUtils.clamp( value, 0, 1 );
     return bounded * bounded * ( 3 - 2 * bounded );
+}
+
+function getLiquidHeadSignal( routeDistance, headDistance )
+{
+    return Math.exp( -Math.pow(
+        ( routeDistance - headDistance )
+            / physicalUptakeVisualProfile.headWidth,
+        2
+    ) );
 }
 
 function laneKey( childId, laneIndex )
@@ -655,18 +765,27 @@ function createPeripheralUptakeGeometry(
             tubularSegments,
             radialSegments
         );
-        const trafficUvs = new Float32Array(
-            geometry.getAttribute( 'position' ).count * 2
-        );
-        for ( let index = 0; index < trafficUvs.length / 2; index += 1 )
+        const vertexCount = geometry.getAttribute( 'position' ).count;
+        const trafficUvs = new Float32Array( vertexCount * 2 );
+        const liquidCentres = new Float32Array( vertexCount * 3 );
+        for ( let index = 0; index < vertexCount; index += 1 )
         {
             const ring = Math.floor( index / radialSegments );
-            trafficUvs[index * 2] = 1 - ring / tubularSegments;
+            const progress = ring / tubularSegments;
+            const centre = lane.curve.getPointAt( progress );
+            trafficUvs[index * 2] = 1 - progress;
             trafficUvs[index * 2 + 1] = ( row + 0.5 ) / pairs.length;
+            liquidCentres[index * 3] = centre.x;
+            liquidCentres[index * 3 + 1] = centre.y;
+            liquidCentres[index * 3 + 2] = centre.z;
         }
         geometry.setAttribute(
             'trafficUv',
             new THREE.Float32BufferAttribute( trafficUvs, 2 )
+        );
+        geometry.setAttribute(
+            'liquidCentre',
+            new THREE.Float32BufferAttribute( liquidCentres, 3 )
         );
         const parentOffset = lane.parentRadius
             * physicalUptakeVisualProfile.laneOffsetFraction;
@@ -708,6 +827,7 @@ function createPeripheralUptakeGeometry(
         centralLaneCount: 0,
         radialSegments,
         samplesPerEdge,
+        radialEnvelope: 'continuous-film-with-rounded-head',
         trafficEdges: laneRecords,
         minimumCoreClearance: Math.min(
             ...laneRecords.map( ( record ) => record.minimumCoreClearance )
@@ -884,6 +1004,30 @@ export function createPhysicalUptakeLayer(
     let disposed = false;
     let resourceRevision = 0;
 
+    const externalDepthConsumer = Object.freeze( {
+        object: group,
+        isActive() {
+            return !disposed
+                && resources.mesh.visible
+                && resources.illuminatedSampleCount > 0;
+        },
+        setExternalDepthOcclusion( {
+            texture = null,
+            enabled = false,
+            viewport = null
+        } = {} ) {
+            if ( disposed ) return false;
+            resources.uniforms.externalDepth.value = texture;
+            resources.uniforms.externalOcclusionEnabled.value =
+                enabled ? 1 : 0;
+            if ( viewport?.isVector2 )
+            {
+                resources.uniforms.viewport.value.copy( viewport );
+            }
+            return resources.uniforms.externalOcclusionEnabled.value === 1;
+        }
+    } );
+
     function assertActive()
     {
         if ( disposed ) throw new Error( 'Physical uptake layer is disposed.' );
@@ -898,7 +1042,7 @@ export function createPhysicalUptakeLayer(
             autonomousEmission: false,
             sugarReturn: false,
             direction: 'root-to-branch-tip',
-            representation: 'routed-liquid-head-and-wake',
+            representation: 'routed-liquid-film-and-thermal-gradient-head',
             cadenceSource: 'packetFrequency',
             acceptedTransferCount,
             duplicateTransferCount,
@@ -1003,6 +1147,14 @@ export function createPhysicalUptakeLayer(
                 laneEdgeCount: resources.trafficEdges.length,
                 laneCount: physicalUptakeVisualProfile.laneCount,
                 centralLaneCount: 0,
+                radialEnvelope:
+                    'continuous-film-with-rounded-head',
+                filmRadiusMinimum:
+                    physicalUptakeVisualProfile.filmRadiusMinimum,
+                filmRadiusMaximum:
+                    physicalUptakeVisualProfile.filmRadiusMaximum,
+                headRadiusContribution:
+                    physicalUptakeVisualProfile.headRadiusContribution,
                 trunkLaneCount: resources.trunkLaneCount,
                 branchLaneCount: resources.branchLaneCount,
                 tubeRadius: resources.tubeRadius,
@@ -1014,11 +1166,18 @@ export function createPhysicalUptakeLayer(
                 cooledColour: physicalUptakeVisualProfile.cooledColour,
                 bodyColour: physicalUptakeVisualProfile.bodyColour,
                 headColour: physicalUptakeVisualProfile.headColour,
+                headCoreColour: physicalUptakeVisualProfile.headColour.map(
+                    ( component ) => component
+                        * physicalUptakeVisualProfile.headCoreIntensity
+                ),
                 depthTest: resources.material.depthTest,
                 depthWrite: resources.material.depthWrite,
                 depthFunc: resources.material.depthFunc,
                 blending: resources.material.blending,
                 renderOrder: resources.mesh.renderOrder,
+                externalTerrainDepthOcclusion: true,
+                externalOcclusionEnabled:
+                    resources.uniforms.externalOcclusionEnabled.value === 1,
                 lightCount: 0
             } ),
             disposed
@@ -1423,12 +1582,22 @@ export function createPhysicalUptakeLayer(
                         rootDistance,
                         packet.headDistance
                     );
+                    const headSignal = getLiquidHeadSignal(
+                        rootDistance,
+                        packet.headDistance
+                    );
                     const byte = Math.round( signal * 255 );
-                    if ( byte < 2 ) continue;
+                    const headByte = Math.round( headSignal * 255 );
+                    if ( byte < 2 && headByte < 2 ) continue;
                     const index = ( edge.row * width + sample ) * 4;
                     if ( byte > data[index] )
                     {
                         data[index] = byte;
+                        data[index + 3] = 255;
+                    }
+                    if ( headByte > data[index + 1] )
+                    {
+                        data[index + 1] = headByte;
                         data[index + 3] = 255;
                     }
                     occupiedEdges.add( edge.row );
@@ -1553,6 +1722,8 @@ export function createPhysicalUptakeLayer(
         group.remove( resources.mesh );
         resources.mesh.geometry.dispose();
         resources.traffic?.texture.dispose();
+        resources.uniforms.externalDepth.value = null;
+        resources.uniforms.externalOcclusionEnabled.value = 0;
         resources.material.dispose();
         disposed = true;
         updateSnapshot();
@@ -1563,6 +1734,7 @@ export function createPhysicalUptakeLayer(
     return {
         group,
         mesh: resources.mesh,
+        externalDepthConsumer,
         rebuild,
         setGrowthProgress,
         update,

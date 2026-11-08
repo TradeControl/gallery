@@ -88,6 +88,20 @@ test( 'composition transfers only genuine Sluice root contact into Tree uptake',
         compositionMain,
         /tree = createCompositionTree\( \{/
     );
+    assert.match(
+        physicalUptakeLayer,
+        /float externalTerrainDepth[\s\S]*?gl_FragCoord\.z > externalTerrainDepth \+ 0\.00004/
+    );
+    assert.match(
+        readFileSync(
+            new URL(
+                '../../src/category-tree/composition/tree-instance.js',
+                import.meta.url
+            ),
+            'utf8'
+        ),
+        /externalDepthConsumers:\s*\[\s*physicalUptake\.externalDepthConsumer/
+    );
     assert.doesNotMatch(
         compositionMain,
         /admit-physical-uptake|manual-parcel|setInterval|setTimeout/

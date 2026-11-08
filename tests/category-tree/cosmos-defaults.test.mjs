@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { cosmicCircuitryDefaults } from '../../src/lib/casting-pit/index.js';
+import { informationPalette } from '../../src/lib/information-palette.js';
+import {
+    informationPacketVisualProfile
+} from '../../src/lib/tree/engineered-tree-layer.js';
 
 const informationHtml = readFileSync(
     new URL(
@@ -120,6 +124,30 @@ test( 'the shared Cosmos defaults carry the subdued clean-line review settings',
     {
         assert.equal( cosmicCircuitryDefaults[property], expected, property );
     }
+} );
+
+test( 'Tree output and the Cosmos network share one gold without bleaching signals', () => {
+    assert.equal(
+        informationPacketVisualProfile.outputColour,
+        informationPalette.networkGold
+    );
+    assert.equal( informationPacketVisualProfile.outputIntensity, 1.05 );
+    assert.match(
+        cosmosSource,
+        /new THREE\.Color\( informationPalette\.networkGold \)/
+    );
+    assert.match(
+        cosmosSource,
+        /color:\s*informationPalette\.networkGold/
+    );
+    assert.match(
+        cosmosSource,
+        /color:\s*informationPalette\.transientSignalTrail/
+    );
+    assert.notEqual(
+        informationPalette.networkGold,
+        informationPalette.transientSignalTrail
+    );
 } );
 
 test( 'every active Cosmos surface opens on the same review settings', () => {

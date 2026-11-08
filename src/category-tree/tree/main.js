@@ -101,7 +101,10 @@ const trunkVisibilityRenderer = createTrunkVisibilityRenderer(
     renderer,
     scene,
     camera,
-    engineeredTree
+    engineeredTree,
+    {
+        externalDepthConsumers: [ physicalUptake.externalDepthConsumer ]
+    }
 );
 const growthCycle = createGrowthCycle( hierarchy, 2 );
 const matureGrowth = growthCycle.sample( Number.MAX_SAFE_INTEGER, 0.42 );

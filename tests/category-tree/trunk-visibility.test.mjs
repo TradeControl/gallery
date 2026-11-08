@@ -15,6 +15,9 @@ import {
 import {
     createTrunkVisibilityRenderer
 } from '../../src/lib/tree/trunk-visibility-renderer.js';
+import {
+    createPhysicalUptakeLayer
+} from '../../src/lib/tree/physical-uptake-layer.js';
 import { rootedMotionFieldId } from '../../src/lib/tree/rooted-motion.js';
 
 const expectedModes = [
@@ -719,6 +722,291 @@ test( 'renderer rebinds bounded proxies when switching between active roots and 
     );
 
     comparison.dispose();
+} );
+
+test( 'physical uptake reuses packed terrain depth before the ordinary scene pass', () => {
+    const { hierarchy, positions, layer, parameters } = createMatureLayer( {
+        canopyGustCandidate: true,
+        gustIntervalBase: 0,
+        structuralResponse: 0.5,
+        packetFrequency: 4,
+        packetSpeed: 1.55
+    } );
+    const uptake = createPhysicalUptakeLayer(
+        hierarchy,
+        positions,
+        parameters
+    );
+    uptake.setGrowthProgress( matureProgress( hierarchy ) );
+    uptake.acceptPhysicalUptake( {
+        transferId: 'terrain-owned-uptake',
+        sourceParcelId: 'parcel-1',
+        sourceId: 'feed-1',
+        mass: 0.75,
+        energy: 0.8,
+        temperature: 0.8,
+        contactPosition: [ 1.2, 0.8, 0 ],
+        contactTime: 0
+    } );
+    uptake.update( 0, parameters );
+    assert.equal( uptake.externalDepthConsumer.isActive(), true );
+
+    const scene = new THREE.Scene();
+    scene.add( layer.group, uptake.group );
+    const terrainGeometry = new THREE.PlaneGeometry( 20, 20, 2, 2 );
+    const terrainMaterial = new THREE.MeshStandardMaterial( {
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1
+    } );
+    const terrain = new THREE.Mesh( terrainGeometry, terrainMaterial );
+    terrain.name = 'Physical uptake terrain owner';
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.position.set( 0.4, -0.3, -0.6 );
+    terrain.updateMatrixWorld( true );
+
+    const camera = new THREE.PerspectiveCamera( 48, 640 / 360, 0.1, 80 );
+    camera.position.set( 7.5, 8.2, 11.5 );
+    camera.lookAt( -0.6, 1.5, 0 );
+    camera.updateMatrixWorld();
+    const renderer = new RecordingRenderer();
+    const comparison = createTrunkVisibilityRenderer(
+        renderer,
+        scene,
+        camera,
+        layer,
+        {
+            externalOccluders: [ terrain ],
+            externalDepthConsumers: [ uptake.externalDepthConsumer ]
+        }
+    );
+
+    comparison.render();
+    const diagnostics = comparison.getDiagnostics();
+    assert.equal( diagnostics.mode, 'off' );
+    assert.equal( diagnostics.passCount, 2 );
+    assert.equal( diagnostics.externalDepthConsumerCount, 1 );
+    assert.equal( diagnostics.activeExternalDepthConsumerCount, 1 );
+    assert.equal( diagnostics.externalOccluderCount, 1 );
+    assert.equal( diagnostics.externalDepthPasses, 1 );
+    assert.equal( diagnostics.externalOcclusionPasses, 1 );
+    assert.equal( diagnostics.subsurfaceActive, true );
+    assert.equal( renderer.renders.length, 2 );
+    const depthPass = renderer.renders[0];
+    const ordinaryScenePass = renderer.renders[1];
+    assert.ok( depthPass.target?.isWebGLRenderTarget );
+    assert.equal( ordinaryScenePass.target, null );
+    assert.equal( depthPass.participants.length, 1 );
+    assert.equal( depthPass.participants[0].geometry, terrainGeometry );
+    assert.equal(
+        uptake.mesh.material.uniforms.externalDepth.value,
+        depthPass.target.texture
+    );
+    assert.equal(
+        uptake.mesh.material.uniforms.externalOcclusionEnabled.value,
+        1
+    );
+    assert.deepEqual(
+        uptake.mesh.material.uniforms.viewport.value.toArray(),
+        [ renderer.width, renderer.height ]
+    );
+    assert.equal(
+        diagnostics.renderTargetPixels,
+        renderer.width * renderer.height
+    );
+
+    terrain.visible = false;
+    renderer.resetRecording();
+    comparison.render();
+    const hiddenTerrain = comparison.getDiagnostics();
+    assert.equal( renderer.renders.length, 1 );
+    assert.equal( hiddenTerrain.activeExternalDepthConsumerCount, 1 );
+    assert.equal( hiddenTerrain.externalOccluderCount, 0 );
+    assert.equal( hiddenTerrain.externalDepthPasses, 0 );
+    assert.equal(
+        uptake.mesh.material.uniforms.externalOcclusionEnabled.value,
+        0,
+        'hidden terrain must disable stale packed depth'
+    );
+
+    terrain.visible = true;
+    uptake.setVisible( false );
+    renderer.resetRecording();
+    comparison.render();
+    const hiddenUptake = comparison.getDiagnostics();
+    assert.equal( renderer.renders.length, 1 );
+    assert.equal( hiddenUptake.activeExternalDepthConsumerCount, 0 );
+    assert.equal( hiddenUptake.externalDepthPasses, 0 );
+    assert.equal(
+        uptake.mesh.material.uniforms.externalOcclusionEnabled.value,
+        0
+    );
+
+    uptake.setVisible( true );
+    const standaloneRenderer = new RecordingRenderer();
+    const standalone = createTrunkVisibilityRenderer(
+        standaloneRenderer,
+        scene,
+        camera,
+        layer,
+        { externalDepthConsumers: [ uptake.externalDepthConsumer ] }
+    );
+    standalone.render();
+    const standaloneDiagnostics = standalone.getDiagnostics();
+    assert.equal( standaloneRenderer.renders.length, 1 );
+    assert.equal( standaloneDiagnostics.activeExternalDepthConsumerCount, 1 );
+    assert.equal( standaloneDiagnostics.externalDepthPasses, 0 );
+    assert.equal( uptake.mesh.material.uniforms.externalDepth.value, null );
+    assert.equal(
+        uptake.mesh.material.uniforms.externalOcclusionEnabled.value,
+        0
+    );
+
+    standalone.dispose();
+    renderer.resetRecording();
+    comparison.render();
+    assert.equal(
+        uptake.mesh.material.uniforms.externalOcclusionEnabled.value,
+        1
+    );
+    comparison.dispose();
+    assert.equal(
+        uptake.mesh.material.uniforms.externalDepth.value,
+        null,
+        'renderer disposal must release the consumer depth texture'
+    );
+    assert.equal(
+        uptake.mesh.material.uniforms.externalOcclusionEnabled.value,
+        0,
+        'renderer disposal must disable the retired terrain depth'
+    );
+    uptake.dispose();
+    terrainGeometry.dispose();
+    terrainMaterial.dispose();
+} );
+
+test( 'physical uptake and D4 packets share one packed terrain-depth pass', () => {
+    const { hierarchy, positions, layer, parameters } = createMatureLayer( {
+        packetFrequency: 11,
+        packetSpeed: 1.55,
+        internalRouterTiers: 4,
+        internalRouterJunctionEnabled: true,
+        internalRouterTransportEnabled: true,
+        internalRouterPresentationEnabled: true,
+        internalRouterJunctionFormEnabled: true,
+        internalRouterJunctionFormCircumference: 0.55
+    } );
+    let elapsed = 0;
+    layer.update( elapsed, parameters );
+    while ( layer.getInternalRouterPresentationResources().packetTrails.length === 0
+        && elapsed < 30 )
+    {
+        elapsed += 0.25;
+        layer.update( elapsed, parameters );
+    }
+    assert.ok(
+        layer.getInternalRouterPresentationResources().packetTrails.length > 0,
+        'the shared-depth regression requires an active D4 packet trail'
+    );
+
+    const uptake = createPhysicalUptakeLayer(
+        hierarchy,
+        positions,
+        parameters
+    );
+    uptake.setGrowthProgress( matureProgress( hierarchy ) );
+    uptake.acceptPhysicalUptake( {
+        transferId: 'shared-terrain-depth-uptake',
+        sourceParcelId: 'shared-parcel-1',
+        sourceId: 'shared-feed-1',
+        mass: 0.75,
+        energy: 0.8,
+        temperature: 0.8,
+        contactPosition: [ 1.2, 0.8, 0 ],
+        contactTime: 0
+    } );
+    uptake.update( 0, parameters );
+    assert.equal( uptake.externalDepthConsumer.isActive(), true );
+
+    const scene = new THREE.Scene();
+    scene.add( layer.group, uptake.group );
+    const terrainGeometry = new THREE.PlaneGeometry( 20, 20, 2, 2 );
+    const terrainMaterial = new THREE.MeshStandardMaterial();
+    const terrain = new THREE.Mesh( terrainGeometry, terrainMaterial );
+    terrain.name = 'Shared physical and information terrain owner';
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.position.set( 0.4, -0.3, -0.6 );
+    terrain.updateMatrixWorld( true );
+
+    const camera = new THREE.PerspectiveCamera( 48, 640 / 360, 0.1, 80 );
+    camera.position.set( 7.5, 8.2, 11.5 );
+    camera.lookAt( -0.6, 1.5, 0 );
+    camera.updateMatrixWorld();
+    const renderer = new RecordingRenderer();
+    const comparison = createTrunkVisibilityRenderer(
+        renderer,
+        scene,
+        camera,
+        layer,
+        {
+            externalOccluders: [ terrain ],
+            externalDepthConsumers: [ uptake.externalDepthConsumer ]
+        }
+    );
+
+    comparison.render();
+    const diagnostics = comparison.getDiagnostics();
+    assert.equal( diagnostics.mode, 'd4-packet-subsurface' );
+    assert.equal( diagnostics.passCount, 6 );
+    assert.equal( diagnostics.externalDepthPasses, 1 );
+    assert.equal( diagnostics.externalOcclusionPasses, 1 );
+    assert.equal( diagnostics.activeExternalDepthConsumerCount, 1 );
+    assert.equal( renderer.renders.length, 6 );
+
+    const terrainDepthPasses = renderer.renders.filter( ( pass ) =>
+        pass.participants.length === 1
+        && pass.participants[0].geometry === terrainGeometry
+    );
+    assert.equal(
+        terrainDepthPasses.length,
+        1,
+        'physical and information flow must not duplicate terrain depth'
+    );
+    const terrainDepthPass = terrainDepthPasses[0];
+    assert.ok( terrainDepthPass.target?.isWebGLRenderTarget );
+    assert.equal( renderer.renders[0], terrainDepthPass );
+    assert.equal( renderer.renders[1].target, null );
+    const sharedTexture = terrainDepthPass.target.texture;
+    assert.equal(
+        uptake.mesh.material.uniforms.externalDepth.value,
+        sharedTexture
+    );
+    assert.equal(
+        uptake.mesh.material.uniforms.externalOcclusionEnabled.value,
+        1
+    );
+
+    const packetOverlay = renderer.renders[5].participants[0].material;
+    assert.equal(
+        packetOverlay.name,
+        'D4 route-local gold head-and-wake transmission'
+    );
+    assert.ok(
+        Object.values( packetOverlay.uniforms ).some(
+            ( uniform ) => uniform.value === sharedTexture
+        ),
+        'D4 and physical uptake must sample the same packed terrain texture'
+    );
+
+    comparison.dispose();
+    assert.equal( uptake.mesh.material.uniforms.externalDepth.value, null );
+    assert.equal(
+        uptake.mesh.material.uniforms.externalOcclusionEnabled.value,
+        0
+    );
+    uptake.dispose();
+    terrainGeometry.dispose();
+    terrainMaterial.dispose();
 } );
 
 test( 'a detached external occluder owns D4 pixels without visible presentation', () => {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { informationPalette } from '../information-palette.js';
 import { createBranchCurve, createTaperedTubeGeometry, getConduitRadii } from './tree-layer.js';
 import {
     createTrunkRuneGranuleGeometry,
@@ -54,8 +55,8 @@ export const informationPacketVisualProfile = Object.freeze( {
     discardThreshold: 0.004,
     alpha: 0.95,
     sourceColour: Object.freeze( [ 0.02, 0.48, 1.45 ] ),
-    outputColour: 0xfff2bf,
-    outputIntensity: 1.35,
+    outputColour: informationPalette.networkGold,
+    outputIntensity: 1.05,
     internalTransmissionCompensation: 3.2,
     internalMaximumSegmentLength: 0.08
 } );

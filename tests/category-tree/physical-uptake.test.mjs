@@ -118,11 +118,20 @@ function smoothstep( minimum, maximum, value )
     return bounded * bounded * ( 3 - 2 * bounded );
 }
 
-function uptakeColourAt( signal )
+function uptakeColourAt( flowSignal, headSignal = 0, facing = 1 )
 {
     const profile = physicalUptakeVisualProfile;
-    const bodyHeat = smoothstep( 0.18, 0.9, signal );
-    const headHeat = smoothstep( 0.82, 1, signal );
+    const bodyHeat = smoothstep( 0.18, 0.9, flowSignal );
+    const headSheath = smoothstep( 0.08, 0.78, headSignal );
+    const headCore = smoothstep( 0.62, 0.98, headSignal );
+    const liquidFacing = Math.pow(
+        THREE.MathUtils.clamp( facing, 0, 1 ),
+        1.6
+    );
+    const coreFacing = Math.pow(
+        THREE.MathUtils.clamp( facing, 0, 1 ),
+        1.8
+    );
     const cooled = profile.cooledColour.map(
         ( component ) => component * profile.tailIntensity
     );
@@ -134,14 +143,41 @@ function uptakeColourAt( signal )
     const head = body.map( ( component, index ) => THREE.MathUtils.lerp(
         component,
         profile.headColour[index] * profile.headIntensity,
-        headHeat * profile.headMixMaximum
+        headSheath * profile.headMixMaximum
     ) );
-    const intensity = THREE.MathUtils.lerp(
+    const core = head.map( ( component, index ) => THREE.MathUtils.lerp(
+        component,
+        profile.headColour[index] * profile.headCoreIntensity,
+        headCore * coreFacing * profile.headCoreMixMaximum
+    ) );
+    const bodyIntensity = THREE.MathUtils.lerp(
         profile.bodyIntensityMinimum,
         profile.bodyIntensityMaximum,
         bodyHeat
     );
-    return head.map( ( component ) => component * intensity );
+    const thermalLift = Math.max(
+        headSheath * 0.55,
+        headCore * 0.82
+    );
+    const intensity = THREE.MathUtils.lerp(
+        bodyIntensity,
+        1,
+        thermalLift
+    );
+    const facingIntensity = THREE.MathUtils.lerp(
+        profile.facingIntensityMinimum,
+        1,
+        liquidFacing
+    );
+    return core.map( ( component ) =>
+        component * intensity * facingIntensity );
+}
+
+function luminance( colour )
+{
+    return colour[0] * 0.2126
+        + colour[1] * 0.7152
+        + colour[2] * 0.0722;
 }
 
 test( 'uptake is event-driven and packet frequency cannot emit autonomously', () => {
@@ -247,6 +283,53 @@ test( 'real collar contact clips uptake below the accepted entry boundary', () =
     assert.ok( layer.getSnapshot().resources.illuminatedSampleCount > 0 );
 } );
 
+test( 'terrain-depth ownership is an injected presentation contract', () => {
+    const { layer } = createFixture();
+    const consumer = layer.externalDepthConsumer;
+    const material = layer.mesh.material;
+    assert.equal( consumer.object, layer.group );
+    assert.equal( consumer.isActive(), false );
+    assert.equal(
+        material.uniforms.externalOcclusionEnabled.value,
+        0
+    );
+
+    layer.acceptPhysicalUptake( transfer( 0, {
+        contactPosition: [ 1.2, 0.8, 0 ]
+    } ) );
+    layer.update( 0, parameters );
+    assert.equal( consumer.isActive(), true );
+
+    const depth = new THREE.DataTexture(
+        new Uint8Array( [ 255, 255, 255, 255 ] ),
+        1,
+        1
+    );
+    const viewport = new THREE.Vector2( 1280, 720 );
+    assert.equal( consumer.setExternalDepthOcclusion( {
+        texture: depth,
+        enabled: true,
+        viewport
+    } ), true );
+    assert.equal( material.uniforms.externalDepth.value, depth );
+    assert.equal(
+        material.uniforms.externalOcclusionEnabled.value,
+        1
+    );
+    assert.deepEqual(
+        material.uniforms.viewport.value.toArray(),
+        viewport.toArray()
+    );
+
+    consumer.setExternalDepthOcclusion();
+    assert.equal( material.uniforms.externalDepth.value, null );
+    assert.equal(
+        material.uniforms.externalOcclusionEnabled.value,
+        0
+    );
+    depth.dispose();
+} );
+
 test( 'the renderer is one connected molten tube field rather than beads', () => {
     const { layer } = createFixture();
     const material = layer.mesh.material;
@@ -257,6 +340,11 @@ test( 'the renderer is one connected molten tube field rather than beads', () =>
     assert.equal( snapshot.resources.drawCallCount, 1 );
     assert.equal( snapshot.resources.pointCount, 0 );
     assert.ok( snapshot.resources.vertexCount > 0 );
+    const position = layer.mesh.geometry.getAttribute( 'position' );
+    const liquidCentre = layer.mesh.geometry.getAttribute( 'liquidCentre' );
+    assert.ok( liquidCentre );
+    assert.equal( liquidCentre.itemSize, 3 );
+    assert.equal( liquidCentre.count, position.count );
     assert.equal( snapshot.resources.textureWidth, 64 );
     assert.ok( snapshot.resources.textureHeight > 0 );
     assert.deepEqual(
@@ -274,6 +362,13 @@ test( 'the renderer is one connected molten tube field rather than beads', () =>
                 * physicalUptakeVisualProfile.headIntensity
         )
     );
+    assert.deepEqual(
+        material.uniforms.lavaHeadCoreColour.value.toArray(),
+        physicalUptakeVisualProfile.headColour.map(
+            ( component ) => component
+                * physicalUptakeVisualProfile.headCoreIntensity
+        )
+    );
     assert.equal( material.depthTest, true );
     assert.equal( material.depthWrite, false );
     assert.equal( material.depthFunc, THREE.GreaterDepth );
@@ -284,6 +379,33 @@ test( 'the renderer is one connected molten tube field rather than beads', () =>
     assert.equal( material.userData.physicalUptake.lightCount, 0 );
     assert.equal( material.userData.physicalUptake.bloom, false );
     assert.equal( material.userData.physicalUptake.sugarReturn, false );
+    assert.equal(
+        material.userData.physicalUptake.representation,
+        'continuous-film-with-thermal-gradient-head'
+    );
+    assert.equal(
+        material.userData.physicalUptake.externalTerrainDepthOcclusion,
+        true
+    );
+    assert.equal( material.uniforms.externalOcclusionEnabled.value, 0 );
+    assert.match( material.fragmentShader, /#include <packing>/ );
+    assert.match( material.vertexShader, /attribute vec3 liquidCentre/ );
+    assert.match( material.vertexShader, /trafficSignals\.g/ );
+    assert.match( material.vertexShader,
+        /mix\(\s*liquidCentre,\s*position,\s*liquidRadius/ );
+    assert.match( material.fragmentShader, /float headSignal = trafficSignals\.g/ );
+    assert.match( material.fragmentShader,
+        /headSheath = smoothstep\( 0\.08, 0\.78, headSignal \)/ );
+    assert.match( material.fragmentShader,
+        /headCore = smoothstep\( 0\.62, 0\.98, headSignal \)/ );
+    assert.match( material.fragmentShader, /headCore \* coreFacing/ );
+    assert.match( material.fragmentShader, /flowSignal \* 0\.580/ );
+    assert.match( material.fragmentShader, /physicalLiquidFacing/ );
+    assert.match( material.fragmentShader, /float externalTerrainDepth/ );
+    assert.match(
+        material.fragmentShader,
+        /gl_FragCoord\.z > externalTerrainDepth \+ 0\.00004/
+    );
     assert.ok( snapshot.resources.tubeRadius >= 0.055 );
     assert.ok( snapshot.resources.tubeRadius <= 0.061 );
     assert.ok(
@@ -293,6 +415,13 @@ test( 'the renderer is one connected molten tube field rather than beads', () =>
     assert.equal( layer.mesh.renderOrder, 2 );
     assert.equal( snapshot.resources.laneCount, 3 );
     assert.equal( snapshot.resources.centralLaneCount, 0 );
+    assert.equal(
+        snapshot.resources.radialEnvelope,
+        'continuous-film-with-rounded-head'
+    );
+    assert.equal( snapshot.resources.filmRadiusMinimum, 0.3 );
+    assert.equal( snapshot.resources.filmRadiusMaximum, 0.58 );
+    assert.equal( snapshot.resources.headRadiusContribution, 0.42 );
     assert.ok( snapshot.resources.trunkLaneCount >= 9 );
     assert.ok( snapshot.resources.branchLaneCount > 0 );
     assert.ok( snapshot.resources.minimumCoreClearance > 0 );
@@ -399,26 +528,88 @@ test( 'molten wakes copy cyan packet morphology while retaining a lava-only pale
     assert.match( moltenSource, /vec3 warm = vec3\( 0\.46, 0\.038, 0\.006 \)/ );
     assert.match( moltenSource, /vec3 hot = vec3\( 0\.95, 0\.25, 0\.018 \)/ );
 
-    const tail = uptakeColourAt( 0.25 );
-    const body = uptakeColourAt( 0.7 );
-    const head = uptakeColourAt( 1 );
-    assert.ok( tail[0] < body[0] );
-    assert.ok( body[0] < head[0] );
-    assert.ok( head[0] < 0.4 );
-    assert.ok( head[1] / head[0] > 0.15 );
+    const wake = uptakeColourAt( 0.25, 0 );
+    const body = uptakeColourAt( 0.7, 0 );
+    const headEdge = uptakeColourAt( 1, 1, 0.35 );
+    const headCentre = uptakeColourAt( 1, 1, 1 );
+    assert.ok( luminance( wake ) < luminance( body ) );
+    assert.ok( luminance( body ) < luminance( headEdge ) );
+    assert.ok( luminance( headEdge ) < luminance( headCentre ) );
+    assert.ok( luminance( headCentre ) >= luminance( body ) * 2.5 );
+    assert.ok( headCentre[0] < 0.7 );
+    assert.ok( headCentre[1] / headCentre[0] > 0.18 );
+    assert.ok( headCentre[1] / headCentre[0] < 0.4 );
+    assert.ok( headCentre[2] / headCentre[0] < 0.1 );
     assert.equal( physicalUptakeVisualProfile.tailIntensity, 0.42 );
     assert.equal( physicalUptakeVisualProfile.bodyMixMaximum, 0.28 );
-    assert.equal( physicalUptakeVisualProfile.headMixMaximum, 0.34 );
+    assert.equal( physicalUptakeVisualProfile.headMixMaximum, 0.48 );
+    assert.equal( physicalUptakeVisualProfile.headCoreMixMaximum, 0.38 );
+    assert.equal( physicalUptakeVisualProfile.headCoreIntensity, 1.06 );
+    assert.equal( physicalUptakeVisualProfile.wakeOpacityMaximum, 0.58 );
     assert.equal( physicalUptakeVisualProfile.opacity, 0.92 );
     assert.equal( physicalUptakeVisualProfile.laneRadiusFraction, 0.14 );
     assert.equal( physicalUptakeVisualProfile.laneRadiusMaximum, 0.075 );
     assert.equal( physicalUptakeVisualProfile.laneCoreRadiusMultiple, 1.875 );
+    assert.equal( physicalUptakeVisualProfile.filmRadiusMinimum, 0.3 );
+    assert.equal( physicalUptakeVisualProfile.filmRadiusMaximum, 0.58 );
+    assert.equal( physicalUptakeVisualProfile.headRadiusContribution, 0.42 );
+    assert.equal( physicalUptakeVisualProfile.facingIntensityMinimum, 0.42 );
 
     const { layer } = createFixture();
     layer.acceptPhysicalUptake( transfer( 0 ) );
-    layer.update( 1, parameters );
+    layer.update( 0, parameters );
+    layer.update( 0.8, parameters );
+    const data = textureData( layer );
+    let flowSampleCount = 0;
+    let headSampleCount = 0;
+    let wakeOnlySampleCount = 0;
+    let maximumHead = 0;
+    let flowAtMaximumHead = 0;
+    let channelMismatchCount = 0;
+    let blueSampleCount = 0;
+    let alphaMismatchCount = 0;
+    for ( let index = 0; index < data.length; index += 4 )
+    {
+        const flow = data[index];
+        const headSignal = data[index + 1];
+        const blue = data[index + 2];
+        const alpha = data[index + 3];
+        if ( flow >= 2 ) flowSampleCount += 1;
+        if ( headSignal >= 2 ) headSampleCount += 1;
+        if ( flow >= 2 && headSignal < 2 ) wakeOnlySampleCount += 1;
+        if ( headSignal >= 2 && flow < 2 ) channelMismatchCount += 1;
+        if ( blue !== 0 ) blueSampleCount += 1;
+        const active = flow >= 2 || headSignal >= 2;
+        if ( alpha !== ( active ? 255 : 0 ) ) alphaMismatchCount += 1;
+        if ( headSignal > maximumHead )
+        {
+            maximumHead = headSignal;
+            flowAtMaximumHead = flow;
+        }
+    }
+    assert.ok( maximumHead >= 240 );
+    assert.ok( flowAtMaximumHead >= 240 );
+    assert.ok( headSampleCount > 0 );
+    assert.ok( headSampleCount < flowSampleCount );
+    assert.ok( wakeOnlySampleCount > 0 );
+    assert.equal( channelMismatchCount, 0 );
+    assert.equal( blueSampleCount, 0 );
+    assert.equal( alphaMismatchCount, 0 );
     assert.ok( longestIlluminatedRun( layer ) >= 4 );
-    assert.equal( layer.getSnapshot().representation, 'routed-liquid-head-and-wake' );
+    const { layer: repeatedLayer } = createFixture();
+    repeatedLayer.acceptPhysicalUptake( transfer( 0 ) );
+    repeatedLayer.update( 0, parameters );
+    repeatedLayer.update( 0.8, parameters );
+    assert.equal(
+        Buffer.from( textureData( repeatedLayer ) ).equals(
+            Buffer.from( data )
+        ),
+        true
+    );
+    assert.equal(
+        layer.getSnapshot().representation,
+        'routed-liquid-film-and-thermal-gradient-head'
+    );
     assert.equal( layer.getSnapshot().sugarReturn, false );
 } );
 

@@ -802,7 +802,10 @@ export function createTrunkVisibilityRenderer(
     scene,
     camera,
     engineeredTree,
-    { externalOccluders = [] } = {}
+    {
+        externalOccluders = [],
+        externalDepthConsumers = []
+    } = {}
 )
 {
     if ( !Array.isArray( externalOccluders ) )
@@ -814,6 +817,21 @@ export function createTrunkVisibilityRenderer(
         if ( !occluder?.isMesh )
         {
             throw new TypeError( 'Every external Tree occluder must be a mesh.' );
+        }
+    }
+    if ( !Array.isArray( externalDepthConsumers ) )
+    {
+        throw new TypeError( 'External depth consumers must be an array.' );
+    }
+    for ( const consumer of externalDepthConsumers )
+    {
+        if ( !consumer?.object?.isObject3D
+            || typeof consumer.isActive !== 'function'
+            || typeof consumer.setExternalDepthOcclusion !== 'function' )
+        {
+            throw new TypeError(
+                'Every external depth consumer requires an Object3D, active predicate and depth binding.'
+            );
         }
     }
     const stencilAvailable = renderer.getContext()
@@ -898,6 +916,8 @@ export function createTrunkVisibilityRenderer(
         externalOccluderCount: 0,
         externalOcclusionPasses: 0,
         externalDepthPasses: 0,
+        externalDepthConsumerCount: externalDepthConsumers.length,
+        activeExternalDepthConsumerCount: 0,
         subsurfaceActive: false,
         renderTargetPixels: 0,
         renderTargetWidth: 0,
@@ -929,6 +949,30 @@ export function createTrunkVisibilityRenderer(
             current = current.parent;
         }
         return true;
+    }
+
+    function getActiveExternalDepthConsumers()
+    {
+        return externalDepthConsumers.filter( ( consumer ) =>
+            isHierarchyVisible( consumer.object ) && consumer.isActive()
+        );
+    }
+
+    function bindExternalDepthConsumers( activeConsumers, externalDepth )
+    {
+        const active = new Set( activeConsumers );
+        for ( const consumer of externalDepthConsumers )
+        {
+            const enabled = active.has( consumer )
+                && externalDepth.passCount > 0;
+            consumer.setExternalDepthOcclusion( {
+                texture: enabled
+                    ? externalDepthTarget?.texture ?? null
+                    : null,
+                enabled,
+                viewport: drawingBufferSize
+            } );
+        }
     }
 
     function updateExternalOccluders()
@@ -1197,6 +1241,34 @@ export function createTrunkVisibilityRenderer(
             && runeResources.proxyGeometry
             && runeResources.activeTraversals.length > 0
             && diagnostics.stencilAvailable );
+
+        const activeExternalDepthConsumers =
+            getActiveExternalDepthConsumers();
+        let consumerExternalDepth = { visibleCount: 0, passCount: 0 };
+        renderer.getDrawingBufferSize( drawingBufferSize );
+        if ( activeExternalDepthConsumers.length > 0
+            && externalDepthTarget )
+        {
+            resize( 1 );
+            const previousClearColour = renderer.getClearColor(
+                new THREE.Color()
+            );
+            const previousClearAlpha = renderer.getClearAlpha();
+            const previousAutoClear = renderer.autoClear;
+            renderer.autoClear = false;
+            consumerExternalDepth = renderExternalDepth();
+            renderer.setRenderTarget( null );
+            renderer.setClearColor( previousClearColour, previousClearAlpha );
+            renderer.autoClear = previousAutoClear;
+        }
+        const consumerExternalDepthPixels =
+            consumerExternalDepth.passCount > 0
+                ? externalDepthTarget.width * externalDepthTarget.height
+                : 0;
+        bindExternalDepthConsumers(
+            activeExternalDepthConsumers,
+            consumerExternalDepth
+        );
         renderer.setRenderTarget( null );
         renderer.autoClear = true;
         renderer.render( scene, camera );
@@ -1211,7 +1283,7 @@ export function createTrunkVisibilityRenderer(
                 ...diagnostics,
                 mode,
                 requestedMode: mode,
-                passCount: 1,
+                passCount: 1 + consumerExternalDepth.passCount,
                 cpuSubmissionMs,
                 cpuSubmissionEmaMs,
                 packedDepthPasses: 0,
@@ -1221,10 +1293,14 @@ export function createTrunkVisibilityRenderer(
                 runeOverlayPasses: 0,
                 packetLocusDepthPasses: 0,
                 packetLocusOverlayPasses: 0,
-                externalOccluderCount: 0,
-                externalOcclusionPasses: 0,
-                externalDepthPasses: 0,
-                subsurfaceActive: false,
+                externalOccluderCount: consumerExternalDepth.visibleCount,
+                externalOcclusionPasses: consumerExternalDepth.passCount,
+                externalDepthPasses: consumerExternalDepth.passCount,
+                externalDepthConsumerCount: externalDepthConsumers.length,
+                activeExternalDepthConsumerCount:
+                    activeExternalDepthConsumers.length,
+                subsurfaceActive:
+                    activeExternalDepthConsumers.length > 0,
                 activeTraversalCount: 0,
                 activePacketTrailCount: 0,
                 activePacketTrailSampleCount: 0,
@@ -1232,12 +1308,19 @@ export function createTrunkVisibilityRenderer(
                 junctionFormActive: false,
                 activeJunctionFormManifestationCount: 0,
                 junctionFormVertexCount: 0,
-                opticalModel: null,
+                opticalModel: activeExternalDepthConsumers.length > 0
+                    ? 'shared packed external-terrain depth ownership'
+                    : null,
                 crossingOrder: null,
-                renderTargetPixels: 0,
-                renderTargetWidth: 0,
-                renderTargetHeight: 0,
-                estimatedRenderTargetBytes: 0
+                renderTargetPixels: consumerExternalDepthPixels,
+                renderTargetWidth: consumerExternalDepthPixels > 0
+                    ? externalDepthTarget.width
+                    : 0,
+                renderTargetHeight: consumerExternalDepthPixels > 0
+                    ? externalDepthTarget.height
+                    : 0,
+                estimatedRenderTargetBytes:
+                    consumerExternalDepthPixels * 8
             };
             engineeredTree.group.userData.trunkVisibilityRenderer = diagnostics;
             if ( runeResources.diagnostics )
@@ -1276,7 +1359,9 @@ export function createTrunkVisibilityRenderer(
             renderPackedDepth( frontDepthTarget, frontDepthMaterial );
             renderPackedDepth( backDepthTarget, backDepthMaterial );
             renderPacketLocusDepth();
-            const externalDepth = renderExternalDepth();
+            const externalDepth = consumerExternalDepth.passCount > 0
+                ? consumerExternalDepth
+                : renderExternalDepth();
             packetLocusSubsurfaceMaterial.uniforms.frontDepth.value =
                 frontDepthTarget.texture;
             packetLocusSubsurfaceMaterial.uniforms.backDepth.value =
@@ -1318,6 +1403,9 @@ export function createTrunkVisibilityRenderer(
                 externalOccluderCount: externalDepth.visibleCount,
                 externalOcclusionPasses: externalDepth.passCount,
                 externalDepthPasses: externalDepth.passCount,
+                externalDepthConsumerCount: externalDepthConsumers.length,
+                activeExternalDepthConsumerCount:
+                    activeExternalDepthConsumers.length,
                 subsurfaceActive: true,
                 activeTraversalCount: 0,
                 activePacketTrailCount:
@@ -1450,7 +1538,7 @@ export function createTrunkVisibilityRenderer(
                 ...diagnostics,
                 mode: 'rune-subsurface',
                 requestedMode: mode,
-                passCount: 6,
+                passCount: 6 + consumerExternalDepth.passCount,
                 cpuSubmissionMs,
                 cpuSubmissionEmaMs,
                 packedDepthPasses: 2,
@@ -1460,9 +1548,12 @@ export function createTrunkVisibilityRenderer(
                 runeOverlayPasses: 1,
                 packetLocusDepthPasses: 0,
                 packetLocusOverlayPasses: 0,
-                externalOccluderCount: 0,
-                externalOcclusionPasses: 0,
-                externalDepthPasses: 0,
+                externalOccluderCount: consumerExternalDepth.visibleCount,
+                externalOcclusionPasses: consumerExternalDepth.passCount,
+                externalDepthPasses: consumerExternalDepth.passCount,
+                externalDepthConsumerCount: externalDepthConsumers.length,
+                activeExternalDepthConsumerCount:
+                    activeExternalDepthConsumers.length,
                 subsurfaceActive: true,
                 activePacketTrailCount: 0,
                 activePacketTrailSampleCount: 0,
@@ -1474,10 +1565,12 @@ export function createTrunkVisibilityRenderer(
                     runeResources.diagnostics.activeTraversalCount,
                 opticalModel: 'front-depth burial attenuation',
                 crossingOrder: 'nearest active rune depth',
-                renderTargetPixels: targetPixels * 3,
+                renderTargetPixels: targetPixels * 3
+                    + consumerExternalDepthPixels,
                 renderTargetWidth: frontDepthTarget.width,
                 renderTargetHeight: frontDepthTarget.height,
                 estimatedRenderTargetBytes: targetPixels * 8 * 3
+                    + consumerExternalDepthPixels * 8
             };
             engineeredTree.group.userData.trunkVisibilityRenderer = diagnostics;
             runeResources.diagnostics.rendererActive = true;
@@ -1534,9 +1627,9 @@ export function createTrunkVisibilityRenderer(
         renderer.setClearColor( previousClearColour, previousClearAlpha );
         renderer.autoClear = true;
         const targetPixels = frontDepthTarget.width * frontDepthTarget.height;
-        const renderTargetPixels = mode === 'attenuation'
+        const renderTargetPixels = ( mode === 'attenuation'
             ? targetPixels * 2
-            : 0;
+            : 0 ) + consumerExternalDepthPixels;
         const cpuSubmissionMs = performance.now() - started;
         cpuSubmissionEmaMs = cpuSubmissionEmaMs === 0
             ? cpuSubmissionMs
@@ -1545,7 +1638,8 @@ export function createTrunkVisibilityRenderer(
             ...diagnostics,
             mode,
             requestedMode: mode,
-            passCount: 3 + packedDepthPasses,
+            passCount: 3 + packedDepthPasses
+                + consumerExternalDepth.passCount,
             cpuSubmissionMs,
             cpuSubmissionEmaMs,
             packedDepthPasses,
@@ -1555,10 +1649,13 @@ export function createTrunkVisibilityRenderer(
             runeOverlayPasses: 0,
             packetLocusDepthPasses: 0,
             packetLocusOverlayPasses: 0,
-            externalOccluderCount: 0,
-            externalOcclusionPasses: 0,
-            externalDepthPasses: 0,
-            subsurfaceActive: false,
+            externalOccluderCount: consumerExternalDepth.visibleCount,
+            externalOcclusionPasses: consumerExternalDepth.passCount,
+            externalDepthPasses: consumerExternalDepth.passCount,
+            externalDepthConsumerCount: externalDepthConsumers.length,
+            activeExternalDepthConsumerCount:
+                activeExternalDepthConsumers.length,
+            subsurfaceActive: activeExternalDepthConsumers.length > 0,
             activeTraversalCount: 0,
             activePacketTrailCount: 0,
             activePacketTrailSampleCount: 0,
@@ -1577,9 +1674,9 @@ export function createTrunkVisibilityRenderer(
                 : 0,
             // Two RGBA8 packed-depth colours plus conservative 32-bit depth
             // storage per target. This is an estimate, not a GPU query.
-            estimatedRenderTargetBytes: mode === 'attenuation'
+            estimatedRenderTargetBytes: ( mode === 'attenuation'
                 ? targetPixels * 8 * 2
-                : 0
+                : 0 ) + consumerExternalDepthPixels * 8
         };
         engineeredTree.group.userData.trunkVisibilityRenderer = diagnostics;
         if ( runeResources.diagnostics )
@@ -1606,6 +1703,10 @@ export function createTrunkVisibilityRenderer(
             return { ...diagnostics };
         },
         dispose() {
+            bindExternalDepthConsumers(
+                [],
+                { visibleCount: 0, passCount: 0 }
+            );
             frontDepthTarget.dispose();
             backDepthTarget.dispose();
             runeDepthTarget.dispose();

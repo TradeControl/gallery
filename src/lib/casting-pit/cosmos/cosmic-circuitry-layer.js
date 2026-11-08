@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { informationPalette } from '../../information-palette.js';
 import { bindRangeControl } from '../controls.js';
 import { seededGenerator } from '../random.js';
 
@@ -79,6 +80,7 @@ const receiver = new THREE.Mesh(
 if ( includeEnvironment ) scene.add( receiver );
 
 const network = { nodes: [], edges: [], adjacency: [], routes: [] };
+const networkGold = new THREE.Color( informationPalette.networkGold );
 const grooveGeometry = new THREE.BufferGeometry();
 const grooveMaterial = new THREE.MeshBasicMaterial( {
     color: 0xffffff,
@@ -121,7 +123,7 @@ scene.add( circuits );
 
 const junctionGeometry = new THREE.BufferGeometry();
 const junctionMaterial = new THREE.PointsMaterial( {
-    color: 0xe0bd68,
+    color: informationPalette.networkGold,
     size: 0.035,
     sizeAttenuation: true,
     transparent: true,
@@ -142,7 +144,7 @@ const signalGeometry = new THREE.BufferGeometry();
 signalGeometry.setAttribute( 'position', new THREE.BufferAttribute( signalPositions, 3 ).setUsage( THREE.DynamicDrawUsage ) );
 signalGeometry.setAttribute( 'color', new THREE.BufferAttribute( signalColors, 3 ).setUsage( THREE.DynamicDrawUsage ) );
 const signalMaterial = new THREE.LineBasicMaterial( {
-    color: 0xfff2bf,
+    color: informationPalette.transientSignalTrail,
     vertexColors: true,
     transparent: true,
     opacity: 1,
@@ -177,7 +179,7 @@ function createDropletTexture()
 
 const dropletTexture = createDropletTexture();
 const signalHaloMaterial = new THREE.PointsMaterial( {
-    color: 0xffad2f,
+    color: informationPalette.transientSignalHalo,
     map: dropletTexture,
     size: 0.52,
     sizeAttenuation: true,
@@ -187,7 +189,7 @@ const signalHaloMaterial = new THREE.PointsMaterial( {
     depthWrite: false
 } );
 const signalCoreMaterial = new THREE.PointsMaterial( {
-    color: 0xfff8d6,
+    color: informationPalette.transientSignalCore,
     map: dropletTexture,
     size: 0.23,
     sizeAttenuation: true,
@@ -523,7 +525,14 @@ function updateNetworkGeometry()
             const traceEnd = projectedCoordinates( end.x, end.z );
             linePositions.push( traceStart.x, traceStart.y, traceStart.z, traceEnd.x, traceEnd.y, traceEnd.z );
             const tierStrength = [ 1, 0.68, 0.42 ][edge.tier] * edge.visibility;
-            for ( let vertex = 0; vertex < 2; vertex += 1 ) lineColors.push( 0.78 * tierStrength, 0.54 * tierStrength, 0.2 * tierStrength );
+            for ( let vertex = 0; vertex < 2; vertex += 1 )
+            {
+                lineColors.push(
+                    networkGold.r * tierStrength,
+                    networkGold.g * tierStrength,
+                    networkGold.b * tierStrength
+                );
+            }
 
             const leftStart = projectedCoordinates( start.x + normalX * widthStart, start.z + normalZ * widthStart, 0.026 );
             const rightStart = projectedCoordinates( start.x - normalX * widthStart, start.z - normalZ * widthStart, 0.026 );

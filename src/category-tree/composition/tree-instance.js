@@ -152,7 +152,12 @@ export function createCompositionTree( {
         scene,
         camera,
         layer,
-        { externalOccluders }
+        {
+            externalOccluders,
+            externalDepthConsumers: [
+                physicalUptake.externalDepthConsumer
+            ]
+        }
     );
     const plantingEnvelope = createPlantingEnvelope( { scene, membrane } );
     const physicalRootSystem = createCompositionRootSystem( {

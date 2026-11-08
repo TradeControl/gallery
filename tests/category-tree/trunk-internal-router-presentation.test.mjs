@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import * as THREE from 'three';
+import { informationPalette } from '../../src/lib/information-palette.js';
 import {
     createHierarchy,
     representativeHierarchy,
@@ -155,6 +156,9 @@ test( 'the signed-off packet-only presentation is integral on load', () => {
         informationPacketVisualProfile.coreRadius );
     assert.equal( internalRouterPresentationStyle.outputColour,
         informationPacketVisualProfile.outputColour );
+    assert.equal( informationPacketVisualProfile.outputColour,
+        informationPalette.networkGold );
+    assert.equal( informationPacketVisualProfile.outputIntensity, 1.05 );
     assert.equal( getInformationPacketRadius( 1.34 ),
         informationPacketVisualProfile.coreRadius );
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { informationPalette } from '../information-palette.js';
 import {
     registerRootedMotionMaterial,
     rootedMotionShaderApplication,
@@ -1965,8 +1966,10 @@ export function createTrunkRuneMaterial(
             )
         },
         outputColour: {
-            value: new THREE.Color( 0xffc451 ).multiplyScalar(
-                usesContinuousColour ? 2.85 : 2.05
+            value: new THREE.Color(
+                informationPalette.networkGold
+            ).multiplyScalar(
+                usesContinuousColour ? 1.15 : 1.05
             )
         }
     };

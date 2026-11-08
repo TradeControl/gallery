@@ -154,10 +154,14 @@ test( 'review sections start closed under the final Tree recursion identity', ()
         compositionHtml.matchAll( /<details\b[^>]*>/g ),
         ( match ) => match[0]
     );
-    assert.equal( detailTags.length, 8 );
+    assert.equal( detailTags.length, 9 );
     detailTags.forEach( ( tag ) => assert.doesNotMatch( tag, /\bopen\b/ ) );
     assert.match( compositionHtml, /<summary>Tree · recursion<\/summary>/ );
     assert.match( compositionHtml, /<summary>Tree · physical uptake<\/summary>/ );
+    assert.match(
+        compositionHtml,
+        /<summary>Superstrate · causal confluence<\/summary>/
+    );
     assert.doesNotMatch( compositionHtml, /Tree · accepted baseline/i );
 } );
 
@@ -359,7 +363,7 @@ test( 'the detached membrane preserves D4 terrain ownership without basin presen
     assert.match( compositionTreeInstance,
         /externalOccluders\s*=\s*\[\]/ );
     assert.match( compositionTreeInstance,
-        /createTrunkVisibilityRenderer\([\s\S]*?\{\s*externalOccluders\s*\}/ );
+        /createTrunkVisibilityRenderer\([\s\S]*?externalOccluders,[\s\S]*?externalDepthConsumers:\s*\[\s*physicalUptake\.externalDepthConsumer/ );
     const membraneDiagnostic = inputTag( compositionHtml, 'u-diagnostic' );
     assert.doesNotMatch( membraneDiagnostic, /\bchecked\b/ );
 } );

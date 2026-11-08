@@ -24,6 +24,27 @@ import {
 import {
     createCompositionTerrainDepthOwner
 } from './terrain-depth-owner.js';
+import {
+    compositionSuperstrateDefaults,
+    createCompositionSuperstrate,
+    superstrateFieldViews,
+    superstrateRanges
+} from './superstrate-instance.js';
+import {
+    applyCompositionScene,
+    compositionScenes,
+    defaultCompositionSceneId,
+    getCompositionScene
+} from './scene-catalog.js';
+import {
+    compositionCameraEnvelope,
+    constrainCompositionCameraState
+} from './camera-envelope.js';
+
+// Set this to true only while diagnosing geometry outside the public artwork.
+// The shipped composition should retain its bounded production camera.
+const disableCameraEnvelopeForDevelopment = false;
+const cameraEnvelopeEnabled = !disableCameraEnvelopeForDevelopment;
 
 const parameters = {
     ...cosmicCircuitryDefaults,
@@ -37,7 +58,25 @@ const world = createCastingPitWorld(
     document.querySelector( '#scene' ),
     { background: 0x050607, stencil: true }
 );
-world.orbitControls.maxDistance = 90;
+if ( cameraEnvelopeEnabled )
+{
+    world.orbitControls.minDistance = compositionCameraEnvelope.minDistance;
+    world.orbitControls.maxDistance = compositionCameraEnvelope.maxDistance;
+    world.orbitControls.minPolarAngle =
+        compositionCameraEnvelope.minPolarAngle;
+    world.orbitControls.maxPolarAngle =
+        compositionCameraEnvelope.maxPolarAngle;
+    world.orbitControls.cursor.set( 0, 0, 0 );
+    world.orbitControls.maxTargetRadius = Math.hypot(
+        compositionCameraEnvelope.maxTargetRadius,
+        compositionCameraEnvelope.maxTargetHeight
+    );
+    world.orbitControls.screenSpacePanning = false;
+}
+else
+{
+    world.orbitControls.maxDistance = 90;
+}
 world.camera.far = 120;
 world.camera.updateProjectionMatrix();
 const membrane = createGaussianMembrane( parameters );
@@ -182,6 +221,49 @@ const compositionSubstrate = createCompositionSubstrate( {
 const compositionTerrainDepth = createCompositionTerrainDepthOwner( {
     scene: world.scene,
     terrainSurface: universe.environment.membraneSurface
+} );
+
+tree.group.updateWorldMatrix( true, true );
+const treeCrownBounds = new THREE.Box3().setFromObject( tree.layer.group );
+const treeCrownWorld = treeCrownBounds.getCenter( new THREE.Vector3() );
+treeCrownWorld.y = THREE.MathUtils.lerp(
+    treeCrownWorld.y,
+    treeCrownBounds.max.y,
+    0.72
+);
+const treeCrownLocal = tree.group.worldToLocal( treeCrownWorld.clone() );
+const superstrateSourcePoints = Object.freeze( {
+    substrate: new THREE.Vector3(),
+    physical: new THREE.Vector3(),
+    information: new THREE.Vector3(),
+    living: new THREE.Vector3()
+} );
+const compositionSuperstrate = createCompositionSuperstrate( {
+    scene: world.scene,
+    camera: world.camera,
+    sourceProviders: {
+        substrate: () => superstrateSourcePoints.substrate.set(
+            -8,
+            compositionSubstrate.getSnapshot().outerSurfaceLevel,
+            6
+        ),
+        physical: () => superstrateSourcePoints.physical.set(
+            7,
+            membrane.height( 7, 0 ) + 0.65,
+            0
+        ),
+        information: () => superstrateSourcePoints.information.set(
+            -6,
+            membrane.height( -6, 4 ) + 2,
+            4
+        ),
+        living: () => {
+            tree.group.updateWorldMatrix( true, false );
+            return tree.group.localToWorld(
+                superstrateSourcePoints.living.copy( treeCrownLocal )
+            );
+        }
+    }
 } );
 
 function updateTerrainDepthReadouts()
@@ -334,6 +416,166 @@ document.querySelector( '#composition-substrate-reset' ).addEventListener(
     }
 );
 
+const superstrateControlDescriptors = Object.freeze( {
+    'composition-superstrate-presence': Object.freeze( {
+        property: 'presence',
+        decimals: 2
+    } ),
+    'composition-superstrate-breath': Object.freeze( {
+        property: 'breath',
+        decimals: 2
+    } ),
+    'composition-superstrate-coherence': Object.freeze( {
+        property: 'coherence',
+        decimals: 2
+    } ),
+    'composition-superstrate-confluence': Object.freeze( {
+        property: 'confluence',
+        decimals: 2
+    } ),
+    'composition-superstrate-substrate-magnet': Object.freeze( {
+        property: 'substrateMagnet',
+        decimals: 2
+    } ),
+    'composition-superstrate-physical-magnet': Object.freeze( {
+        property: 'physicalMagnet',
+        decimals: 2
+    } ),
+    'composition-superstrate-information-magnet': Object.freeze( {
+        property: 'informationMagnet',
+        decimals: 2
+    } ),
+    'composition-superstrate-living-magnet': Object.freeze( {
+        property: 'livingMagnet',
+        decimals: 2
+    } )
+} );
+
+function setSuperstrateControlPresentation( id, descriptor, value )
+{
+    const control = document.querySelector( `#${id}` );
+    control.value = value;
+    document.querySelector( `#${id}-value` ).value = Number( value ).toFixed(
+        descriptor.decimals
+    );
+}
+
+function setSuperstrateFieldViewPresentation( viewId )
+{
+    document.querySelectorAll( '[data-superstrate-field-view]' ).forEach(
+        ( button ) => {
+            const active = button.dataset.superstrateFieldView === viewId;
+            button.classList.toggle( 'active', active );
+            button.setAttribute( 'aria-pressed', active ? 'true' : 'false' );
+        }
+    );
+}
+
+function setSuperstrateFieldView( viewId )
+{
+    compositionSuperstrate.setFieldView( viewId );
+    setSuperstrateFieldViewPresentation( viewId );
+    updateSuperstrateReadouts();
+}
+
+function updateSuperstrateReadouts()
+{
+    const snapshot = compositionSuperstrate.getSnapshot();
+    document.querySelector( '#composition-superstrate-state' ).value =
+        snapshot.effectiveVisible
+            ? `${snapshot.frozen ? 'held' : 'emerging'} · ${snapshot.fieldView}`
+            : ( snapshot.presentationRequested ? 'Complete view only' : 'withheld' );
+    document.querySelector( '#composition-superstrate-fields' ).value =
+        `${snapshot.sourceFieldCount} causes`
+        + ` + ${snapshot.confluenceFieldCount} confluence`;
+    document.querySelector( '#composition-superstrate-construction' ).value =
+        `${snapshot.drawCallCount} shell`
+        + ` · ${snapshot.textureInputCount} textures`
+        + ` · ${snapshot.lightCount} lights`;
+}
+
+for ( const [ id, descriptor ] of Object.entries(
+    superstrateControlDescriptors
+) )
+{
+    const control = document.querySelector( `#${id}` );
+    const range = superstrateRanges[descriptor.property];
+    control.min = range.min;
+    control.max = range.max;
+    control.step = range.step;
+    setSuperstrateControlPresentation(
+        id,
+        descriptor,
+        compositionSuperstrateDefaults[descriptor.property]
+    );
+    control.addEventListener( 'input', () => {
+        const value = compositionSuperstrate.setParameter(
+            descriptor.property,
+            Number( control.value )
+        );
+        setSuperstrateControlPresentation( id, descriptor, value );
+        updateSuperstrateReadouts();
+    } );
+}
+
+const superstrateVisibleControl = document.querySelector(
+    '#composition-superstrate-visible'
+);
+superstrateVisibleControl.addEventListener( 'change', ( event ) => {
+    compositionSuperstrate.setPresentationVisible(
+        event.currentTarget.checked
+    );
+    updateSuperstrateReadouts();
+} );
+
+const superstrateFreezeControl = document.querySelector(
+    '#composition-superstrate-freeze-motion'
+);
+superstrateFreezeControl.addEventListener( 'change', ( event ) => {
+    compositionSuperstrate.setFrozen( event.currentTarget.checked );
+    updateSuperstrateReadouts();
+} );
+
+document.querySelectorAll( '[data-superstrate-field-view]' ).forEach(
+    ( button ) => {
+        button.addEventListener( 'click', () => {
+            setSuperstrateFieldView(
+                button.dataset.superstrateFieldView
+            );
+        } );
+    }
+);
+
+document.querySelector( '#composition-superstrate-reset' ).addEventListener(
+    'click',
+    () => {
+        compositionSuperstrate.reset();
+        for ( const [ id, descriptor ] of Object.entries(
+            superstrateControlDescriptors
+        ) )
+        {
+            setSuperstrateControlPresentation(
+                id,
+                descriptor,
+                compositionSuperstrateDefaults[descriptor.property]
+            );
+        }
+        superstrateVisibleControl.checked = true;
+        superstrateFreezeControl.checked = false;
+        setSuperstrateFieldView( 'complete' );
+    }
+);
+
+for ( const viewId of Object.keys( superstrateFieldViews ) )
+{
+    if ( !document.querySelector(
+        `[data-superstrate-field-view="${viewId}"]`
+    ) )
+    {
+        throw new Error( `Missing superstrate field view '${viewId}'.` );
+    }
+}
+
 const moltenContact = createCompositionMoltenContact( {
     scene: world.scene,
     membrane,
@@ -372,16 +614,88 @@ const cameraViews = {
 };
 
 let activeCameraViewId = 'composition';
-function setCameraView( viewId )
+const sceneSurface = document.querySelector( '#scene' );
+sceneSurface.dataset.cameraEnvelope = cameraEnvelopeEnabled
+    ? 'production'
+    : 'unrestricted-development';
+
+function publishCompositionCameraState()
 {
-    const view = cameraViews[viewId];
-    if ( !view ) throw new Error( `Unknown camera view '${viewId}'.` );
-    activeCameraViewId = viewId;
-    world.setCameraView( view );
+    sceneSurface.dataset.cameraView = activeCameraViewId;
+    sceneSurface.dataset.cameraPosition = world.camera.position.toArray()
+        .map( ( value ) => value.toFixed( 6 ) ).join( ',' );
+    sceneSurface.dataset.cameraTarget = world.orbitControls.target.toArray()
+        .map( ( value ) => value.toFixed( 6 ) ).join( ',' );
+}
+
+let applyingCameraEnvelope = false;
+
+function enforceCompositionCameraEnvelope()
+{
+    if ( !cameraEnvelopeEnabled || applyingCameraEnvelope ) return false;
+    const constrained = constrainCompositionCameraState( {
+        baseView: activeCameraViewId,
+        position: world.camera.position.toArray(),
+        target: world.orbitControls.target.toArray()
+    } );
+    const constrainedPosition = new THREE.Vector3().fromArray(
+        constrained.position
+    );
+    const constrainedTarget = new THREE.Vector3().fromArray(
+        constrained.target
+    );
+    const changed = !world.camera.position.equals( constrainedPosition )
+        || !world.orbitControls.target.equals( constrainedTarget );
+    if ( !changed ) return false;
+
+    applyingCameraEnvelope = true;
+    try
+    {
+        world.camera.position.copy( constrainedPosition );
+        world.orbitControls.target.copy( constrainedTarget );
+        world.orbitControls.update();
+    }
+    finally
+    {
+        applyingCameraEnvelope = false;
+    }
+    return true;
+}
+
+world.orbitControls.addEventListener( 'change', () => {
+    enforceCompositionCameraEnvelope();
+    publishCompositionCameraState();
+} );
+
+function setCameraState( cameraState )
+{
+    if ( !cameraViews[cameraState.baseView] )
+    {
+        throw new Error(
+            `Unknown camera view '${cameraState.baseView}'.`
+        );
+    }
+    activeCameraViewId = cameraState.baseView;
+    world.setCameraView( {
+        position: new THREE.Vector3().fromArray( cameraState.position ),
+        target: new THREE.Vector3().fromArray( cameraState.target )
+    } );
+    publishCompositionCameraState();
     document.querySelectorAll( '[data-view]' ).forEach( ( button ) => {
         const active = button.dataset.view === activeCameraViewId;
         button.classList.toggle( 'active', active );
         button.setAttribute( 'aria-pressed', active ? 'true' : 'false' );
+    } );
+}
+
+function setCameraView( viewId )
+{
+    const view = cameraViews[viewId];
+    if ( !view ) throw new Error( `Unknown camera view '${viewId}'.` );
+    setCameraState( {
+        baseView: viewId,
+        position: view.position.toArray(),
+        target: view.target.toArray()
     } );
 }
 
@@ -396,31 +710,36 @@ const layerModes = Object.freeze( {
         label: 'Casting Pit only',
         universe: true,
         cosmos: true,
-        tree: false
+        tree: false,
+        superstrate: false
     } ),
     tree: Object.freeze( {
         label: 'Tree planting baseline',
         universe: false,
         cosmos: false,
-        tree: true
+        tree: true,
+        superstrate: false
     } ),
     'universe-tree': Object.freeze( {
         label: 'Universe + Tree',
         universe: true,
         cosmos: false,
-        tree: true
+        tree: true,
+        superstrate: false
     } ),
     'cosmos-tree': Object.freeze( {
         label: 'Cosmos + Tree',
         universe: false,
         cosmos: true,
-        tree: true
+        tree: true,
+        superstrate: false
     } ),
     complete: Object.freeze( {
         label: 'Complete composition',
         universe: true,
         cosmos: true,
-        tree: true
+        tree: true,
+        superstrate: true
     } )
 } );
 let activeLayerModeId = 'complete';
@@ -433,6 +752,7 @@ function setLayerMode( modeId )
     universe.setVisible( mode.universe );
     cosmos.setVisible( mode.cosmos );
     tree.setVisible( mode.tree );
+    compositionSuperstrate.setModeVisible( mode.superstrate );
     universe.environment.diagnostic.visible = mode.universe
         && document.querySelector( '#u-diagnostic' ).checked;
     const contactVisible = mode.universe && mode.tree;
@@ -444,6 +764,7 @@ function setLayerMode( modeId )
         button.classList.toggle( 'active', active );
         button.setAttribute( 'aria-pressed', active ? 'true' : 'false' );
     } );
+    updateSuperstrateReadouts();
 }
 
 document.querySelectorAll( '[data-layer-mode]' ).forEach( ( button ) => {
@@ -705,6 +1026,7 @@ function updateTreeReadouts()
 world.addFrameCallback( ( time ) => {
     tree.update( time );
     compositionSubstrate.update( time );
+    compositionSuperstrate.update( time );
     moltenContact.update( time );
     updateCompositionCapillaryReadoutClock( time );
     updateTreeReadouts();
@@ -713,7 +1035,51 @@ world.addFrameCallback( ( time ) => {
 updateAnchorReadout();
 updateTerrainDepthReadouts();
 updateSubstrateReadouts();
+setSuperstrateFieldViewPresentation( 'complete' );
+updateSuperstrateReadouts();
 updateCompositionCapillaryReadouts();
-setLayerMode( 'complete' );
-setCameraView( 'composition' );
+
+const compositionSceneControls = document.querySelector(
+    '#composition-scene-controls'
+);
+const activeSceneOutput = document.querySelector( '#active-scene' );
+
+function updateCompositionScenePresentation( scene )
+{
+    activeSceneOutput.value = scene.label;
+    document.querySelectorAll( 'button[data-composition-scene]' ).forEach(
+        ( button ) => {
+            const active = button.dataset.compositionScene === scene.id;
+            button.classList.toggle( 'active', active );
+            button.setAttribute( 'aria-pressed', active ? 'true' : 'false' );
+        }
+    );
+}
+
+function setCompositionScene( sceneId )
+{
+    const scene = getCompositionScene( sceneId );
+    const result = applyCompositionScene( {
+        scene,
+        setLayerMode,
+        setCameraState,
+        setSuperstrateFieldView
+    } );
+    tree.replayGrowth();
+    updateCompositionScenePresentation( scene );
+    return result;
+}
+
+for ( const scene of compositionScenes )
+{
+    const button = document.createElement( 'button' );
+    button.type = 'button';
+    button.dataset.compositionScene = scene.id;
+    button.setAttribute( 'aria-pressed', 'false' );
+    button.textContent = scene.label;
+    button.addEventListener( 'click', () => setCompositionScene( scene.id ) );
+    compositionSceneControls.appendChild( button );
+}
+
+setCompositionScene( defaultCompositionSceneId );
 world.start( () => tree.render() );
