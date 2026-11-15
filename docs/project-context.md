@@ -2,6 +2,11 @@
 
 31 August 2026
 
+> **Historical inception snapshot.** This document records the repository at
+> its creation and intentionally retains statements that are no longer current.
+> See the root [README](../README.md) for the present artwork, structure and
+> development commands.
+
 We are beginning a new repository called **Gallery** for the **Trade Control ERP** project.
 
 ## Purpose

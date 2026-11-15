@@ -15,6 +15,6 @@ The fifth field, **Confluence**, is not another source. It is derived from the s
 
 Motion is intrinsic: each field advects and pulses at a different incommensurate rate even when Breath is zero. Breath controls how strongly the local pulses express themselves; only Freeze stops the field.
 
-The standalone study drives source strength with the four magnet sliders and can isolate every source or Confluence for review. `setSource()` and atomic `setSources()` accept normalized directional placement and angular radius. A later Composition adapter can derive those directions from real world positions without changing the field engine. This library does not import, inspect or own the Substrate, Universe, Cosmos, Tree or Composition.
+The standalone study drives source strength with the four magnet sliders and can isolate every source or Confluence for review. `setSource()` and atomic `setSources()` accept normalized directional placement and angular radius. The Category Tree composition adapter derives those directions from four live world anchors and updates them as the camera moves without changing the field engine. This library does not import, inspect or own the Substrate, Universe, Cosmos, Tree or Composition.
 
 The standalone page owns its camera, renderer, controls and sole animation loop. `index.js` is the public export surface.
