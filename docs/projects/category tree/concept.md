@@ -2,7 +2,7 @@
 
 ## Origin and lineage
 
-The artwork originates in the [Trade Control Category Tree](https://tradecontrol.online/cash/cash-configuration), a recursive classification system that turns heterogeneous operational activity into progressively larger financial and operational meanings.
+The artwork originates in the [Trade Control Category Tree](https://tradecontrol.github.io/cash/cash-configuration), a recursive classification system that turns heterogeneous operational activity into progressively larger financial and operational meanings.
 
 Category Tree did not begin with shader code. An earlier AI examined that implementation, formed the word-picture **a windswept, recursive, engineered organism—not a tree, but tree-like**, and rendered an iterated static visual impression. That image was already one of Gallery's first four entries. It supplied the initial artistic proposition—not a technical specification—from which this concept, the separate component studies and the completed procedural composition were subsequently developed.
 
@@ -76,7 +76,7 @@ The desired image balances:
 - Darkness and restraint with concentrated emissive energy.
 - A readable overall transformation with room for ambiguity and awe.
 
-The camera should support both encounter and understanding: low or human-scale views can establish monumentality, while controlled movement and closer inspection can reveal deformation, topology and flow. Live controls are part of the exploratory practice—a mixing desk for judging the work—not the subject of the work itself.
+The camera should support both encounter and understanding: low or human-scale views can establish monumentality, while controlled movement and closer inspection can reveal deformation, topology and flow. Live controls first helped discover the useful artistic range and now form part of the completed interactive work. They allow the viewer to alter emphasis, energy, movement and scene without exposing every implementation constant or dissolving the composition into a technical dashboard.
 
 ## Provenance and discipline
 

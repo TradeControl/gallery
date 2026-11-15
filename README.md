@@ -21,9 +21,9 @@ four earlier static visual interpretations. It is a living recursive structure
 planted at the meeting point of physical flow, ordered information, an
 energetic substrate and an emergent metaphysical field.
 
-- [View Gallery on the Trade Control website](https://tradecontrol.online/docs/gallery)
+- [View Gallery on the Trade Control website](https://tradecontrol.github.io/docs/gallery)
 - [Read the artwork concept](<./docs/projects/category tree/concept.md>)
-- [See the originating Trade Control Category Tree](https://tradecontrol.online/cash/cash-configuration)
+- [See the originating Trade Control Category Tree](https://tradecontrol.github.io/cash/cash-configuration)
 - [Follow the development record](<./docs/projects/category tree/composition/work-plan.md>)
 
 The complete work is supported by a set of retained studies. These include the
@@ -85,34 +85,10 @@ which the later concept was derived. The shader studies did not replace or
 retroactively alter those four stages; they extended one accepted visual
 interpretation into a procedural, interactive work.
 
-## Studio method
-
-Gallery develops individual visual problems as small, understandable studies
-before combining them. Live controls act as a mixing desk while an idea is
-being judged; they are instruments of the creative process rather than the
-subject of the finished work.
-
-Frameworks and abstraction layers are introduced only when an experiment has
-demonstrated a concrete need. Each stage must first succeed visually and
-technically on its own.
-
-## Repository map
-
-- `src/category-tree/composition/` — the completed Category Tree artwork.
-- `src/category-tree/tree/` — the standalone recursive Tree study.
-- `src/category-tree/casting-pit/physical-layer/` — the physical Universe study.
-- `src/category-tree/casting-pit/information-layer/` — the Cosmos/information study.
-- `src/category-tree/substrate/` — the energetic dark-matter sea study.
-- `src/category-tree/superstrate/` — the emergent metaphysical-field study.
-- `src/lib/` — page-independent engines shared by artworks and studies.
-- `docs/projects/category tree/` — concepts, outcomes, session records and
-  rejected propositions.
-- `src/category-tree/casting-pit/archive/` — superseded runnable experiments.
-
 ## Relationship with Trade Control
 
 This repository owns Gallery's artwork code, component studies and conceptual
-record. The [Trade Control website](https://tradecontrol.online/docs/gallery)
+record. The [Trade Control website](https://tradecontrol.github.io/docs/gallery)
 owns their public presentation and provides the route back into the wider
 application.
 
