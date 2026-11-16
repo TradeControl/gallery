@@ -138,7 +138,7 @@ function resize()
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setPixelRatio( Math.min( window.devicePixelRatio, 1.75 ) );
-    renderer.setSize( width, height );
+    renderer.setSize( width, height, false );
 }
 
 function animate( time )
