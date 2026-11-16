@@ -49,7 +49,7 @@ export function createCastingPitWorld( sceneElement, options = {} )
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
         renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
-        renderer.setSize( width, height, false );
+        renderer.setSize( width, height );
     }
 
     const frameCallbacks = [];
